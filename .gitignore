@@ -12,12 +12,6 @@ out/
 # Turborepo
 .turbo/
 
-# Environment files
-.env
-.env.local
-.env.production
-.env.development
-
 # TypeScript
 *.tsbuildinfo
 
