@@ -1,7 +1,12 @@
-import "dotenv/config";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import * as schema from "./schema.js";
+import { config as loadEnv } from "dotenv";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { PrismaClient } from "@prisma/client";
+
+const repoRoot = findRepoRoot(process.cwd());
+
+loadEnv({ path: resolve(repoRoot, ".env.local") });
+loadEnv({ path: resolve(repoRoot, ".env") });
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -9,19 +14,34 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const connectionString = process.env.DATABASE_URL;
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
 
-// For Drizzle migrations and queries
-const queryClient = postgres(connectionString, {
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 10,
-  onnotice: () => {}, // suppress notice messages
-});
+export const db =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+  });
 
-export const db = drizzle(queryClient, {
-  schema,
-  logger: process.env.NODE_ENV === "development",
-});
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+}
 
 export type Database = typeof db;
+
+function findRepoRoot(startDir: string) {
+  let current = startDir;
+
+  while (true) {
+    if (existsSync(resolve(current, "turbo.json"))) {
+      return current;
+    }
+
+    const parent = resolve(current, "..");
+    if (parent === current) {
+      return startDir;
+    }
+    current = parent;
+  }
+}

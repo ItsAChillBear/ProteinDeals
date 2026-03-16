@@ -1,3 +1,8 @@
 export { db } from "./client.js";
 export type { Database } from "./client.js";
-export * from "./schema.js";
+export {
+  Prisma,
+  ProductCategory,
+  ScrapeJobStatus,
+  ScrapeJobType,
+} from "@prisma/client";

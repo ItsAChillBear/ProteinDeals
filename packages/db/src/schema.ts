@@ -274,3 +274,4 @@ export const priceAlertsRelations = relations(priceAlerts, ({ one }) => ({
     references: [productVariants.id],
   }),
 }));
+export {};
