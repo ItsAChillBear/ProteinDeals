@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductCategory {
+  whey_concentrate
+  whey_isolate
+  vegan
+  casein
+  mass_gainer
+  plant_blend
+  other
+}
+
+enum ScrapeJobType {
+  full_crawl
+  price_update
+  sitemap_parse
+  category_scrape
+}
+
+enum ScrapeJobStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
+}
+
+model Product {
+  id              String           @id @default(uuid()) @db.Uuid
+  slug            String           @unique @db.VarChar(255)
+  name            String           @db.VarChar(500)
+  brand           String           @db.VarChar(100)
+  category        ProductCategory
+  description     String?
+  proteinPer100g  Decimal?         @map("protein_per_100g") @db.Decimal(5, 2)
+  servingSizeG    Decimal?         @map("serving_size_g") @db.Decimal(6, 2)
+  servingsPerPack Int?             @map("servings_per_pack")
+  imageUrl        String?          @map("image_url")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  variants        ProductVariant[]
+
+  @@index([slug], map: "products_slug_idx")
+  @@index([brand], map: "products_brand_idx")
+  @@index([category], map: "products_category_idx")
+  @@index([isActive], map: "products_is_active_idx")
+  @@map("products")
+}
+
+model Retailer {
+  id                       String           @id @default(uuid()) @db.Uuid
+  name                     String           @db.VarChar(100)
+  slug                     String           @unique @db.VarChar(100)
+  baseUrl                  String           @map("base_url") @db.VarChar(255)
+  logoUrl                  String?          @map("logo_url")
+  affiliatePrefix          String?          @map("affiliate_prefix")
+  trustScore               Decimal?         @map("trust_score") @db.Decimal(3, 2)
+  freeDeliveryThresholdGbp Decimal?         @map("free_delivery_threshold_gbp") @db.Decimal(8, 2)
+  isActive                 Boolean          @default(true) @map("is_active")
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  variants                 ProductVariant[]
+  scrapeJobs               ScrapeJob[]
+
+  @@index([slug], map: "retailers_slug_idx")
+  @@index([isActive], map: "retailers_is_active_idx")
+  @@map("retailers")
+}
+
+model ProductVariant {
+  id                String        @id @default(uuid()) @db.Uuid
+  productId         String        @map("product_id") @db.Uuid
+  retailerId        String        @map("retailer_id") @db.Uuid
+  retailerProductId String?       @map("retailer_product_id") @db.VarChar(255)
+  url               String
+  flavour           String?       @db.VarChar(150)
+  sizeG             Decimal       @map("size_g") @db.Decimal(8, 2)
+  inStock           Boolean       @default(true) @map("in_stock")
+  lastScrapedAt     DateTime?     @map("last_scraped_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  product           Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  retailer          Retailer      @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  priceRecords      PriceRecord[]
+  priceAlerts       PriceAlert[]
+
+  @@index([productId], map: "product_variants_product_id_idx")
+  @@index([retailerId], map: "product_variants_retailer_id_idx")
+  @@index([productId, retailerId], map: "product_variants_product_retailer_idx")
+  @@index([inStock], map: "product_variants_in_stock_idx")
+  @@map("product_variants")
+}
+
+model PriceRecord {
+  id           String         @id @default(uuid()) @db.Uuid
+  variantId    String         @map("variant_id") @db.Uuid
+  price        Decimal        @db.Decimal(10, 2)
+  pricePer100g Decimal        @map("price_per_100g") @db.Decimal(10, 4)
+  wasOnSale    Boolean        @default(false) @map("was_on_sale")
+  scrapedAt    DateTime       @default(now()) @map("scraped_at") @db.Timestamptz(6)
+  variant      ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId], map: "price_records_variant_id_idx")
+  @@index([scrapedAt], map: "price_records_scraped_at_idx")
+  @@index([variantId, scrapedAt], map: "price_records_variant_scraped_idx")
+  @@index([pricePer100g], map: "price_records_price_per_100g_idx")
+  @@map("price_records")
+}
+
+model ScrapeJob {
+  id           String          @id @default(uuid()) @db.Uuid
+  retailerId   String          @map("retailer_id") @db.Uuid
+  jobType      ScrapeJobType   @map("job_type")
+  status       ScrapeJobStatus @default(pending)
+  pagesScraped Int             @default(0) @map("pages_scraped")
+  productsFound Int            @default(0) @map("products_found")
+  errors       Json?
+  startedAt    DateTime?       @map("started_at") @db.Timestamptz(6)
+  completedAt  DateTime?       @map("completed_at") @db.Timestamptz(6)
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  retailer     Retailer        @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+
+  @@index([retailerId], map: "scrape_jobs_retailer_id_idx")
+  @@index([status], map: "scrape_jobs_status_idx")
+  @@index([createdAt], map: "scrape_jobs_created_at_idx")
+  @@map("scrape_jobs")
+}
+
+model PriceAlert {
+  id              String         @id @default(uuid()) @db.Uuid
+  variantId       String         @map("variant_id") @db.Uuid
+  email           String         @db.VarChar(255)
+  targetPrice     Decimal        @map("target_price") @db.Decimal(10, 2)
+  isActive        Boolean        @default(true) @map("is_active")
+  lastTriggeredAt DateTime?      @map("last_triggered_at") @db.Timestamptz(6)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  variant         ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId], map: "price_alerts_variant_id_idx")
+  @@index([email], map: "price_alerts_email_idx")
+  @@index([isActive], map: "price_alerts_is_active_idx")
+  @@map("price_alerts")
+}
