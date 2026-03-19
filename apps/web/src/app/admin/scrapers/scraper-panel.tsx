@@ -54,12 +54,14 @@ export function MyproteinScraperPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [progressLines, setProgressLines] = useState<string[]>([]);
+  const [liveRecords, setLiveRecords] = useState<ScraperRecord[]>([]);
 
   async function runScraper() {
     setIsRunning(true);
     setError(null);
     setResult(null);
     setProgressLines([]);
+    setLiveRecords([]);
 
     try {
       const limitValue = Number(limit);
@@ -77,6 +79,13 @@ export function MyproteinScraperPanel() {
             message: string;
           };
           setProgressLines((current) => [...current, payload.message]);
+        });
+
+        source.addEventListener("variant", (event) => {
+          const payload = JSON.parse((event as MessageEvent<string>).data) as {
+            record: ScraperRecord;
+          };
+          setLiveRecords((current) => [...current, payload.record]);
         });
 
         source.addEventListener("complete", (event) => {
@@ -141,7 +150,7 @@ export function MyproteinScraperPanel() {
     }
   }
 
-  const records = result?.records ?? [];
+  const records = result?.records ?? liveRecords;
   const progressCount = useMemo(() => progressLines.length, [progressLines]);
 
   return (

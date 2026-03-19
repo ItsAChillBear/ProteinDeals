@@ -99,6 +99,9 @@ async function start() {
         onProgress: async (message: string) => {
           send("progress", { message });
         },
+        onVariant: async (record) => {
+          send("variant", { record });
+        },
       });
 
       send("complete", {

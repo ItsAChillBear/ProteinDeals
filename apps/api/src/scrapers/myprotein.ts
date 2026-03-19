@@ -34,6 +34,7 @@ export interface ScrapeMyproteinOptions {
   limitProducts?: number;
   fetchImpl?: typeof fetch;
   onProgress?: (message: string) => void | Promise<void>;
+  onVariant?: (record: MyproteinVariantRecord) => void | Promise<void>;
 }
 
 export async function scrapeMyproteinWheyProducts(
@@ -65,6 +66,7 @@ export async function scrapeMyproteinWheyProducts(
       categoryUrl,
       fetchImpl,
       onProgress: options.onProgress,
+      onVariant: options.onVariant,
     });
     results.push(...productResults);
     await options.onProgress?.(
@@ -82,8 +84,9 @@ async function extractProductVariants(args: {
   categoryUrl: string;
   fetchImpl: typeof fetch;
   onProgress?: (message: string) => void | Promise<void>;
+  onVariant?: (record: MyproteinVariantRecord) => void | Promise<void>;
 }): Promise<MyproteinVariantRecord[]> {
-  const { productHtml, productUrl, categoryUrl, fetchImpl, onProgress } = args;
+  const { productHtml, productUrl, categoryUrl, fetchImpl, onProgress, onVariant } = args;
   const nodes = extractJsonLdNodes(productHtml);
   const productGroup = nodes.find((node) => node["@type"] === "ProductGroup");
   if (!productGroup) {
@@ -124,7 +127,7 @@ async function extractProductVariants(args: {
     const pricePer100g =
       price && sizeG ? roundTo((price / sizeG) * 100, 4) : null;
 
-    variantRecords.push({
+    const record = {
       retailer: "MyProtein",
       brand,
       productName,
@@ -147,7 +150,10 @@ async function extractProductVariants(args: {
       currency: asString(offer?.priceCurrency) ?? variantPage.currency,
       imageUrl: variantPage.imageUrl ?? asString(variant.image) ?? defaultImageUrl ?? null,
       scrapedAt: new Date().toISOString(),
-    });
+    } satisfies MyproteinVariantRecord;
+
+    variantRecords.push(record);
+    await onVariant?.(record);
   }
 
   return variantRecords;

@@ -57,6 +57,12 @@ export default function Navbar() {
             >
               Compare Prices
             </Link>
+            <Link
+              href="/admin/scrapers"
+              className="ml-2 inline-flex items-center border border-gray-700 hover:border-green-500/40 bg-gray-900 hover:bg-gray-800 text-gray-200 hover:text-white font-semibold px-4 py-2 rounded-lg text-sm transition-all duration-150"
+            >
+              Backend
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -95,6 +101,13 @@ export default function Navbar() {
               className="block w-full text-center bg-green-500 hover:bg-green-400 text-gray-950 font-bold px-4 py-3 rounded-xl text-sm transition-colors"
             >
               Compare Prices
+            </Link>
+            <Link
+              href="/admin/scrapers"
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 block w-full text-center border border-gray-700 hover:border-green-500/40 bg-gray-900 hover:bg-gray-800 text-gray-200 hover:text-white font-semibold px-4 py-3 rounded-xl text-sm transition-colors"
+            >
+              Backend
             </Link>
           </div>
         </div>
