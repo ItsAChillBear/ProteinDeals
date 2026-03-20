@@ -1,5 +1,6 @@
 import { db, ProductCategory, Prisma } from "@wheywise/db";
 import type { MyproteinVariantRecord } from "../scrapers/myprotein.js";
+import { syncProductImageToStorage } from "./product-media.js";
 
 export interface ImportMyproteinResult {
   imported: number;
@@ -13,14 +14,19 @@ export interface CompareProductRow {
   slug: string;
   name: string;
   brand: string;
+  imageUrl: string | null;
   retailer: string;
+  flavour: string | null;
   size: string;
   sizeG: number;
+  servings: number | null;
   price: number;
   pricePer100g: number;
+  proteinPer100g: number | null;
   inStock: boolean;
   url: string;
   type: string;
+  description: string | null;
 }
 
 export async function importMyproteinRecords(
@@ -51,6 +57,23 @@ export async function importMyproteinRecords(
       where: {
         slug: productSlug,
       },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        brand: true,
+        category: true,
+        proteinPer100g: true,
+        servingSizeG: true,
+        servingsPerPack: true,
+        imageUrl: true,
+        description: true,
+      },
+    });
+    const imageUrl = await syncProductImageToStorage({
+      productSlug,
+      sourceUrl: record.imageUrl,
+      existingImageUrl: existingProduct?.imageUrl ?? null,
     });
 
     const product =
@@ -72,13 +95,37 @@ export async function importMyproteinRecords(
               ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2))
               : null,
           servingsPerPack,
-          imageUrl: record.imageUrl,
-          description: null,
+          imageUrl,
+          description: buildProductDescription(record),
         },
       }));
 
     if (!existingProduct) {
       createdProducts += 1;
+    } else {
+      await db.product.update({
+        where: {
+          id: existingProduct.id,
+        },
+        data: {
+          name: record.flavour
+            ? `${record.productName} - ${record.flavour}`
+            : record.productName,
+          brand: record.brand,
+          category,
+          proteinPer100g:
+            record.proteinPer100g !== null
+              ? new Prisma.Decimal(record.proteinPer100g.toFixed(2))
+              : null,
+          servingSizeG:
+            record.sizeG && servingsPerPack
+              ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2))
+              : null,
+          servingsPerPack,
+          imageUrl,
+          description: buildProductDescription(record),
+        },
+      });
     }
 
     const retailerProductId =
@@ -141,13 +188,37 @@ export async function importMyproteinRecords(
   return { imported, createdProducts, createdVariants, createdPriceRecords };
 }
 
+function buildProductDescription(record: MyproteinVariantRecord) {
+  const sections = [
+    record.description,
+    record.keyBenefits.length ? `Key Benefits: ${record.keyBenefits.join(" | ")}` : null,
+    record.whyChoose ? `Why Choose: ${record.whyChoose}` : null,
+    record.suggestedUse ? `Suggested Use: ${record.suggestedUse}` : null,
+    record.ingredients ? `Ingredients: ${record.ingredients}` : null,
+    record.productDetails ? `Product Details: ${record.productDetails}` : null,
+  ].filter(Boolean);
+
+  return sections.length ? sections.join("\n\n") : null;
+}
+
 export async function getCompareProducts(): Promise<CompareProductRow[]> {
   const rows = await db.productVariant.findMany({
     orderBy: {
       lastScrapedAt: "desc",
     },
     include: {
-      product: true,
+      product: {
+        select: {
+          slug: true,
+          name: true,
+          brand: true,
+          imageUrl: true,
+          category: true,
+          proteinPer100g: true,
+          servingsPerPack: true,
+          description: true,
+        },
+      },
       retailer: true,
       priceRecords: {
         orderBy: {
@@ -167,14 +238,22 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
         slug: row.product.slug,
         name: row.product.name,
         brand: row.product.brand,
+        imageUrl: row.product.imageUrl,
         retailer: row.retailer.name,
+        flavour: row.flavour,
         size: formatSizeLabel(Number(row.sizeG)),
         sizeG: Number(row.sizeG),
+        servings: row.product.servingsPerPack,
         price: Number(latest.price),
         pricePer100g: Number(latest.pricePer100g),
+        proteinPer100g:
+          row.product.proteinPer100g !== null
+            ? Number(row.product.proteinPer100g)
+            : null,
         inStock: row.inStock,
         url: row.url,
         type: formatCategoryLabel(row.product.category),
+        description: row.product.description,
       };
     });
 }

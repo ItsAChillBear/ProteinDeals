@@ -1,5 +1,4 @@
-import FilterSidebar from "@/components/FilterSidebar";
-import PriceComparisonTable from "@/components/PriceComparisonTable";
+import CompareClient from "./CompareClient";
 import type { Product } from "@/components/PriceComparisonTable";
 
 export const metadata = {
@@ -37,25 +36,18 @@ export default async function ComparePage() {
 
   return (
     <div className="min-h-screen bg-gray-950 py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="mb-2 text-3xl font-bold text-white">
             Compare Protein Powder Prices
           </h1>
           <p className="text-gray-400">
-            {products.length} products from imported retailer data &bull; Sorted
-            by best value per 100g
+            {products.length} products from imported retailer data and sorted by
+            best value per 100g
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          <aside className="lg:w-64 flex-shrink-0">
-            <FilterSidebar />
-          </aside>
-          <div className="flex-1 min-w-0">
-            <PriceComparisonTable products={products} />
-          </div>
-        </div>
+        <CompareClient products={products} />
       </div>
     </div>
   );

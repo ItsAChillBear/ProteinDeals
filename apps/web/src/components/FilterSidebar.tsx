@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { SlidersHorizontal, X } from "lucide-react";
-import { clsx } from "clsx";
+import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 
 interface FilterGroup {
-  id: string;
+  id: "brand" | "type" | "retailer";
   label: string;
   options: { value: string; label: string }[];
 }
+
+export type CompareFilters = {
+  brand: string;
+  type: string;
+  retailer: string;
+  size: string;
+  stock: "in-stock" | "out-of-stock" | "all";
+};
 
 const filterGroups: FilterGroup[] = [
   {
@@ -45,143 +51,119 @@ const filterGroups: FilterGroup[] = [
 
 const sizeOptions = [
   { value: "all", label: "All Sizes" },
-  { value: "500g-1kg", label: "500g – 1kg" },
-  { value: "1kg-2kg", label: "1kg – 2kg" },
+  { value: "500g-1kg", label: "500g - 1kg" },
+  { value: "1kg-2kg", label: "1kg - 2kg" },
   { value: "2kg+", label: "2kg+" },
 ];
 
-export default function FilterSidebar() {
-  const [checked, setChecked] = useState<Record<string, Set<string>>>({
-    brand: new Set(),
-    type: new Set(),
-    retailer: new Set(),
-  });
-  const [size, setSize] = useState("all");
+const stockOptions = [
+  { value: "in-stock", label: "In stock" },
+  { value: "out-of-stock", label: "Out of stock" },
+  { value: "all", label: "All stock" },
+] as const;
 
-  function toggleCheck(groupId: string, value: string) {
-    setChecked((prev) => {
-      const next = new Set(prev[groupId]);
-      if (next.has(value)) {
-        next.delete(value);
-      } else {
-        next.add(value);
-      }
-      return { ...prev, [groupId]: next };
+export default function FilterSidebar({
+  filters,
+  onChange,
+}: {
+  filters: CompareFilters;
+  onChange: (filters: CompareFilters) => void;
+}) {
+  function clearAll() {
+    onChange({
+      brand: "",
+      type: "",
+      retailer: "",
+      size: "all",
+      stock: "in-stock",
     });
   }
 
-  function clearAll() {
-    setChecked({ brand: new Set(), type: new Set(), retailer: new Set() });
-    setSize("all");
-  }
-
   const hasActiveFilters =
-    Object.values(checked).some((s) => s.size > 0) || size !== "all";
+    filters.brand !== "" ||
+    filters.type !== "" ||
+    filters.retailer !== "" ||
+    filters.size !== "all" ||
+    filters.stock !== "in-stock";
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 sticky top-20">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+    <div className="rounded-2xl border border-gray-800 bg-gray-900 p-5">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4 text-gray-400" />
           <span className="text-sm font-semibold text-white">Filters</span>
         </div>
-        {hasActiveFilters && (
+        {hasActiveFilters ? (
           <button
+            type="button"
             onClick={clearAll}
-            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"
+            className="flex items-center gap-1 text-xs text-red-400 transition-colors hover:text-red-300"
           >
             <X className="h-3 w-3" />
             Clear All
           </button>
-        )}
+        ) : null}
       </div>
 
-      {/* Size Filter */}
-      <div className="mb-6">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Size
-        </p>
-        <div className="flex flex-col gap-1">
-          {sizeOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setSize(opt.value)}
-              className={clsx(
-                "text-left text-sm px-3 py-2 rounded-lg transition-colors",
-                size === opt.value
-                  ? "bg-green-950/60 text-green-400 border border-green-800/50"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <Dropdown
+          label="Size"
+          value={filters.size}
+          onChange={(value) => onChange({ ...filters, size: value })}
+          options={sizeOptions}
+        />
+        <Dropdown
+          label="Stock"
+          value={filters.stock}
+          onChange={(value) =>
+            onChange({ ...filters, stock: value as CompareFilters["stock"] })
+          }
+          options={stockOptions as readonly { value: string; label: string }[]}
+        />
+        {filterGroups.map((group) => (
+          <Dropdown
+            key={group.id}
+            label={group.label}
+            value={filters[group.id]}
+            onChange={(value) => onChange({ ...filters, [group.id]: value })}
+            options={[{ value: "", label: `All ${group.label}s` }, ...group.options]}
+          />
+        ))}
       </div>
-
-      {/* Checkbox Filter Groups */}
-      {filterGroups.map((group) => (
-        <div key={group.id} className="mb-6 last:mb-0">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            {group.label}
-          </p>
-          <div className="flex flex-col gap-2">
-            {group.options.map((opt) => {
-              const isChecked = checked[group.id]?.has(opt.value) ?? false;
-              return (
-                <label
-                  key={opt.value}
-                  className="flex items-center gap-2.5 cursor-pointer group"
-                >
-                  <div
-                    className={clsx(
-                      "h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
-                      isChecked
-                        ? "bg-green-500 border-green-500"
-                        : "border-gray-600 group-hover:border-gray-400"
-                    )}
-                    onClick={() => toggleCheck(group.id, opt.value)}
-                  >
-                    {isChecked && (
-                      <svg
-                        className="h-2.5 w-2.5 text-gray-950"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={isChecked}
-                    onChange={() => toggleCheck(group.id, opt.value)}
-                    value={opt.value}
-                  />
-                  <span
-                    className={clsx(
-                      "text-sm transition-colors",
-                      isChecked
-                        ? "text-white"
-                        : "text-gray-400 group-hover:text-white"
-                    )}
-                  >
-                    {opt.label}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-      ))}
     </div>
+  );
+}
+
+function Dropdown({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly { value: string; label: string }[];
+}) {
+  return (
+    <label className="space-y-2">
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        {label}
+      </span>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full appearance-none rounded-xl border border-gray-800 bg-gray-950 px-4 py-3 pr-10 text-sm text-white outline-none transition focus:border-green-500"
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+      </div>
+    </label>
   );
 }

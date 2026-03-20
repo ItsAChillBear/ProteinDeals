@@ -15,11 +15,21 @@ type ScraperRecord = {
   price: number | null;
   originalPrice: number | null;
   wasOnSale: boolean;
+  subscriptionPrice: number | null;
+  subscriptionSavings: number | null;
   pricePer100g: number | null;
   proteinPer100g: number | null;
   inStock: boolean;
   currency: string | null;
   imageUrl: string | null;
+  description: string | null;
+  keyBenefits: string[];
+  whyChoose: string | null;
+  suggestedUse: string | null;
+  ingredients: string | null;
+  faqEntries: Array<{ question: string; answer: string }>;
+  nutritionalInformation: Array<{ label: string; value: string }>;
+  productDetails: string | null;
   scrapedAt: string;
 };
 
@@ -223,12 +233,9 @@ export function MyproteinScraperPanel() {
 
       {importResult?.importResult ? (
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100">
-          Imported {importResult.importResult.imported} rows.
-          {" "}
-          Created {importResult.importResult.createdProducts} products,
-          {" "}
-          {importResult.importResult.createdVariants} variants, and
-          {" "}
+          Imported {importResult.importResult.imported} rows. Created{" "}
+          {importResult.importResult.createdProducts} products,{" "}
+          {importResult.importResult.createdVariants} variants, and{" "}
           {importResult.importResult.createdPriceRecords} price records.
         </div>
       ) : null}
@@ -255,11 +262,13 @@ export function MyproteinScraperPanel() {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-stone-900/90 text-xs uppercase tracking-[0.2em] text-stone-400">
               <tr>
+                <th className="px-4 py-4 font-medium">Image</th>
                 <th className="px-4 py-4 font-medium">Product</th>
                 <th className="px-4 py-4 font-medium">Flavour</th>
                 <th className="px-4 py-4 font-medium">Size</th>
                 <th className="px-4 py-4 font-medium">Servings</th>
                 <th className="px-4 py-4 font-medium">Price</th>
+                <th className="px-4 py-4 font-medium">Subscription</th>
                 <th className="px-4 py-4 font-medium">Per 100g</th>
                 <th className="px-4 py-4 font-medium">Protein</th>
                 <th className="px-4 py-4 font-medium">Stock</th>
@@ -272,6 +281,27 @@ export function MyproteinScraperPanel() {
                     key={`${record.retailerProductId ?? record.variantUrl}`}
                     className="border-t border-stone-800 align-top text-stone-200"
                   >
+                    <td className="px-4 py-4">
+                      {record.imageUrl ? (
+                        <a
+                          href={record.imageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block h-16 w-16 overflow-hidden rounded-2xl border border-stone-800 bg-stone-900"
+                        >
+                          <img
+                            src={record.imageUrl}
+                            alt={record.productName}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-dashed border-stone-800 bg-stone-900 text-xs text-stone-500">
+                          No image
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-4">
                       <div className="space-y-1">
                         <p className="font-medium text-stone-50">
@@ -287,14 +317,14 @@ export function MyproteinScraperPanel() {
                         </a>
                       </div>
                     </td>
-                    <td className="px-4 py-4">{record.flavour ?? "—"}</td>
+                    <td className="px-4 py-4">{record.flavour ?? "-"}</td>
                     <td className="px-4 py-4">
-                      <div>{record.sizeLabel ?? "—"}</div>
+                      <div>{record.sizeLabel ?? "-"}</div>
                       <div className="text-xs text-stone-500">
                         {record.sizeG ? `${record.sizeG}g` : "Unknown"}
                       </div>
                     </td>
-                    <td className="px-4 py-4">{record.servingsLabel ?? "—"}</td>
+                    <td className="px-4 py-4">{record.servingsLabel ?? "-"}</td>
                     <td className="px-4 py-4">
                       <div className="font-medium text-stone-50">
                         {formatPrice(record.price, record.currency)}
@@ -306,14 +336,24 @@ export function MyproteinScraperPanel() {
                       ) : null}
                     </td>
                     <td className="px-4 py-4">
+                      <div className="font-medium text-stone-50">
+                        {formatPrice(record.subscriptionPrice, record.currency)}
+                      </div>
+                      {record.subscriptionSavings ? (
+                        <div className="text-xs text-emerald-300">
+                          Save {formatPrice(record.subscriptionSavings, record.currency)}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-4">
                       {record.pricePer100g
                         ? formatPrice(record.pricePer100g, record.currency)
-                        : "—"}
+                        : "-"}
                     </td>
                     <td className="px-4 py-4">
                       {record.proteinPer100g
                         ? `${record.proteinPer100g}g / 100g`
-                        : "—"}
+                        : "-"}
                     </td>
                     <td className="px-4 py-4">
                       <span
@@ -331,7 +371,7 @@ export function MyproteinScraperPanel() {
               ) : (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={10}
                     className="px-4 py-12 text-center text-sm text-stone-500"
                   >
                     Run the scraper to load live Myprotein variants.
@@ -359,7 +399,7 @@ function StatCard(props: { label: string; value: string }) {
 
 function formatPrice(value: number | null, currency: string | null) {
   if (value === null) {
-    return "—";
+    return "-";
   }
 
   return new Intl.NumberFormat("en-GB", {
