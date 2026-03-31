@@ -47,7 +47,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export const metadata = {
-  title: "Protein Powder Blog | WheyWise",
+  title: "Protein Powder Blog | ProteinDeals",
   description:
     "Expert guides, price analyses, and brand comparisons to help you make smarter protein powder purchases.",
 };
@@ -59,7 +59,7 @@ export default function BlogPage() {
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-white mb-3">
-            WheyWise Blog
+            ProteinDeals Blog
           </h1>
           <p className="text-gray-400 text-lg max-w-2xl">
             Expert buying guides, price analyses, and honest brand comparisons.

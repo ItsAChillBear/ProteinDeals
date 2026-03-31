@@ -116,7 +116,7 @@ export async function generateMetadata({
 }) {
   const product = mockProducts[params.slug] ?? getFallbackProduct(params.slug);
   return {
-    title: `${product.name} - Price Comparison UK | WheyWise`,
+    title: `${product.name} - Price Comparison UK | ProteinDeals`,
     description: `Compare prices for ${product.name} across UK retailers. Find the cheapest deal updated daily.`,
   };
 }

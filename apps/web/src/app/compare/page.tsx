@@ -2,7 +2,7 @@ import CompareClient from "./CompareClient";
 import type { Product } from "@/components/PriceComparisonTable";
 
 export const metadata = {
-  title: "Compare Protein Powder Prices UK | WheyWise",
+  title: "Compare Protein Powder Prices UK | ProteinDeals",
   description:
     "Compare all protein powder prices across UK retailers. Filter by brand, type, and size to find the best value.",
 };

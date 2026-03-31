@@ -63,7 +63,58 @@ function extractVariantImageUrl($: cheerio.CheerioAPI, pageUrl: string) {
 }
 
 function extractProteinPer100g($: cheerio.CheerioAPI): number | null {
-  const text = $("body").text();
-  const match = text.match(/Protein\s*[:\s]+\s*(\d+(?:\.\d+)?)\s*g/iu);
+  const tableSelectors = [
+    "table tr",
+    "[data-e2e*='nutrition'] tr",
+    "[class*='nutrition'] tr",
+    "[class*='Nutrition'] tr",
+  ];
+
+  for (const selector of tableSelectors) {
+    for (const element of $(selector).toArray()) {
+      const cells = $(element).find("th, td");
+      if (cells.length < 2) continue;
+
+      const label = collapseWhitespace($(cells[0]).text()).toLowerCase();
+      if (!isProteinLabel(label)) continue;
+
+      const value = collapseWhitespace($(cells[1]).text());
+      const amount = extractGramValue(value);
+      if (amount !== null) return amount;
+    }
+  }
+
+  const nutritionBlocks = [
+    "[data-e2e*='nutrition']",
+    "[class*='nutrition']",
+    "[class*='Nutrition']",
+  ];
+
+  for (const selector of nutritionBlocks) {
+    for (const element of $(selector).toArray()) {
+      const blockText = collapseWhitespace($(element).text());
+      const amount = extractProteinFromNutritionText(blockText);
+      if (amount !== null) return amount;
+    }
+  }
+
+  return null;
+}
+
+function extractProteinFromNutritionText(text: string): number | null {
+  const match = text.match(/(?:^|\b)protein\b[^0-9]{0,20}(\d+(?:\.\d+)?)\s*g\b/i);
   return match ? Number(match[1]) : null;
+}
+
+function extractGramValue(value: string): number | null {
+  const match = value.match(/(\d+(?:\.\d+)?)\s*g\b/i);
+  return match ? Number(match[1]) : null;
+}
+
+function isProteinLabel(label: string) {
+  return label === "protein" || label.startsWith("protein ");
+}
+
+function collapseWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
 }

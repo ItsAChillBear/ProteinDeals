@@ -54,7 +54,7 @@ export default function ContactPage() {
             </div>
             <p className="text-gray-400 leading-relaxed text-sm mb-6">
               If you run a UK supplement retail brand and want to be listed on
-              WheyWise, we&apos;d love to work with you. We currently track{" "}
+              ProteinDeals, we&apos;d love to work with you. We currently track{" "}
               <strong className="text-white">10+ retailers</strong> and are
               always expanding.
             </p>
@@ -91,7 +91,7 @@ export default function ContactPage() {
                 "Report incorrect or outdated prices",
                 "Request a retailer or brand to be added",
                 "Suggest new features or improvements",
-                "General questions about how WheyWise works",
+                "General questions about how ProteinDeals works",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2 text-gray-300">
                   <CheckCircle className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />

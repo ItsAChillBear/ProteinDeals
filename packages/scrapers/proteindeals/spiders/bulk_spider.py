@@ -6,7 +6,7 @@ from typing import Any, Generator
 import scrapy
 from scrapy.http import Response
 
-from wheywise.items import ProductItem
+from proteindeals.items import ProductItem
 
 logger = logging.getLogger(__name__)
 

@@ -41,6 +41,19 @@ async function start() {
     },
   });
 
+  server.get("/", async () => ({
+    name: "ProteinDeals API",
+    status: "ok",
+    health: "/health",
+    trpc: "/trpc",
+    timestamp: new Date().toISOString(),
+  }));
+
+  server.get("/favicon.ico", async (_request, reply) => {
+    reply.code(204);
+    return reply.send();
+  });
+
   server.get("/health", async () => ({
     status: "ok",
     timestamp: new Date().toISOString(),
@@ -207,7 +220,7 @@ async function start() {
 
   try {
     await server.listen({ port, host });
-    console.log(`WheyWise API running at http://${host}:${port}`);
+    console.log(`ProteinDeals API running at http://${host}:${port}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

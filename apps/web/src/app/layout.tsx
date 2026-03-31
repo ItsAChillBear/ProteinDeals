@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "WheyWise | Best Protein Powder Prices UK",
+  title: "ProteinDeals | Best Protein Powder Prices UK",
   description:
     "Compare protein powder prices across the UK's top supplement retailers. Find the cheapest whey protein, isolate, vegan protein and more.",
   keywords: [
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "Bulk protein",
   ],
   openGraph: {
-    title: "WheyWise | Best Protein Powder Prices UK",
+    title: "ProteinDeals | Best Protein Powder Prices UK",
     description:
       "Compare protein powder prices across the UK's top supplement retailers.",
     type: "website",
@@ -44,7 +44,7 @@ export default function RootLayout({
             <div className="flex flex-col md:flex-row justify-between items-start gap-8">
               <div>
                 <span className="text-xl font-bold text-green-400">
-                  WheyWise
+                  ProteinDeals
                 </span>
                 <p className="text-gray-400 text-sm mt-2 max-w-xs">
                   The UK&apos;s most comprehensive protein powder price
@@ -74,7 +74,7 @@ export default function RootLayout({
             </div>
             <div className="border-t border-gray-800 mt-8 pt-6 text-center text-xs text-gray-600">
               <p>
-                &copy; {new Date().getFullYear()} WheyWise. Prices updated
+                &copy; {new Date().getFullYear()} ProteinDeals. Prices updated
                 daily. We may earn a commission via affiliate links.
               </p>
             </div>

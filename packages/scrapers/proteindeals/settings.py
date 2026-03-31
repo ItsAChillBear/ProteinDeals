@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ─── Project ─────────────────────────────────────────────────────────────────
-BOT_NAME = "wheywise"
-SPIDER_MODULES = ["wheywise.spiders"]
-NEWSPIDER_MODULE = "wheywise.spiders"
+BOT_NAME = "proteindeals"
+SPIDER_MODULES = ["proteindeals.spiders"]
+NEWSPIDER_MODULE = "proteindeals.spiders"
 
 # ─── Crawl Behaviour ─────────────────────────────────────────────────────────
 ROBOTSTXT_OBEY = False
@@ -30,8 +30,8 @@ DOWNLOADER_MIDDLEWARES = {
     # Disable built-in user agent middleware
     "scrapy.downloadermiddlewares.useragent.UserAgentMiddleware": None,
     # Enable our custom middlewares
-    "wheywise.middlewares.RandomUserAgentMiddleware": 400,
-    "wheywise.middlewares.ProxyMiddleware": 410,
+    "proteindeals.middlewares.RandomUserAgentMiddleware": 400,
+    "proteindeals.middlewares.ProxyMiddleware": 410,
     # Enable retry middleware
     "scrapy.downloadermiddlewares.retry.RetryMiddleware": 550,
 }
@@ -41,8 +41,8 @@ RETRY_HTTP_CODES = [429, 500, 502, 503, 504, 522, 524, 408, 403]
 
 # ─── Item Pipelines ──────────────────────────────────────────────────────────
 ITEM_PIPELINES = {
-    "wheywise.pipelines.ValidationPipeline": 200,
-    "wheywise.pipelines.DatabasePipeline": 300,
+    "proteindeals.pipelines.ValidationPipeline": 200,
+    "proteindeals.pipelines.DatabasePipeline": 300,
 }
 
 # ─── AutoThrottle ────────────────────────────────────────────────────────────

@@ -21,7 +21,7 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ["@wheywise/db"],
+  transpilePackages: ["@proteindeals/db"],
 };
 
 export default nextConfig;

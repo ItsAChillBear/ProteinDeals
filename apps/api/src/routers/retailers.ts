@@ -4,7 +4,7 @@ import type { Context } from "./index.js";
 
 const t = initTRPC.context<Context>().create();
 
-// TODO: Replace with real DB queries via @wheywise/db
+// TODO: Replace with real DB queries via @proteindeals/db
 const MOCK_RETAILERS = [
   {
     id: "r-1",
@@ -51,7 +51,7 @@ const MOCK_RETAILERS = [
     slug: "amazon-uk",
     baseUrl: "https://www.amazon.co.uk",
     logoUrl: null,
-    affiliatePrefix: "https://www.amazon.co.uk/?tag=wheywise-21",
+    affiliatePrefix: "https://www.amazon.co.uk/?tag=proteindeals-21",
     trustScore: 4.5,
     freeDeliveryThresholdGbp: null,
     isActive: true,

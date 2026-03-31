@@ -15,6 +15,27 @@ const defaultFilters: CompareFilters = {
 export default function CompareClient({ products }: { products: Product[] }) {
   const [filters, setFilters] = useState<CompareFilters>(defaultFilters);
 
+  const sizeOptions = useMemo(() => {
+    const uniqueSizes = [...new Set(products.map((product) => product.size))]
+      .sort((a, b) => {
+        const aSize = products.find((product) => product.size === a)?.sizeG ?? 0;
+        const bSize = products.find((product) => product.size === b)?.sizeG ?? 0;
+        return aSize - bSize;
+      })
+      .map((size) => ({
+        value: `exact:${size}`,
+        label: size,
+      }));
+
+    return [
+      { value: "all", label: "All Sizes" },
+      { value: "500g-1kg", label: "500g - 1kg" },
+      { value: "1kg-2kg", label: "1kg - 2kg" },
+      { value: "2kg+", label: "2kg+" },
+      { group: " ", options: uniqueSizes },
+    ];
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       if (filters.stock === "in-stock" && !product.inStock) return false;
@@ -44,6 +65,10 @@ export default function CompareClient({ products }: { products: Product[] }) {
       if (filters.size === "2kg+" && product.sizeG <= 2000) {
         return false;
       }
+      if (filters.size.startsWith("exact:")) {
+        const exactSize = filters.size.slice("exact:".length);
+        if (product.size !== exactSize) return false;
+      }
 
       return true;
     });
@@ -51,7 +76,11 @@ export default function CompareClient({ products }: { products: Product[] }) {
 
   return (
     <div className="space-y-6">
-      <FilterSidebar filters={filters} onChange={setFilters} />
+      <FilterSidebar
+        filters={filters}
+        onChange={setFilters}
+        sizeOptions={sizeOptions}
+      />
       <div className="min-w-0">
         <PriceComparisonTable products={filteredProducts} />
       </div>

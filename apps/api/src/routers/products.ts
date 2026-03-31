@@ -4,7 +4,7 @@ import type { Context } from "./index.js";
 
 const t = initTRPC.context<Context>().create();
 
-// TODO: Replace with real DB queries via @wheywise/db
+// TODO: Replace with real DB queries via @proteindeals/db
 const MOCK_PRODUCTS = [
   {
     id: "1",

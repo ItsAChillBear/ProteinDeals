@@ -1,4 +1,4 @@
-import { db, ProductCategory, Prisma } from "@wheywise/db";
+import { db, ProductCategory, Prisma } from "@proteindeals/db";
 import type { MyproteinVariantRecord } from "../scrapers/myprotein.js";
 import { syncProductImageToStorage } from "./product-media.js";
 

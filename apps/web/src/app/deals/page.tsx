@@ -138,7 +138,7 @@ function savingBadgeColor(percent: number): string {
 }
 
 export const metadata = {
-  title: "Best Protein Powder Deals UK Today | WheyWise",
+  title: "Best Protein Powder Deals UK Today | ProteinDeals",
   description:
     "Today's best protein powder deals and discounts across UK retailers. Updated daily.",
 };
