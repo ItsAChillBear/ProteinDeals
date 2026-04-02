@@ -51,20 +51,30 @@ export interface ColumnFilterOptions {
   proteins: string[];
 }
 
+const DEFAULT_FILTERS: ColumnFilters = {
+  size: "all",
+  flavour: "all",
+  servings: "all",
+  price: "all",
+  pricePer100g: "all",
+  protein: "all",
+};
+
+const FILTER_KEYS: Array<keyof ColumnFilters> = [
+  "size",
+  "flavour",
+  "servings",
+  "price",
+  "pricePer100g",
+  "protein",
+];
 
 export default function PriceComparisonTable({ products }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("pricePer100g");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [selectedFlavours, setSelectedFlavours] = useState<Record<string, string>>({});
-  const [filters, setFilters] = useState<ColumnFilters>({
-    size: "all",
-    flavour: "all",
-    servings: "all",
-    price: "all",
-    pricePer100g: "all",
-    protein: "all",
-  });
+  const [filters, setFilters] = useState<ColumnFilters>(DEFAULT_FILTERS);
 
   const groups = useMemo(() => groupProducts(products), [products]);
 
@@ -92,28 +102,15 @@ export default function PriceComparisonTable({ products }: Props) {
     [groupedWithSelection, sortDir, sortKey]
   );
 
-  const filterOptions = useMemo<ColumnFilterOptions>(() => {
-    const allVariants = groups.flatMap((g) => g.variants);
+  const visibleVariants = useMemo(
+    () => getVisibleVariants(groupedWithSelection),
+    [groupedWithSelection]
+  );
 
-    const sizes = Array.from(new Set(allVariants.map((v) => v.size))).sort();
-    const flavours = Array.from(
-      new Set(allVariants.map((v) => v.flavour ?? "").filter(Boolean))
-    ).sort();
-
-    const servingsDiscrete = Array.from(new Set(allVariants.map((v) => v.servings).filter((s): s is number => s !== null))).sort((a, b) => a - b).map(String);
-    const priceDiscrete = Array.from(new Set(allVariants.map((v) => v.price.toFixed(2)))).sort((a, b) => Number(a) - Number(b));
-    const per100gDiscrete = Array.from(new Set(allVariants.map((v) => v.pricePer100g.toFixed(2)))).sort((a, b) => Number(a) - Number(b));
-    const proteinDiscrete = Array.from(new Set(allVariants.map((v) => v.proteinPer100g).filter((p): p is number => p !== null))).sort((a, b) => a - b).map(String);
-
-    return {
-      sizes,
-      flavours,
-      servings: servingsDiscrete,
-      prices: priceDiscrete,
-      pricePer100gs: per100gDiscrete,
-      proteins: proteinDiscrete,
-    };
-  }, [groups]);
+  const filterOptions = useMemo<ColumnFilterOptions>(
+    () => getFilterOptionsForFilters(visibleVariants, filters),
+    [filters, visibleVariants]
+  );
 
   const minPricePer100g = useMemo(() => {
     const inStockGroups = sorted.filter((group) => group.selected.inStock);
@@ -140,8 +137,14 @@ export default function PriceComparisonTable({ products }: Props) {
   }
 
   function setFilter(key: keyof ColumnFilters, value: string) {
-    setFilters((current) => ({ ...current, [key]: value }));
+    setFilters((current) => sanitizeFilters(visibleVariants, { ...current, [key]: value }));
   }
+
+  function resetFilters() {
+    setFilters(DEFAULT_FILTERS);
+  }
+
+  const hasActiveFilters = FILTER_KEYS.some((key) => filters[key] !== DEFAULT_FILTERS[key]);
 
   if (products.length === 0) {
     return (
@@ -159,9 +162,20 @@ export default function PriceComparisonTable({ products }: Props) {
           products across <span className="font-semibold text-white">{products.length}</span>{" "}
           variants
         </p>
-        <p className="text-xs text-gray-600">
-          Sorted by: {sortKey === "pricePer100g" ? "Price / 100g" : sortKey}
-        </p>
+        <div className="flex items-center gap-3">
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-200 transition hover:border-gray-500 hover:text-white"
+            >
+              Reset Filters
+            </button>
+          ) : null}
+          <p className="text-xs text-gray-600">
+            Sorted by: {sortKey === "pricePer100g" ? "Price / 100g" : sortKey}
+          </p>
+        </div>
       </div>
 
       <PriceComparisonDesktopTable
@@ -187,4 +201,119 @@ export default function PriceComparisonTable({ products }: Props) {
       />
     </div>
   );
+}
+
+function getVisibleVariants(groups: ProductGroupWithSelection[]) {
+  return groups.flatMap((group) => {
+    const activeFlavour = group.selected.flavour ?? "";
+    return group.variants.filter((variant) => (variant.flavour ?? "") === activeFlavour);
+  });
+}
+
+function getFilterOptionsForFilters(
+  variants: Product[],
+  filters: ColumnFilters
+): ColumnFilterOptions {
+  return {
+    sizes: getOptionsForKey(variants, filters, "size", (variant) => variant.size).sort(),
+    flavours: getOptionsForKey(variants, filters, "flavour", (variant) => variant.flavour ?? "")
+      .filter(Boolean)
+      .sort(),
+    servings: getOptionsForKey(variants, filters, "servings", (variant) =>
+      variant.servings !== null ? String(variant.servings) : null
+    ).sort((a, b) => Number(a) - Number(b)),
+    prices: getOptionsForKey(variants, filters, "price", (variant) => variant.price.toFixed(2))
+      .sort((a, b) => Number(a) - Number(b)),
+    pricePer100gs: getOptionsForKey(variants, filters, "pricePer100g", (variant) =>
+      variant.pricePer100g.toFixed(2)
+    ).sort((a, b) => Number(a) - Number(b)),
+    proteins: getOptionsForKey(variants, filters, "protein", (variant) =>
+      variant.proteinPer100g !== null ? String(variant.proteinPer100g) : null
+    ).sort((a, b) => Number(a) - Number(b)),
+  };
+}
+
+function getOptionsForKey(
+  variants: Product[],
+  filters: ColumnFilters,
+  targetKey: keyof ColumnFilters,
+  valueGetter: (variant: Product) => string | null
+) {
+  const matchingVariants = variants.filter((variant) =>
+    variantMatchesFilters(variant, {
+      size: targetKey === "size" ? DEFAULT_FILTERS.size : filters.size,
+      flavour: targetKey === "flavour" ? DEFAULT_FILTERS.flavour : filters.flavour,
+      servings: targetKey === "servings" ? DEFAULT_FILTERS.servings : filters.servings,
+      price: targetKey === "price" ? DEFAULT_FILTERS.price : filters.price,
+      pricePer100g:
+        targetKey === "pricePer100g" ? DEFAULT_FILTERS.pricePer100g : filters.pricePer100g,
+      protein: targetKey === "protein" ? DEFAULT_FILTERS.protein : filters.protein,
+    })
+  );
+
+  return Array.from(
+    new Set(
+      matchingVariants
+        .map(valueGetter)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+}
+
+function sanitizeFilters(variants: Product[], filters: ColumnFilters) {
+  let nextFilters = { ...filters };
+
+  for (const key of FILTER_KEYS) {
+    const options = getFilterOptionsForFilters(variants, nextFilters);
+    const validOptions = mapOptionsForKey(options, key);
+    if (
+      nextFilters[key] !== "all" &&
+      !nextFilters[key].startsWith(RANGE_PREFIX) &&
+      !validOptions.includes(nextFilters[key])
+    ) {
+      nextFilters = { ...nextFilters, [key]: "all" };
+    }
+  }
+
+  return nextFilters;
+}
+
+function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters) {
+  switch (key) {
+    case "size":
+      return options.sizes;
+    case "flavour":
+      return options.flavours;
+    case "servings":
+      return options.servings;
+    case "price":
+      return options.prices;
+    case "pricePer100g":
+      return options.pricePer100gs;
+    case "protein":
+      return options.proteins;
+  }
+}
+
+function variantMatchesFilters(variant: Product, filters: ColumnFilters) {
+  if (filters.flavour !== "all" && (variant.flavour ?? "") !== filters.flavour) return false;
+  if (filters.size !== "all" && variant.size !== filters.size) return false;
+  if (!matchesNumericFilter(variant.servings, filters.servings)) return false;
+  if (!matchesNumericFilter(variant.price, filters.price, 2)) return false;
+  if (!matchesNumericFilter(variant.pricePer100g, filters.pricePer100g, 2)) return false;
+  if (!matchesNumericFilter(variant.proteinPer100g, filters.protein)) return false;
+  return true;
+}
+
+function matchesNumericFilter(
+  value: number | null,
+  filter: string,
+  fixedDigits?: number
+) {
+  if (filter === "all") return true;
+  if (filter.startsWith(RANGE_PREFIX)) {
+    return matchesRange(value, filter);
+  }
+  if (value === null) return false;
+  return fixedDigits !== undefined ? value.toFixed(fixedDigits) === filter : String(value) === filter;
 }

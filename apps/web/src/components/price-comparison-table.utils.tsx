@@ -158,6 +158,17 @@ export function getVariantsForFlavour(group: ProductGroup, flavour: string) {
   return group.variants.filter((variant) => (variant.flavour ?? "") === flavour);
 }
 
+export function getDisplayProteinPer100g(
+  selected: Product,
+  variants: Product[]
+) {
+  if (selected.proteinPer100g !== null) {
+    return selected.proteinPer100g;
+  }
+
+  return variants.find((variant) => variant.proteinPer100g !== null)?.proteinPer100g ?? null;
+}
+
 export function sortGroups(
   groups: ProductGroupWithSelection[],
   sortKey: SortKey,

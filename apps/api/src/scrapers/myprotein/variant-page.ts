@@ -25,7 +25,7 @@ export async function parseVariantPage(html: string, pageUrl: string, fetchImpl:
       $(".price-was-save-container s").first().text(),
     ]),
     ...subscription,
-    proteinPer100g: extractProteinPer100g($),
+    proteinPer100g: extractProteinPer100g($, html),
     inStock:
       $("[data-e2e='add-to-basket'][disabled]").length === 0 &&
       $("#pdp-sticky-atb-btn[disabled]").length === 0,
@@ -62,7 +62,7 @@ function extractVariantImageUrl($: cheerio.CheerioAPI, pageUrl: string) {
   return fallback ? resolveUrl(pageUrl, fallback) : null;
 }
 
-function extractProteinPer100g($: cheerio.CheerioAPI): number | null {
+function extractProteinPer100g($: cheerio.CheerioAPI, html: string): number | null {
   for (const table of $("table").toArray()) {
     const amount = extractProteinPer100gFromTable($, table);
     if (amount !== null) return amount;
@@ -82,7 +82,23 @@ function extractProteinPer100g($: cheerio.CheerioAPI): number | null {
     }
   }
 
+  const documentText = collapseWhitespace(
+    html
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\\u00a0|&nbsp;/gi, " ")
+      .replace(/\s+/g, " ")
+  );
+  const documentAmount = extractProteinPer100gFromDocumentText(documentText);
+  if (documentAmount !== null) return documentAmount;
+
   return null;
+}
+
+function extractProteinPer100gFromDocumentText(text: string): number | null {
+  const match = text.match(
+    /per\s*100g(?:\s+per\s*serving)?[\s\S]{0,2000}?\bprotein\b[^0-9]{0,40}(\d+(?:\.\d+)?)\s*g\b/i
+  );
+  return match ? Number(match[1]) : null;
 }
 
 function extractProteinPer100gFromTable(

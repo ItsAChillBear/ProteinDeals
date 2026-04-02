@@ -15,6 +15,7 @@ import type { ProductGroupWithSelection, SortDir, SortKey } from "./price-compar
 import {
   BuyButton,
   formatCurrency,
+  getDisplayProteinPer100g,
   getFlavourOptions,
   getVariantsForFlavour,
   ProductPageLink,
@@ -405,6 +406,7 @@ export default function PriceComparisonDesktopTable({
             });
 
             if (flavourVariants.length === 0) return null;
+            const displayProteinPer100g = getDisplayProteinPer100g(product, flavourVariants);
 
             const groupMinPricePer100g = flavourVariants
               .filter((v) => v.inStock)
@@ -506,7 +508,7 @@ export default function PriceComparisonDesktopTable({
                       </td>
                       {isFirstRow && (
                         <td className="whitespace-nowrap px-4 py-2 text-gray-300" rowSpan={rowSpan}>
-                          {product.proteinPer100g !== null ? `${product.proteinPer100g}g / 100g` : "-"}
+                          {displayProteinPer100g !== null ? `${displayProteinPer100g}g / 100g` : "-"}
                         </td>
                       )}
                     </tr>
