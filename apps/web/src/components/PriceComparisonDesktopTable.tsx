@@ -107,7 +107,7 @@ export default function PriceComparisonDesktopTable({
             <th className={`${headerClass} w-28`}>{sortableHeader("Product", "name")}</th>
             <th className={`${headerClass} min-w-[80px]`}>
               <div className="flex flex-col items-center gap-1.5">
-                <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} />
+                <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi />
                 <span>Flavour</span>
               </div>
             </th>

@@ -87,11 +87,9 @@ export function countMatchingVariantsForGroup(
   filters: ColumnFilters,
   planner: ProteinPlannerState
 ) {
-  const activeFlavour = filters.flavour !== "all" ? filters.flavour : group.selected.flavour ?? "";
-  return group.variants.filter((variant) => {
-    if ((variant.flavour ?? "") !== activeFlavour) return false;
-    return variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner);
-  }).length;
+  return group.variants.filter((variant) =>
+    variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner)
+  ).length;
 }
 
 function getDailyBudget(amount: number, period: BudgetPeriod) {

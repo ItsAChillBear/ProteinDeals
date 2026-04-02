@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { clsx } from "clsx";
-import { RANGE_PREFIX } from "./price-comparison-filters";
+import { buildMultiFilter, MULTI_PREFIX, parseMultiFilter, RANGE_PREFIX } from "./price-comparison-filters";
 
 const triggerClass =
   "flex w-full items-center justify-between gap-1 rounded-lg border border-gray-700 bg-gray-900 px-1.5 py-0.5 text-[10px] text-gray-300 outline-none transition hover:border-gray-500 min-w-0";
@@ -71,12 +71,14 @@ export function PriceComparisonFilterDropdown({
   onChange,
   formatFn,
   numeric = false,
+  multi = false,
 }: {
   value: string;
   options: string[];
   onChange: (v: string) => void;
   formatFn?: (n: number) => string;
   numeric?: boolean;
+  multi?: boolean;
 }) {
   const fmt = formatFn ?? String;
   const allNumericValues = options.map(Number).filter((n) => !isNaN(n));
@@ -93,6 +95,15 @@ export function PriceComparisonFilterDropdown({
     const label = formatFn ? fmt(Number(option)) : option;
     return label.toLowerCase().includes(search.trim().toLowerCase());
   });
+
+  const selectedValues = value.startsWith(MULTI_PREFIX) ? parseMultiFilter(value) : [];
+
+  function toggleMultiOption(option: string) {
+    const next = selectedValues.includes(option)
+      ? selectedValues.filter((v) => v !== option)
+      : [...selectedValues, option];
+    onChange(buildMultiFilter(next));
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -134,6 +145,10 @@ export function PriceComparisonFilterDropdown({
 
   function getLabel() {
     if (value === "all") return "All";
+    if (value.startsWith(MULTI_PREFIX)) {
+      const count = selectedValues.length;
+      return count === 0 ? "All" : `${count} selected`;
+    }
     if (value.startsWith(RANGE_PREFIX)) {
       const [lo, hi] = value.replace(RANGE_PREFIX, "").split(":");
       return hi ? `${fmt(Number(lo))} – ${fmt(Number(hi))}` : `${fmt(Number(lo))}+`;
@@ -159,7 +174,7 @@ export function PriceComparisonFilterDropdown({
                 className="w-full rounded-lg border border-gray-700 bg-gray-950 px-2.5 py-2 text-[11px] text-white outline-none transition placeholder:text-gray-500 focus:border-green-500"
               />
             </div>
-            <button type="button" onClick={() => { onChange("all"); setOpen(false); }} className={clsx("w-full px-3 py-1.5 text-left text-[11px] transition hover:bg-gray-800", value === "all" ? "text-green-400" : "text-gray-300")}>
+            <button type="button" onClick={() => { onChange("all"); if (!multi) setOpen(false); }} className={clsx("w-full px-3 py-1.5 text-left text-[11px] transition hover:bg-gray-800", value === "all" || (value.startsWith(MULTI_PREFIX) && selectedValues.length === 0) ? "text-green-400" : "text-gray-300")}>
               All
             </button>
             {numeric && allNumericValues.length > 1 ? (
@@ -183,19 +198,43 @@ export function PriceComparisonFilterDropdown({
             ) : null}
             {filteredOptions.length ? (
               <>
-                <div className="mt-1 border-t border-gray-800 px-3 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-widest text-gray-600">Exact</div>
+                <div className="mt-1 border-t border-gray-800 px-3 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-widest text-gray-600">
+                  {multi ? "Select" : "Exact"}
+                </div>
                 <div style={{ height: "200px", overflowY: "auto", overflowX: "hidden", display: "block" }}>
-                  {filteredOptions.map((option) => (
-                    <div
-                      key={option}
-                      role="button"
-                      onClick={() => { onChange(option); setOpen(false); }}
-                      className={clsx("w-full cursor-pointer overflow-hidden px-3 py-1.5 text-left text-[11px] transition hover:bg-gray-800", value === option ? "text-green-400" : "text-gray-300")}
-                      style={{ display: "block", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
-                    >
-                      {formatFn ? fmt(Number(option)) : option}
-                    </div>
-                  ))}
+                  {filteredOptions.map((option) => {
+                    const label = formatFn ? fmt(Number(option)) : option;
+                    if (multi) {
+                      const checked = selectedValues.includes(option);
+                      return (
+                        <label
+                          key={option}
+                          className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-gray-800"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleMultiOption(option)}
+                            className="h-3.5 w-3.5 rounded border-gray-600 bg-gray-800 accent-green-500"
+                          />
+                          <span className={checked ? "text-green-400" : "text-gray-300"} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {label || "Default"}
+                          </span>
+                        </label>
+                      );
+                    }
+                    return (
+                      <div
+                        key={option}
+                        role="button"
+                        onClick={() => { onChange(option); setOpen(false); }}
+                        className={clsx("w-full cursor-pointer overflow-hidden px-3 py-1.5 text-left text-[11px] transition hover:bg-gray-800", value === option ? "text-green-400" : "text-gray-300")}
+                        style={{ display: "block", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
+                      >
+                        {label}
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             ) : (

@@ -83,6 +83,7 @@ export function groupProducts(products: Product[]) {
       product.retailer.toLowerCase(),
       product.type.toLowerCase(),
       baseName.toLowerCase(),
+      (product.flavour ?? "").toLowerCase(),
     ].join("::");
 
     const existing = groups.get(key);

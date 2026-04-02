@@ -1,11 +1,11 @@
 "use client";
 
 import { Fragment } from "react";
-import { CheckCircle, ChevronDown, ChevronUp, Tag, XCircle } from "lucide-react";
+import { CheckCircle, Tag, XCircle } from "lucide-react";
 import { clsx } from "clsx";
 import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
-import { matchesRange, RANGE_PREFIX, type ColumnFilters } from "./price-comparison-filters";
+import { matchesRange, MULTI_PREFIX, parseMultiFilter, RANGE_PREFIX, type ColumnFilters } from "./price-comparison-filters";
 import { formatCurrencyPrecise } from "./price-comparison-format";
 import { getDailyCaloriesForTarget, getDailyCostForTarget, plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
 import type { ColumnVisibility } from "./price-comparison-visibility";
@@ -21,7 +21,6 @@ import {
   BuyButton,
   formatCurrency,
   getDisplayProteinPer100g,
-  getVariantsForFlavour,
   ProductPageLink,
   ProductThumbnail,
 } from "./price-comparison-table.utils";
@@ -44,8 +43,10 @@ export function PriceComparisonDesktopRowGroup({
   onToggleExpanded: (groupId: string) => void;
 }) {
   const product = group.selected;
-  const activeFlavour = filters.flavour !== "all" ? filters.flavour : product.flavour ?? "";
-  const flavourVariants = getVariantsForFlavour(group, activeFlavour).filter((variant) =>
+
+  const activeFlavour = product.flavour ?? "";
+
+  const flavourVariants = group.variants.filter((variant) =>
     matchesVariantFilters(variant, filters) && plannerMatchesVariant(variant, planner)
   );
 
@@ -243,7 +244,12 @@ function matchesVariantFilters(
   variant: ProductGroupWithSelection["selected"],
   filters: ColumnFilters
 ) {
-  if (filters.flavour !== "all" && (variant.flavour ?? "") !== filters.flavour) return false;
+  if (filters.flavour !== "all") {
+    if (filters.flavour.startsWith(MULTI_PREFIX)) {
+      const allowed = parseMultiFilter(filters.flavour);
+      if (!allowed.includes(variant.flavour ?? "")) return false;
+    } else if ((variant.flavour ?? "") !== filters.flavour) return false;
+  }
   if (filters.size !== "all" && variant.size !== filters.size) return false;
   if (!matchesNumericFilter(variant.servings, filters.servings)) return false;
   if (!matchesNumericFilter(variant.price, filters.price, 2)) return false;

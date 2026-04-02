@@ -3,6 +3,15 @@ import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import type { Product, ProductGroupWithSelection } from "./price-comparison-table.types";
 
 export const RANGE_PREFIX = "range:";
+export const MULTI_PREFIX = "multi:";
+
+export function parseMultiFilter(filter: string): string[] {
+  return filter.replace(MULTI_PREFIX, "").split("\t").filter(Boolean);
+}
+
+export function buildMultiFilter(values: string[]): string {
+  return values.length ? `${MULTI_PREFIX}${values.join("\t")}` : "all";
+}
 
 export interface ColumnFilters {
   size: string;
@@ -72,10 +81,7 @@ export function matchesRange(value: number | null, filter: string): boolean {
 }
 
 export function getVisibleVariants(groups: ProductGroupWithSelection[]) {
-  return groups.flatMap((group) => {
-    const activeFlavour = group.selected.flavour ?? "";
-    return group.variants.filter((variant) => (variant.flavour ?? "") === activeFlavour);
-  });
+  return groups.flatMap((group) => group.variants);
 }
 
 export function getFilterOptionsForFilters(
@@ -201,6 +207,7 @@ export function sanitizeFilters(variants: Product[], filters: ColumnFilters) {
     if (
       nextFilters[key] !== "all" &&
       !nextFilters[key].startsWith(RANGE_PREFIX) &&
+      !nextFilters[key].startsWith(MULTI_PREFIX) &&
       !validOptions.includes(nextFilters[key])
     ) {
       nextFilters = { ...nextFilters, [key]: "all" };
@@ -240,7 +247,12 @@ function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters
 }
 
 export function variantMatchesFilters(variant: Product, filters: ColumnFilters) {
-  if (filters.flavour !== "all" && (variant.flavour ?? "") !== filters.flavour) return false;
+  if (filters.flavour !== "all") {
+    if (filters.flavour.startsWith(MULTI_PREFIX)) {
+      const allowed = parseMultiFilter(filters.flavour);
+      if (!allowed.includes(variant.flavour ?? "")) return false;
+    } else if ((variant.flavour ?? "") !== filters.flavour) return false;
+  }
   if (filters.size !== "all" && variant.size !== filters.size) return false;
   if (!matchesNumericFilter(variant.servings, filters.servings)) return false;
   if (!matchesNumericFilter(getPricePerServing(variant), filters.pricePerServing, 3)) return false;

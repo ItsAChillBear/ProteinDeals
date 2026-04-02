@@ -29,8 +29,6 @@ import {
 } from "./price-comparison-planner";
 import {
   getDefaultVariant,
-  getFlavourOptions,
-  getSizeOptions,
   groupProducts,
   sortGroups,
 } from "./price-comparison-table.utils";
@@ -55,24 +53,10 @@ export default function PriceComparisonTable({ products }: Props) {
 
   const groupedWithSelection = useMemo<ProductGroupWithSelection[]>(() => {
     return groups.map((group) => {
-      const fallback = getDefaultVariant(group);
-      const flavourOptions = getFlavourOptions(group);
-      const requestedFlavour = filters.flavour !== "all" ? filters.flavour : null;
-      const hasRequestedFlavour = requestedFlavour
-        ? group.variants.some((variant) => (variant.flavour ?? "") === requestedFlavour)
-        : false;
-      const activeFlavour = hasRequestedFlavour
-        ? requestedFlavour!
-        : (fallback.flavour ?? "") ?? flavourOptions[0]?.value ?? "";
-      const sizeOptions = getSizeOptions(group, activeFlavour);
-      const selected =
-        sizeOptions
-          .map((option) => group.variants.find((variant) => variant.id === option.value))
-          .find(Boolean) ??
-        fallback;
+      const selected = getDefaultVariant(group);
       return { ...group, selected };
     });
-  }, [filters.flavour, groups]);
+  }, [groups]);
 
   const sorted = useMemo(
     () => sortGroups(groupedWithSelection, sortKey, sortDir, planner),
@@ -108,28 +92,27 @@ export default function PriceComparisonTable({ products }: Props) {
   }, [sortKey]);
 
   const bestValueAmount = useMemo(() => {
-    const inStockVisibleVariants = visibleVariants.filter((variant) => {
-      if (!variant.inStock) return false;
-      return variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner);
-    });
+    const inStockFilteredVariants = filteredGroups.flatMap((group) =>
+      group.variants.filter((variant) => {
+        if (!variant.inStock) return false;
+        return variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner);
+      })
+    );
 
-    const metricValues = inStockVisibleVariants
+    const metricValues = inStockFilteredVariants
       .map((variant) => getBestValueAmount(variant, bestValueMetric))
       .filter((value): value is number => value !== null);
 
     return metricValues.length ? Math.min(...metricValues) : null;
-  }, [bestValueMetric, filters, planner, visibleVariants]);
+  }, [bestValueMetric, filteredGroups, filters, planner]);
 
   const bestValueVariantId = useMemo(() => {
     if (bestValueAmount === null) return null;
 
     for (const group of filteredGroups) {
-      const activeFlavour =
-        filters.flavour !== "all" ? filters.flavour : group.selected.flavour ?? "";
-      const visibleGroupVariants = group.variants.filter((variant) => {
-        if ((variant.flavour ?? "") !== activeFlavour) return false;
-        return variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner);
-      });
+      const visibleGroupVariants = group.variants.filter((variant) =>
+        variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner)
+      );
 
       const match = visibleGroupVariants.find(
         (variant) =>
