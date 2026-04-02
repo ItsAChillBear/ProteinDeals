@@ -1,12 +1,12 @@
 "use client";
 
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, Tag, XCircle } from "lucide-react";
 import { clsx } from "clsx";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
+import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 import {
   BuyButton,
   formatCurrency,
-  getFlavourOptions,
   getVariantsForFlavour,
   ProductPageLink,
   ProductThumbnail,
@@ -16,13 +16,11 @@ export default function PriceComparisonMobileList({
   groups,
   expandedRows,
   minPricePer100g,
-  onSelectFlavour,
   onToggleExpanded,
 }: {
   groups: ProductGroupWithSelection[];
   expandedRows: Record<string, boolean>;
   minPricePer100g: number | null;
-  onSelectFlavour: (group: ProductGroupWithSelection, flavour: string) => void;
   onToggleExpanded: (groupId: string) => void;
 }) {
   return (
@@ -35,7 +33,6 @@ export default function PriceComparisonMobileList({
           minPricePer100g !== null &&
           product.pricePer100g === minPricePer100g;
         const activeFlavour = product.flavour ?? "";
-        const flavourOptions = getFlavourOptions(group);
         const flavourVariants = getVariantsForFlavour(group, activeFlavour);
 
         return (
@@ -58,9 +55,7 @@ export default function PriceComparisonMobileList({
                     {group.baseName}
                   </button>
                   {isBestValue ? (
-                    <span className="flex-shrink-0 rounded border border-green-800/50 bg-green-950/70 px-2 py-0.5 text-xs font-bold text-green-400">
-                      Best Value
-                    </span>
+                    <Tag className="h-4 w-4 flex-shrink-0 text-green-400" aria-label="Best value" />
                   ) : null}
                 </div>
 
@@ -68,22 +63,9 @@ export default function PriceComparisonMobileList({
                   {group.brand} • {group.retailer} • {group.type}
                 </div>
 
-                <label className="block space-y-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-                    Flavour
-                  </span>
-                  <select
-                    value={activeFlavour}
-                    onChange={(event) => onSelectFlavour(group, event.target.value)}
-                    className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3 py-2 text-sm text-white outline-none transition focus:border-green-500"
-                  >
-                    {flavourOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="text-xs text-gray-400">
+                  Flavour: <span className="text-white">{activeFlavour || "Default"}</span>
+                </div>
 
                 <div className="mt-3 space-y-2">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
@@ -99,6 +81,16 @@ export default function PriceComparisonMobileList({
                         <span>{variant.servings ? `${variant.servings} servings` : "-"}</span>
                         <span>{formatCurrency(variant.price)}</span>
                         <span>{formatCurrency(variant.pricePer100g)}/100g</span>
+                        <span>
+                          {getPricePerServing(variant) !== null
+                            ? `${formatCurrency(getPricePerServing(variant)!)} / serving`
+                            : "-"}
+                        </span>
+                        <span>
+                          {getPricePerGramProtein(variant) !== null
+                            ? `${formatCurrency(getPricePerGramProtein(variant)!)} / g protein`
+                            : "-"}
+                        </span>
                       </div>
                     </div>
                   ))}

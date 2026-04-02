@@ -73,7 +73,6 @@ export default function PriceComparisonTable({ products }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("pricePer100g");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const [selectedFlavours, setSelectedFlavours] = useState<Record<string, string>>({});
   const [filters, setFilters] = useState<ColumnFilters>(DEFAULT_FILTERS);
 
   const groups = useMemo(() => groupProducts(products), [products]);
@@ -84,7 +83,6 @@ export default function PriceComparisonTable({ products }: Props) {
       const fallback = getDefaultVariant(group);
       const flavourOptions = getFlavourOptions(group);
       const activeFlavour =
-        selectedFlavours[group.id] ??
         (fallback.flavour ?? "") ??
         flavourOptions[0]?.value ??
         "";
@@ -96,7 +94,7 @@ export default function PriceComparisonTable({ products }: Props) {
         fallback;
       return { ...group, selected };
     });
-  }, [groups, selectedFlavours]);
+  }, [groups]);
 
   const sorted = useMemo(
     () => sortGroups(groupedWithSelection, sortKey, sortDir),
@@ -106,16 +104,40 @@ export default function PriceComparisonTable({ products }: Props) {
   const visibleVariants = useMemo(() => getVisibleVariants(groupedWithSelection), [groupedWithSelection]);
 
   const filterOptions = useMemo<ColumnFilterOptions>(
-    () => getFilterOptionsForFilters(allVariants, filters),
-    [allVariants, filters]
+    () => getFilterOptionsForFilters(visibleVariants, allVariants, filters),
+    [allVariants, filters, visibleVariants]
   );
 
   const minPricePer100g = useMemo(() => {
-    const inStockGroups = sorted.filter((group) => group.selected.inStock);
-    return inStockGroups.length
-      ? Math.min(...inStockGroups.map((group) => group.selected.pricePer100g))
+    const inStockVisibleVariants = visibleVariants.filter((variant) => {
+      if (!variant.inStock) return false;
+      return variantMatchesFilters(variant, filters);
+    });
+
+    return inStockVisibleVariants.length
+      ? Math.min(...inStockVisibleVariants.map((variant) => variant.pricePer100g))
       : null;
-  }, [sorted]);
+  }, [filters, visibleVariants]);
+
+  const bestValueVariantId = useMemo(() => {
+    if (minPricePer100g === null) return null;
+
+    for (const group of sorted) {
+      const activeFlavour =
+        filters.flavour !== "all" ? filters.flavour : group.selected.flavour ?? "";
+      const visibleGroupVariants = group.variants.filter((variant) => {
+        if ((variant.flavour ?? "") !== activeFlavour) return false;
+        return variantMatchesFilters(variant, filters);
+      });
+
+      const match = visibleGroupVariants.find(
+        (variant) => variant.inStock && variant.pricePer100g === minPricePer100g
+      );
+      if (match) return match.id;
+    }
+
+    return null;
+  }, [filters, minPricePer100g, sorted]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -130,12 +152,8 @@ export default function PriceComparisonTable({ products }: Props) {
     setExpandedRows((current) => ({ ...current, [groupId]: !current[groupId] }));
   }
 
-  function selectFlavour(group: ProductGroupWithSelection, flavour: string) {
-    setSelectedFlavours((current) => ({ ...current, [group.id]: flavour }));
-  }
-
   function setFilter(key: keyof ColumnFilters, value: string) {
-    setFilters((current) => sanitizeFilters(allVariants, { ...current, [key]: value }));
+    setFilters((current) => sanitizeFilters(visibleVariants, { ...current, [key]: value }));
   }
 
   function resetFilters() {
@@ -179,10 +197,10 @@ export default function PriceComparisonTable({ products }: Props) {
       <PriceComparisonDesktopTable
         groups={sorted}
         expandedRows={expandedRows}
+        bestValueVariantId={bestValueVariantId}
         minPricePer100g={minPricePer100g}
         onSort={handleSort}
         onToggleExpanded={toggleExpanded}
-        onSelectFlavour={selectFlavour}
         sortDir={sortDir}
         sortKey={sortKey}
         filters={filters}
@@ -195,7 +213,6 @@ export default function PriceComparisonTable({ products }: Props) {
         expandedRows={expandedRows}
         minPricePer100g={minPricePer100g}
         onToggleExpanded={toggleExpanded}
-        onSelectFlavour={selectFlavour}
       />
     </div>
   );
@@ -209,23 +226,24 @@ function getVisibleVariants(groups: ProductGroupWithSelection[]) {
 }
 
 function getFilterOptionsForFilters(
-  variants: Product[],
+  visibleVariants: Product[],
+  allVariants: Product[],
   filters: ColumnFilters
 ): ColumnFilterOptions {
   return {
-    sizes: getOptionsForKey(variants, filters, "size", (variant) => variant.size).sort(),
-    flavours: getOptionsForKey(variants, filters, "flavour", (variant) => variant.flavour ?? "")
+    sizes: getOptionsForKey(visibleVariants, filters, "size", (variant) => variant.size).sort(),
+    flavours: getOptionsForKey(allVariants, filters, "flavour", (variant) => variant.flavour ?? "")
       .filter(Boolean)
       .sort(),
-    servings: getOptionsForKey(variants, filters, "servings", (variant) =>
+    servings: getOptionsForKey(visibleVariants, filters, "servings", (variant) =>
       variant.servings !== null ? String(variant.servings) : null
     ).sort((a, b) => Number(a) - Number(b)),
-    prices: getOptionsForKey(variants, filters, "price", (variant) => variant.price.toFixed(2))
+    prices: getOptionsForKey(visibleVariants, filters, "price", (variant) => variant.price.toFixed(2))
       .sort((a, b) => Number(a) - Number(b)),
-    pricePer100gs: getOptionsForKey(variants, filters, "pricePer100g", (variant) =>
+    pricePer100gs: getOptionsForKey(visibleVariants, filters, "pricePer100g", (variant) =>
       variant.pricePer100g.toFixed(2)
     ).sort((a, b) => Number(a) - Number(b)),
-    proteins: getOptionsForKey(variants, filters, "protein", (variant) =>
+    proteins: getOptionsForKey(visibleVariants, filters, "protein", (variant) =>
       variant.proteinPer100g !== null ? String(variant.proteinPer100g) : null
     ).sort((a, b) => Number(a) - Number(b)),
   };
@@ -262,7 +280,7 @@ function sanitizeFilters(variants: Product[], filters: ColumnFilters) {
   let nextFilters = { ...filters };
 
   for (const key of FILTER_KEYS) {
-    const options = getFilterOptionsForFilters(variants, nextFilters);
+    const options = getFilterOptionsForFilters(variants, variants, nextFilters);
     const validOptions = mapOptionsForKey(options, key);
     if (
       nextFilters[key] !== "all" &&
