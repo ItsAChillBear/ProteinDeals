@@ -113,7 +113,7 @@ export default function PriceComparisonDesktopTable({
             </th>
             <th className={`${headerClass} min-w-[70px]`}>
               <div className="flex flex-col items-center gap-1.5">
-                <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} onChange={(v) => onFilter("size", v)} />
+                <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} numericValues={filterOptions.sizeGs} formatFn={(n) => { const match = filterOptions.sizes[filterOptions.sizeGs.indexOf(n)]; return match ?? `${n}g`; }} numeric onChange={(v) => onFilter("size", v)} />
                 {sortableHeader("Size", "size")}
               </div>
             </th>

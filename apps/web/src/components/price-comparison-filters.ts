@@ -30,6 +30,7 @@ export interface ColumnFilters {
 
 export interface ColumnFilterOptions {
   sizes: string[];
+  sizeGs: number[];
   flavours: string[];
   servings: string[];
   pricePerServings: string[];
@@ -77,7 +78,7 @@ export function matchesRange(value: number | null, filter: string): boolean {
   if (!filter.startsWith(RANGE_PREFIX)) return true;
   if (value === null) return false;
   const [lo, hi] = filter.replace(RANGE_PREFIX, "").split(":");
-  return value >= Number(lo) && (hi === "" || value < Number(hi));
+  return value >= Number(lo) && (hi === "" || value <= Number(hi));
 }
 
 export function getVisibleVariants(groups: ProductGroupWithSelection[]) {
@@ -90,7 +91,12 @@ export function getFilterOptionsForFilters(
   filters: ColumnFilters
 ): ColumnFilterOptions {
   return {
-    sizes: getOptionsForKey(visibleVariants, filters, "size", (variant) => variant.size).sort(),
+    ...(() => {
+      const sizeToG = new Map(visibleVariants.map((v) => [v.size, v.sizeG]));
+      const sizes = getOptionsForKey(visibleVariants, filters, "size", (variant) => variant.size)
+        .sort((a, b) => (sizeToG.get(a) ?? 0) - (sizeToG.get(b) ?? 0));
+      return { sizes, sizeGs: sizes.map((s) => sizeToG.get(s) ?? 0) };
+    })(),
     flavours: getOptionsForKey(allVariants, filters, "flavour", (variant) => variant.flavour ?? "")
       .filter(Boolean)
       .sort(),
@@ -253,7 +259,11 @@ export function variantMatchesFilters(variant: Product, filters: ColumnFilters) 
       if (!allowed.includes(variant.flavour ?? "")) return false;
     } else if ((variant.flavour ?? "") !== filters.flavour) return false;
   }
-  if (filters.size !== "all" && variant.size !== filters.size) return false;
+  if (filters.size !== "all") {
+    if (filters.size.startsWith(RANGE_PREFIX)) {
+      if (!matchesRange(variant.sizeG, filters.size)) return false;
+    } else if (variant.size !== filters.size) return false;
+  }
   if (!matchesNumericFilter(variant.servings, filters.servings)) return false;
   if (!matchesNumericFilter(getPricePerServing(variant), filters.pricePerServing, 3)) return false;
   if (!matchesNumericFilter(variant.price, filters.price, 2)) return false;

@@ -71,6 +71,7 @@ export function PriceComparisonFilterDropdown({
   onChange,
   formatFn,
   numeric = false,
+  numericValues,
   multi = false,
 }: {
   value: string;
@@ -78,10 +79,11 @@ export function PriceComparisonFilterDropdown({
   onChange: (v: string) => void;
   formatFn?: (n: number) => string;
   numeric?: boolean;
+  numericValues?: number[];
   multi?: boolean;
 }) {
   const fmt = formatFn ?? String;
-  const allNumericValues = options.map(Number).filter((n) => !isNaN(n));
+  const allNumericValues = numericValues ?? options.map(Number).filter((n) => !isNaN(n));
   const sliderMin = allNumericValues.length ? Math.min(...allNumericValues) : 0;
   const sliderMax = allNumericValues.length ? Math.max(...allNumericValues) : 100;
   const [open, setOpen] = useState(false);
@@ -91,8 +93,10 @@ export function PriceComparisonFilterDropdown({
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const filteredOptions = options.filter((option) => {
-    const label = formatFn ? fmt(Number(option)) : option;
+  const filteredOptions = options.filter((option, idx) => {
+    const label = formatFn
+      ? (numericValues ? fmt(numericValues[idx] ?? 0) : fmt(Number(option)))
+      : option;
     return label.toLowerCase().includes(search.trim().toLowerCase());
   });
 
@@ -105,13 +109,17 @@ export function PriceComparisonFilterDropdown({
     onChange(buildMultiFilter(next));
   }
 
+  const prevOpenRef = useRef(false);
   useEffect(() => {
-    if (!open) return;
+    const justOpened = open && !prevOpenRef.current;
+    prevOpenRef.current = open;
+    if (!justOpened) return;
     setSliderLo(sliderMin);
     setSliderHi(sliderMax);
     setSearch("");
     if (value.startsWith(RANGE_PREFIX)) onChange("all");
-  }, [open, onChange, sliderMax, sliderMin, value]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function updatePos() {
     if (!btnRef.current) return;
@@ -152,6 +160,10 @@ export function PriceComparisonFilterDropdown({
     if (value.startsWith(RANGE_PREFIX)) {
       const [lo, hi] = value.replace(RANGE_PREFIX, "").split(":");
       return hi ? `${fmt(Number(lo))} – ${fmt(Number(hi))}` : `${fmt(Number(lo))}+`;
+    }
+    if (formatFn && numericValues) {
+      const idx = options.indexOf(value);
+      return idx !== -1 ? fmt(numericValues[idx]) : value;
     }
     return formatFn ? fmt(Number(value)) : value;
   }
@@ -203,7 +215,10 @@ export function PriceComparisonFilterDropdown({
                 </div>
                 <div style={{ height: "200px", overflowY: "auto", overflowX: "hidden", display: "block" }}>
                   {filteredOptions.map((option) => {
-                    const label = formatFn ? fmt(Number(option)) : option;
+                    const optionIdx = options.indexOf(option);
+                    const label = formatFn
+                      ? (numericValues ? fmt(numericValues[optionIdx] ?? 0) : fmt(Number(option)))
+                      : option;
                     if (multi) {
                       const checked = selectedValues.includes(option);
                       return (

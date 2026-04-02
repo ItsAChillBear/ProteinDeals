@@ -250,7 +250,11 @@ function matchesVariantFilters(
       if (!allowed.includes(variant.flavour ?? "")) return false;
     } else if ((variant.flavour ?? "") !== filters.flavour) return false;
   }
-  if (filters.size !== "all" && variant.size !== filters.size) return false;
+  if (filters.size !== "all") {
+    if (filters.size.startsWith(RANGE_PREFIX)) {
+      if (!matchesRange(variant.sizeG, filters.size)) return false;
+    } else if (variant.size !== filters.size) return false;
+  }
   if (!matchesNumericFilter(variant.servings, filters.servings)) return false;
   if (!matchesNumericFilter(variant.price, filters.price, 2)) return false;
   if (!matchesNumericFilter(variant.pricePer100g, filters.pricePer100g, 2)) return false;
