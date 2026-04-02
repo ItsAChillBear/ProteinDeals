@@ -63,25 +63,9 @@ function extractVariantImageUrl($: cheerio.CheerioAPI, pageUrl: string) {
 }
 
 function extractProteinPer100g($: cheerio.CheerioAPI): number | null {
-  const tableSelectors = [
-    "table tr",
-    "[data-e2e*='nutrition'] tr",
-    "[class*='nutrition'] tr",
-    "[class*='Nutrition'] tr",
-  ];
-
-  for (const selector of tableSelectors) {
-    for (const element of $(selector).toArray()) {
-      const cells = $(element).find("th, td");
-      if (cells.length < 2) continue;
-
-      const label = collapseWhitespace($(cells[0]).text()).toLowerCase();
-      if (!isProteinLabel(label)) continue;
-
-      const value = collapseWhitespace($(cells[1]).text());
-      const amount = extractGramValue(value);
-      if (amount !== null) return amount;
-    }
+  for (const table of $("table").toArray()) {
+    const amount = extractProteinPer100gFromTable($, table);
+    if (amount !== null) return amount;
   }
 
   const nutritionBlocks = [
@@ -96,6 +80,41 @@ function extractProteinPer100g($: cheerio.CheerioAPI): number | null {
       const amount = extractProteinFromNutritionText(blockText);
       if (amount !== null) return amount;
     }
+  }
+
+  return null;
+}
+
+function extractProteinPer100gFromTable(
+  $: cheerio.CheerioAPI,
+  table: unknown
+): number | null {
+  const rows = $(table).find("tr").toArray();
+  if (!rows.length) return null;
+
+  const headerRow = rows.find((row) => {
+    const cells = $(row).find("th, td").toArray();
+    return cells.some((cell) => /per\s*100g/i.test(collapseWhitespace($(cell).text())));
+  });
+
+  if (!headerRow) return null;
+
+  const headerCells = $(headerRow).find("th, td").toArray();
+  const per100gColumnIndex = headerCells.findIndex((cell) =>
+    /per\s*100g/i.test(collapseWhitespace($(cell).text()))
+  );
+  if (per100gColumnIndex === -1) return null;
+
+  for (const row of rows) {
+    const cells = $(row).find("th, td");
+    if (cells.length <= per100gColumnIndex) continue;
+
+    const label = collapseWhitespace($(cells[0]).text()).toLowerCase();
+    if (!isProteinLabel(label)) continue;
+
+    const value = collapseWhitespace($(cells[per100gColumnIndex]).text());
+    const amount = extractGramValue(value);
+    if (amount !== null) return amount;
   }
 
   return null;
