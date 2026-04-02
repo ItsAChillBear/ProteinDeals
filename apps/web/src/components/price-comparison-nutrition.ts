@@ -32,6 +32,8 @@ export function getCaloriesPerGramProtein(product: Product) {
 
 function extractNumericValue(value: string | null) {
   if (!value) return null;
+  const kcalMatch = value.match(/(\d+(?:\.\d+)?)\s*kcal\b/i);
+  if (kcalMatch) return Number(kcalMatch[1]);
   const match = value.match(/(\d+(?:\.\d+)?)/);
   return match ? Number(match[1]) : null;
 }

@@ -1,4 +1,4 @@
-import { getCaloriesPerGramProtein, getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
+import { getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, getProteinPerServing } from "./price-comparison-metrics";
 import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import type { Product, ProductGroupWithSelection } from "./price-comparison-table.types";
 
@@ -15,6 +15,8 @@ export interface ColumnFilters {
   pricePerGramProtein: string;
   caloriesPer100g: string;
   caloriesPerGramProtein: string;
+  caloriesPerServing: string;
+  proteinPerServing: string;
 }
 
 export interface ColumnFilterOptions {
@@ -28,6 +30,8 @@ export interface ColumnFilterOptions {
   pricePerGramProteins: string[];
   caloriesPer100gs: string[];
   caloriesPerGramProteins: string[];
+  caloriesPerServings: string[];
+  proteinPerServings: string[];
 }
 
 export const DEFAULT_FILTERS: ColumnFilters = {
@@ -41,6 +45,8 @@ export const DEFAULT_FILTERS: ColumnFilters = {
   pricePerGramProtein: "all",
   caloriesPer100g: "all",
   caloriesPerGramProtein: "all",
+  caloriesPerServing: "all",
+  proteinPerServing: "all",
 };
 
 export const FILTER_KEYS: Array<keyof ColumnFilters> = [
@@ -54,6 +60,8 @@ export const FILTER_KEYS: Array<keyof ColumnFilters> = [
   "pricePerGramProtein",
   "caloriesPer100g",
   "caloriesPerGramProtein",
+  "caloriesPerServing",
+  "proteinPerServing",
 ];
 
 export function matchesRange(value: number | null, filter: string): boolean {
@@ -122,6 +130,24 @@ export function getFilterOptionsForFilters(
         return value !== null ? value.toFixed(2) : null;
       }
     ).sort((a, b) => Number(a) - Number(b)),
+    caloriesPerServings: getOptionsForKey(
+      visibleVariants,
+      filters,
+      "caloriesPerServing",
+      (variant) => {
+        const value = getCaloriesPerServing(variant);
+        return value !== null ? Math.round(value).toString() : null;
+      }
+    ).sort((a, b) => Number(a) - Number(b)),
+    proteinPerServings: getOptionsForKey(
+      visibleVariants,
+      filters,
+      "proteinPerServing",
+      (variant) => {
+        const value = getProteinPerServing(variant);
+        return value !== null ? value.toFixed(1) : null;
+      }
+    ).sort((a, b) => Number(a) - Number(b)),
   };
 }
 
@@ -152,6 +178,14 @@ function getOptionsForKey(
         targetKey === "caloriesPerGramProtein"
           ? DEFAULT_FILTERS.caloriesPerGramProtein
           : filters.caloriesPerGramProtein,
+      caloriesPerServing:
+        targetKey === "caloriesPerServing"
+          ? DEFAULT_FILTERS.caloriesPerServing
+          : filters.caloriesPerServing,
+      proteinPerServing:
+        targetKey === "proteinPerServing"
+          ? DEFAULT_FILTERS.proteinPerServing
+          : filters.proteinPerServing,
     })
   );
 
@@ -198,6 +232,10 @@ function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters
       return options.caloriesPer100gs;
     case "caloriesPerGramProtein":
       return options.caloriesPerGramProteins;
+    case "caloriesPerServing":
+      return options.caloriesPerServings;
+    case "proteinPerServing":
+      return options.proteinPerServings;
   }
 }
 
@@ -212,6 +250,8 @@ export function variantMatchesFilters(variant: Product, filters: ColumnFilters) 
   if (!matchesNumericFilter(getPricePerGramProtein(variant), filters.pricePerGramProtein, 3)) return false;
   if (!matchesNumericFilter(getCaloriesPer100g(variant), filters.caloriesPer100g)) return false;
   if (!matchesNumericFilter(getCaloriesPerGramProtein(variant), filters.caloriesPerGramProtein, 2)) return false;
+  if (!matchesNumericFilter(getCaloriesPerServing(variant) !== null ? Math.round(getCaloriesPerServing(variant)!) : null, filters.caloriesPerServing)) return false;
+  if (!matchesNumericFilter(getProteinPerServing(variant), filters.proteinPerServing, 1)) return false;
   return true;
 }
 

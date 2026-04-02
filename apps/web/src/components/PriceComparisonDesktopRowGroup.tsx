@@ -7,11 +7,14 @@ import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
 import { matchesRange, RANGE_PREFIX, type ColumnFilters } from "./price-comparison-filters";
 import { formatCurrencyPrecise } from "./price-comparison-format";
-import { plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
+import { getDailyCostForTarget, plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
+import type { ColumnVisibility } from "./price-comparison-visibility";
 import {
   getCaloriesPerGramProtein,
+  getCaloriesPerServing,
   getPricePerGramProtein,
   getPricePerServing,
+  getProteinPerServing,
 } from "./price-comparison-metrics";
 import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import {
@@ -28,6 +31,7 @@ export function PriceComparisonDesktopRowGroup({
   bestValueVariantId,
   filters,
   planner,
+  visibility,
   isExpanded,
   onToggleExpanded,
 }: {
@@ -35,6 +39,7 @@ export function PriceComparisonDesktopRowGroup({
   bestValueVariantId: string | null;
   filters: ColumnFilters;
   planner: ProteinPlannerState;
+  visibility: ColumnVisibility;
   isExpanded: boolean;
   onToggleExpanded: (groupId: string) => void;
 }) {
@@ -59,6 +64,11 @@ export function PriceComparisonDesktopRowGroup({
         const rowSpan = flavourVariants.length;
         const variantBestValue = variant.id === bestValueVariantId;
 
+        const proteinTarget = Number(planner.proteinTarget);
+        const dailyCost = planner.committed && proteinTarget > 0
+          ? getDailyCostForTarget(variant, proteinTarget)
+          : null;
+
         return (
           <tr
             key={variant.id}
@@ -67,6 +77,15 @@ export function PriceComparisonDesktopRowGroup({
               isBestValue ? "bg-green-950/20 hover:bg-green-950/30" : "hover:bg-gray-800/60"
             )}
           >
+            {planner.committed && proteinTarget > 0 ? (
+              <td className="border-x border-green-500/10 bg-green-500/5 px-3 py-2 text-center text-sm font-semibold">
+                {dailyCost !== null ? (
+                  <span className="text-green-400">{formatCurrency(dailyCost)}</span>
+                ) : (
+                  <span className="text-gray-600">—</span>
+                )}
+              </td>
+            ) : null}
             {isFirstRow ? (
               <>
                 <td className="px-2 py-2 align-top" rowSpan={rowSpan}>
@@ -96,66 +115,96 @@ export function PriceComparisonDesktopRowGroup({
             <td className="px-2 py-2 text-center text-sm text-gray-400">
               {variant.servings ? `${variant.servings}` : "-"}
             </td>
-            {isFirstRow ? (
-              <td className="whitespace-nowrap px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
+            {visibility.show100g && isFirstRow ? (
+              <td className="whitespace-nowrap border-x border-violet-400/10 bg-violet-400/5 px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
                 {displayProteinPer100g !== null ? `${displayProteinPer100g}g` : "-"}
               </td>
             ) : null}
-            {isFirstRow ? (
+            {visibility.showServing ? (
+              <td className="whitespace-nowrap border-x border-violet-400/10 bg-violet-400/5 px-2 py-2 text-center text-sm text-gray-300">
+                {(() => { const p = getProteinPerServing(variant); return p !== null ? `${p.toFixed(1)}g` : "-"; })()}
+              </td>
+            ) : null}
+            {visibility.show100g && isFirstRow ? (
               <td className="whitespace-nowrap border-x border-amber-500/10 bg-amber-500/5 px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
                 {getCaloriesPer100g(product) !== null ? `${getCaloriesPer100g(product)}` : "-"}
               </td>
             ) : null}
-            {isFirstRow ? (
+            {visibility.showServing ? (
+              <td className="whitespace-nowrap border-x border-amber-500/10 bg-amber-500/5 px-2 py-2 text-center text-sm text-gray-300">
+                {(() => { const c = getCaloriesPerServing(variant); return c !== null ? Math.round(c).toString() : "-"; })()}
+              </td>
+            ) : null}
+            {visibility.show1gProtein && isFirstRow ? (
               <td className="whitespace-nowrap border-x border-amber-500/10 bg-amber-500/5 px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
                 {getCaloriesPerGramProtein(product) !== null
                   ? getCaloriesPerGramProtein(product)!.toFixed(2)
                   : "-"}
               </td>
             ) : null}
-            <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm font-semibold text-white">
-              {formatCurrency(variant.price)}
-            </td>
-            <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
-              <div className="inline-flex items-center gap-1">
-                <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
-                  {formatCurrency(variant.pricePer100g)}
-                </span>
-                {variantBestValue ? (
-                  <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" />
-                ) : null}
-              </div>
-            </td>
-            <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
-              {getPricePerServing(variant) !== null ? (
+            {visibility.showTotal ? (
+              <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm font-semibold text-white">
+                {formatCurrency(variant.price)}
+              </td>
+            ) : null}
+            {visibility.show100g ? (
+              <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
                 <div className="inline-flex items-center gap-1">
                   <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
-                    {formatCurrencyPrecise(getPricePerServing(variant)!)}
+                    {formatCurrency(variant.pricePer100g)}
                   </span>
-                  {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
+                  {variantBestValue ? (
+                    <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" />
+                  ) : null}
                 </div>
-              ) : (
-                <span className="text-gray-300">-</span>
-              )}
-            </td>
-            <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
-              {getPricePerGramProtein(variant) !== null ? (
-                <div className="inline-flex items-center gap-1">
-                  <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
-                    {formatCurrencyPrecise(getPricePerGramProtein(variant)!)}
-                  </span>
-                  {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
-                </div>
-              ) : (
-                <span className="text-gray-300">-</span>
-              )}
-            </td>
+              </td>
+            ) : null}
+            {visibility.showServing ? (
+              <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
+                {getPricePerServing(variant) !== null ? (
+                  <div className="inline-flex items-center gap-1">
+                    <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
+                      {formatCurrencyPrecise(getPricePerServing(variant)!)}
+                    </span>
+                    {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
+                  </div>
+                ) : (
+                  <span className="text-gray-300">-</span>
+                )}
+              </td>
+            ) : null}
+            {visibility.show1gProtein ? (
+              <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
+                {getPricePerGramProtein(variant) !== null ? (
+                  <div className="inline-flex items-center gap-1">
+                    <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
+                      {formatCurrencyPrecise(getPricePerGramProtein(variant)!)}
+                    </span>
+                    {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
+                  </div>
+                ) : (
+                  <span className="text-gray-300">-</span>
+                )}
+              </td>
+            ) : null}
           </tr>
         );
       })}
       {isExpanded ? (
         <tr className={isBestValue ? "bg-green-950/10" : "bg-gray-900/70"}>
-          <td colSpan={11} className="px-4 pb-5 pt-1">
+          <td colSpan={
+            4 // product, flavour, size, servings
+            + (visibility.show100g ? 1 : 0)      // protein /100g
+            + (visibility.showServing ? 1 : 0)   // protein /serving
+            + (visibility.show100g ? 1 : 0)      // cal /100g
+            + (visibility.showServing ? 1 : 0)   // cal /serving
+            + (visibility.show1gProtein ? 1 : 0) // cal /1g protein
+            + (visibility.showTotal ? 1 : 0)     // price total
+            + (visibility.show100g ? 1 : 0)      // price /100g
+            + (visibility.showServing ? 1 : 0)   // price /serving
+            + (visibility.show1gProtein ? 1 : 0) // price /1g protein
+            + (planner.committed && Number(planner.proteinTarget) > 0 ? 1 : 0)
+          } className="px-4 pb-5 pt-1">
             <div className="space-y-4">
               <div>
                 {product.inStock ? (
@@ -192,7 +241,10 @@ function matchesVariantFilters(
   if (!matchesNumericFilter(variant.price, filters.price, 2)) return false;
   if (!matchesNumericFilter(variant.pricePer100g, filters.pricePer100g, 2)) return false;
   if (!matchesNumericFilter(variant.proteinPer100g, filters.protein)) return false;
+  if (!matchesNumericFilter(getProteinPerServing(variant), filters.proteinPerServing, 1)) return false;
   if (!matchesNumericFilter(getCaloriesPer100g(variant), filters.caloriesPer100g)) return false;
+  const calPerServing = getCaloriesPerServing(variant);
+  if (!matchesNumericFilter(calPerServing !== null ? Math.round(calPerServing) : null, filters.caloriesPerServing)) return false;
   if (!matchesNumericFilter(getCaloriesPerGramProtein(variant), filters.caloriesPerGramProtein, 2)) return false;
   return true;
 }

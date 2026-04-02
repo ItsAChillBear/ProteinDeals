@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 
 export function extractMyproteinProductContent(html: string) {
   const $ = cheerio.load(html);
+  const documentText = collapseWhitespaceWithNewlines($("body").text());
   const headingBlocks = new Map<string, string>();
   const selectors = ["button", "[role='button']", "[data-e2e]", "h2", "h3", "h4", "summary"];
 
@@ -33,10 +34,14 @@ export function extractMyproteinProductContent(html: string) {
       firstNonEmpty([
         headingBlocks.get("ingredients"),
         [...ingredientsFallback, ...dietarySuitabilityFallback].join("\n"),
+        extractIngredientsFromText(documentText),
       ]) ?? null,
     faqEntries: extractFaqEntries($, headingBlocks.get("frequently asked questions") ?? null),
     nutritionalInformation:
-      extractNutritionRowsFromCmsPayload(html) ?? extractNutritionRows($, nutritionHtmlFallback),
+      extractNutritionRowsFromCmsPayload(html) ??
+      extractNutritionRows($, nutritionHtmlFallback) ??
+      extractNutritionRowsFromText(documentText) ??
+      [],
     productDetails: firstNonEmpty([headingBlocks.get("product details"), headingBlocks.get("details")]) ?? null,
   };
 }
@@ -63,7 +68,8 @@ function extractNutritionRows($: cheerio.CheerioAPI, fallbackHtml: string | null
     if (fallbackRows.length) return fallbackRows;
   }
 
-  return extractNutritionRowsFromScope($);
+  const directRows = extractNutritionRowsFromScope($);
+  return directRows.length ? directRows : null;
 }
 
 function extractNutritionRowsFromScope(scope: cheerio.CheerioAPI) {
@@ -145,6 +151,38 @@ function extractNutritionRowsFromCmsPayload(html: string) {
   return rows.length ? rows : null;
 }
 
+function extractNutritionRowsFromText(text: string) {
+  const section = extractSection(
+    text,
+    "Nutritional Information",
+    ["Ingredients", "Frequently Asked Questions", "Suggested Use", "Product Details"]
+  );
+  if (!section) return null;
+
+  const normalized = section
+    .replace(/Impact Whey Protein\s*-\s*SNICKERS®?/gi, " ")
+    .replace(/Serving Size:\s*\d+(?:\.\d+)?g/gi, " ")
+    .replace(/Nutritional information is based on.*$/gim, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const rowPattern =
+    /(Energy|Fat|of which saturates|Carbohydrate|of which sugars|Fibre|Protein|Salt)\s+([^\s]+)\s+([^\s]+)(?=\s+(?:Energy|Fat|of which saturates|Carbohydrate|of which sugars|Fibre|Protein|Salt)\s+|$)/gi;
+
+  const rows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
+  for (const match of normalized.matchAll(rowPattern)) {
+    const candidate = {
+      label: collapseWhitespace(match[1]),
+      per100g: collapseWhitespace(match[2]) || null,
+      perServing: collapseWhitespace(match[3]) || null,
+    };
+    if (isCleanNutritionRow(candidate)) rows.push(candidate);
+  }
+
+  return rows.length ? rows : null;
+}
+
 function extractRichContentListTexts(html: string, key: string) {
   const block = extractCmsBlock(html, key);
   if (!block) return [];
@@ -154,6 +192,39 @@ function extractRichContentListTexts(html: string, key: string) {
     .map((value) => stripHtml(value))
     .map((value) => collapseWhitespace(value))
     .filter(Boolean);
+}
+
+function extractIngredientsFromText(text: string) {
+  const section = extractSection(
+    text,
+    "Ingredients",
+    ["Frequently Asked Questions", "Suggested Use", "Product Details"]
+  );
+  if (!section) return null;
+
+  const cleaned = section
+    .replace(/^[:\s-]+/, "")
+    .replace(/\bclass\s+AccordionItem\s+extends\s+HTMLElement\b[\s\S]*$/i, "")
+    .replace(/\bcustomElements\.get\(['"]accordion-item['"]\)[\s\S]*$/i, "")
+    .replace(/\bconstructor\(\)\s*\{[\s\S]*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleaned || null;
+}
+
+function extractSection(text: string, startHeading: string, endHeadings: string[]) {
+  const start = text.search(new RegExp(`\\b${escapeRegExp(startHeading)}\\b`, "i"));
+  if (start === -1) return null;
+
+  const slice = text.slice(start + startHeading.length);
+  let endIndex = slice.length;
+  for (const heading of endHeadings) {
+    const idx = slice.search(new RegExp(`\\b${escapeRegExp(heading)}\\b`, "i"));
+    if (idx !== -1 && idx < endIndex) endIndex = idx;
+  }
+
+  return slice.slice(0, endIndex).trim() || null;
 }
 
 function extractCmsBlock(html: string, key: string) {
@@ -176,6 +247,10 @@ function decodeJsonStringLiteral(value: string) {
 
 function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function isCleanNutritionRow(row: {
@@ -233,4 +308,13 @@ function firstNonEmpty(values: Array<string | null | undefined>) {
 
 function collapseWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function collapseWhitespaceWithNewlines(value: string) {
+  return value
+    .replace(/\r/g, "\n")
+    .replace(/\n\s*\n+/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .trim();
 }

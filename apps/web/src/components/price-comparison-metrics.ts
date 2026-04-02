@@ -22,6 +22,13 @@ export function getPricePerGramProtein(product: Product) {
   return product.price / totalProteinG;
 }
 
+export function getCaloriesPerServing(product: Product) {
+  const caloriesPer100g = getCaloriesPer100g(product);
+  if (caloriesPer100g === null || !product.servings || product.servings <= 0 || product.sizeG <= 0) return null;
+  const gramsPerServing = product.sizeG / product.servings;
+  return (caloriesPer100g * gramsPerServing) / 100;
+}
+
 export function getCaloriesPerGramProtein(product: Product) {
   const caloriesPer100g = getCaloriesPer100g(product);
   const proteinPer100g = getProteinPer100g(product);

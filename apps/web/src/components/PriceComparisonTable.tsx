@@ -34,6 +34,7 @@ import {
   groupProducts,
   sortGroups,
 } from "./price-comparison-table.utils";
+import { DEFAULT_VISIBILITY, type ColumnVisibility } from "./price-comparison-visibility";
 
 interface Props {
   products: Product[];
@@ -47,6 +48,7 @@ export default function PriceComparisonTable({ products }: Props) {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [filters, setFilters] = useState<ColumnFilters>(DEFAULT_FILTERS);
   const [planner, setPlanner] = useState<ProteinPlannerState>(DEFAULT_PROTEIN_PLANNER);
+  const [visibility, setVisibility] = useState<ColumnVisibility>(DEFAULT_VISIBILITY);
 
   const groups = useMemo(() => groupProducts(products), [products]);
   const allVariants = useMemo(() => groups.flatMap((group) => group.variants), [groups]);
@@ -189,25 +191,45 @@ export default function PriceComparisonTable({ products }: Props) {
         onChange={updatePlanner}
         onReset={() => setPlanner(DEFAULT_PROTEIN_PLANNER)}
       />
-      <div className="flex items-center justify-between border-b border-gray-800 px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 px-6 py-3">
         <p className="text-sm text-gray-400">
-          <span className="font-semibold text-white">{filteredGroups.length}</span> grouped
-          products across <span className="font-semibold text-white">{filteredVariantCount}</span>{" "}
-          variants
+          <span className="font-semibold text-white">{filteredGroups.length}</span> products,{" "}
+          <span className="font-semibold text-white">{filteredVariantCount}</span> variants
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">Show:</span>
+          {(
+            [
+              { key: "showServing", label: "/Serving" },
+              { key: "show100g",    label: "/100g" },
+              { key: "show1gProtein", label: "/1g Protein" },
+              { key: "showTotal",   label: "Total Price" },
+            ] as { key: keyof ColumnVisibility; label: string }[]
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setVisibility((v) => ({ ...v, [key]: !v[key] }))}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                visibility[key]
+                  ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                  : "bg-gray-800/50 text-gray-600 line-through hover:text-gray-400"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <span className="mx-1 h-4 w-px bg-gray-700" />
           {hasActiveFilters ? (
             <button
               type="button"
               onClick={resetFilters}
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-200 transition hover:border-gray-500 hover:text-white"
+              className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-400 transition hover:text-gray-200"
             >
               Reset Filters
             </button>
           ) : null}
-          <p className="text-xs text-gray-600">
-            Sorted by: {sortLabel}
-          </p>
+          <span className="text-xs text-gray-600">Sorted by: {sortLabel}</span>
         </div>
       </div>
 
@@ -223,6 +245,7 @@ export default function PriceComparisonTable({ products }: Props) {
         planner={planner}
         filterOptions={filterOptions}
         onFilter={setFilter}
+        visibility={visibility}
       />
 
       <PriceComparisonMobileList

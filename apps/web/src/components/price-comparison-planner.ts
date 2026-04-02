@@ -17,6 +17,7 @@ export interface ProteinPlannerState {
   budgetEnabled: boolean;
   budgetAmount: string;
   budgetPeriod: BudgetPeriod;
+  committed: boolean;
 }
 
 export const DEFAULT_PROTEIN_PLANNER: ProteinPlannerState = {
@@ -26,7 +27,16 @@ export const DEFAULT_PROTEIN_PLANNER: ProteinPlannerState = {
   budgetEnabled: false,
   budgetAmount: "",
   budgetPeriod: "week",
+  committed: false,
 };
+
+export function getDailyCostForTarget(variant: Product, proteinTargetG: number): number | null {
+  const proteinPerServing = getProteinPerServing(variant);
+  const pricePerServing = getPricePerServing(variant);
+  if (!proteinPerServing || proteinPerServing <= 0 || pricePerServing === null) return null;
+  const servingsPerDay = proteinTargetG / proteinPerServing;
+  return servingsPerDay * pricePerServing;
+}
 
 export function plannerMatchesVariant(
   variant: Product,

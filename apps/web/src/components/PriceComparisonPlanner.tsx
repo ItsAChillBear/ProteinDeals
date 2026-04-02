@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import type { BudgetPeriod, ProteinPlannerState } from "./price-comparison-planner";
 
 const PERIOD_OPTIONS: { value: BudgetPeriod; label: string }[] = [
@@ -104,13 +104,13 @@ export default function PriceComparisonPlanner({
 
       <div className="flex flex-wrap items-end gap-3">
         {/* Protein */}
-        <div className="w-52">
+        <div className="w-64">
           <PlannerInput
             label="How much protein do you want per day from powders?"
             suffix="g / day"
             value={value.proteinTarget}
             placeholder="e.g. 150"
-            onChange={(v) => onChange({ proteinTarget: v })}
+            onChange={(v) => onChange({ proteinTarget: v, committed: false })}
           />
         </div>
 
@@ -119,14 +119,14 @@ export default function PriceComparisonPlanner({
           <div className="flex items-end gap-1.5">
             <div className="w-48">
               <PlannerInput
-                label="Calorie target"
+                label="What is the maximum calories you want from your protein per day?"
                 suffix="kcal / day"
                 value={value.calorieTarget}
                 placeholder="e.g. 2000"
-                onChange={(v) => onChange({ calorieTarget: v })}
+                onChange={(v) => onChange({ calorieTarget: v, committed: false })}
               />
             </div>
-            <RemoveButton onClick={() => onChange({ calorieEnabled: false, calorieTarget: "" })} />
+            <RemoveButton onClick={() => onChange({ calorieEnabled: false, calorieTarget: "", committed: false })} />
           </div>
         ) : (
           <AddOptionButton label="Calories" onClick={() => onChange({ calorieEnabled: true })} />
@@ -142,7 +142,7 @@ export default function PriceComparisonPlanner({
                 value={value.budgetAmount}
                 placeholder="e.g. 30"
                 step="0.01"
-                onChange={(v) => onChange({ budgetAmount: v })}
+                onChange={(v) => onChange({ budgetAmount: v, committed: false })}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -152,7 +152,7 @@ export default function PriceComparisonPlanner({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => onChange({ budgetPeriod: opt.value })}
+                    onClick={() => onChange({ budgetPeriod: opt.value, committed: false })}
                     className={`rounded-lg px-2.5 py-2 text-xs font-medium transition ${
                       value.budgetPeriod === opt.value
                         ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/40"
@@ -164,11 +164,27 @@ export default function PriceComparisonPlanner({
                 ))}
               </div>
             </div>
-            <RemoveButton onClick={() => onChange({ budgetEnabled: false, budgetAmount: "" })} />
+            <RemoveButton onClick={() => onChange({ budgetEnabled: false, budgetAmount: "", committed: false })} />
           </div>
         ) : (
           <AddOptionButton label="Budget" onClick={() => onChange({ budgetEnabled: true })} />
         )}
+
+        {/* Search button */}
+        {value.proteinTarget !== "" ? (
+          <button
+            type="button"
+            onClick={() => onChange({ committed: true })}
+            className={`flex items-center gap-2 self-end rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              value.committed
+                ? "bg-green-600 text-white hover:bg-green-500"
+                : "bg-green-500 text-gray-950 hover:bg-green-400"
+            }`}
+          >
+            <Search className="h-4 w-4" />
+            {value.committed ? "Applied" : "Search"}
+          </button>
+        ) : null}
       </div>
     </div>
   );
