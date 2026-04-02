@@ -33,5 +33,11 @@ export interface ProductGroupWithSelection extends ProductGroup {
   selected: Product;
 }
 
-export type SortKey = "name" | "size" | "price" | "pricePer100g";
+export type SortKey =
+  | "name"
+  | "size"
+  | "price"
+  | "pricePer100g"
+  | "pricePerServing"
+  | "pricePerGramProtein";
 export type SortDir = "asc" | "desc";

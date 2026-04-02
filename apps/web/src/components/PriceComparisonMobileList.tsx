@@ -16,12 +16,12 @@ import {
 export default function PriceComparisonMobileList({
   groups,
   expandedRows,
-  minPricePer100g,
+  bestValueVariantId,
   onToggleExpanded,
 }: {
   groups: ProductGroupWithSelection[];
   expandedRows: Record<string, boolean>;
-  minPricePer100g: number | null;
+  bestValueVariantId: string | null;
   onToggleExpanded: (groupId: string) => void;
 }) {
   return (
@@ -29,10 +29,7 @@ export default function PriceComparisonMobileList({
       {groups.map((group) => {
         const product = group.selected;
         const isExpanded = Boolean(expandedRows[group.id]);
-        const isBestValue =
-          product.inStock &&
-          minPricePer100g !== null &&
-          product.pricePer100g === minPricePer100g;
+        const isBestValue = product.inStock && product.id === bestValueVariantId;
         const activeFlavour = product.flavour ?? "";
         const flavourVariants = getVariantsForFlavour(group, activeFlavour);
 

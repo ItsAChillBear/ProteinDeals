@@ -8,6 +8,7 @@ import type {
   SortDir,
   SortKey,
 } from "./price-comparison-table.types";
+import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 
 export function ProductThumbnail({
   name,
@@ -175,10 +176,8 @@ export function sortGroups(
   sortDir: SortDir
 ) {
   return [...groups].sort((a, b) => {
-    const aValue =
-      sortKey === "name" ? a.baseName : sortKey === "size" ? a.selected.sizeG : a.selected[sortKey];
-    const bValue =
-      sortKey === "name" ? b.baseName : sortKey === "size" ? b.selected.sizeG : b.selected[sortKey];
+    const aValue = getSortValue(a, sortKey);
+    const bValue = getSortValue(b, sortKey);
 
     if (typeof aValue === "string" && typeof bValue === "string") {
       return sortDir === "asc"
@@ -190,6 +189,16 @@ export function sortGroups(
       ? Number(aValue) - Number(bValue)
       : Number(bValue) - Number(aValue);
   });
+}
+
+function getSortValue(group: ProductGroupWithSelection, sortKey: SortKey) {
+  if (sortKey === "name") return group.baseName;
+  if (sortKey === "size") return group.selected.sizeG;
+  if (sortKey === "pricePerServing") return getPricePerServing(group.selected) ?? Number.POSITIVE_INFINITY;
+  if (sortKey === "pricePerGramProtein") {
+    return getPricePerGramProtein(group.selected) ?? Number.POSITIVE_INFINITY;
+  }
+  return group.selected[sortKey];
 }
 
 export function formatCurrency(value: number) {

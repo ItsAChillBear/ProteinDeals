@@ -19,6 +19,7 @@ import type {
   SortDir,
   SortKey,
 } from "./price-comparison-table.types";
+import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 import {
   getDefaultVariant,
   getFlavourOptions,
@@ -46,10 +47,13 @@ export default function PriceComparisonTable({ products }: Props) {
     return groups.map((group) => {
       const fallback = getDefaultVariant(group);
       const flavourOptions = getFlavourOptions(group);
-      const activeFlavour =
-        (fallback.flavour ?? "") ??
-        flavourOptions[0]?.value ??
-        "";
+      const requestedFlavour = filters.flavour !== "all" ? filters.flavour : null;
+      const hasRequestedFlavour = requestedFlavour
+        ? group.variants.some((variant) => (variant.flavour ?? "") === requestedFlavour)
+        : false;
+      const activeFlavour = hasRequestedFlavour
+        ? requestedFlavour!
+        : (fallback.flavour ?? "") ?? flavourOptions[0]?.value ?? "";
       const sizeOptions = getSizeOptions(group, activeFlavour);
       const selected =
         sizeOptions
@@ -58,7 +62,7 @@ export default function PriceComparisonTable({ products }: Props) {
         fallback;
       return { ...group, selected };
     });
-  }, [groups]);
+  }, [filters.flavour, groups]);
 
   const sorted = useMemo(
     () => sortGroups(groupedWithSelection, sortKey, sortDir),
@@ -72,19 +76,27 @@ export default function PriceComparisonTable({ products }: Props) {
     [allVariants, filters, visibleVariants]
   );
 
-  const minPricePer100g = useMemo(() => {
+  const bestValueMetric = useMemo(() => {
+    return sortKey === "pricePerServing" || sortKey === "pricePerGramProtein"
+      ? sortKey
+      : "pricePer100g";
+  }, [sortKey]);
+
+  const bestValueAmount = useMemo(() => {
     const inStockVisibleVariants = visibleVariants.filter((variant) => {
       if (!variant.inStock) return false;
       return variantMatchesFilters(variant, filters);
     });
 
-    return inStockVisibleVariants.length
-      ? Math.min(...inStockVisibleVariants.map((variant) => variant.pricePer100g))
-      : null;
-  }, [filters, visibleVariants]);
+    const metricValues = inStockVisibleVariants
+      .map((variant) => getBestValueAmount(variant, bestValueMetric))
+      .filter((value): value is number => value !== null);
+
+    return metricValues.length ? Math.min(...metricValues) : null;
+  }, [bestValueMetric, filters, visibleVariants]);
 
   const bestValueVariantId = useMemo(() => {
-    if (minPricePer100g === null) return null;
+    if (bestValueAmount === null) return null;
 
     for (const group of sorted) {
       const activeFlavour =
@@ -95,13 +107,14 @@ export default function PriceComparisonTable({ products }: Props) {
       });
 
       const match = visibleGroupVariants.find(
-        (variant) => variant.inStock && variant.pricePer100g === minPricePer100g
+        (variant) =>
+          variant.inStock && getBestValueAmount(variant, bestValueMetric) === bestValueAmount
       );
       if (match) return match.id;
     }
 
     return null;
-  }, [filters, minPricePer100g, sorted]);
+  }, [bestValueAmount, bestValueMetric, filters, sorted]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -117,7 +130,7 @@ export default function PriceComparisonTable({ products }: Props) {
   }
 
   function setFilter(key: keyof ColumnFilters, value: string) {
-    setFilters((current) => sanitizeFilters(visibleVariants, { ...current, [key]: value }));
+    setFilters((current) => sanitizeFilters(allVariants, { ...current, [key]: value }));
   }
 
   function resetFilters() {
@@ -125,6 +138,14 @@ export default function PriceComparisonTable({ products }: Props) {
   }
 
   const hasActiveFilters = FILTER_KEYS.some((key) => filters[key] !== DEFAULT_FILTERS[key]);
+  const sortLabel =
+    sortKey === "pricePer100g"
+      ? "Price / 100g"
+      : sortKey === "pricePerServing"
+        ? "Price / Serving"
+        : sortKey === "pricePerGramProtein"
+          ? "Price / 1g Protein"
+          : sortKey;
 
   if (products.length === 0) {
     return (
@@ -153,7 +174,7 @@ export default function PriceComparisonTable({ products }: Props) {
             </button>
           ) : null}
           <p className="text-xs text-gray-600">
-            Sorted by: {sortKey === "pricePer100g" ? "Price / 100g" : sortKey}
+            Sorted by: {sortLabel}
           </p>
         </div>
       </div>
@@ -162,7 +183,6 @@ export default function PriceComparisonTable({ products }: Props) {
         groups={sorted}
         expandedRows={expandedRows}
         bestValueVariantId={bestValueVariantId}
-        minPricePer100g={minPricePer100g}
         onSort={handleSort}
         onToggleExpanded={toggleExpanded}
         sortDir={sortDir}
@@ -175,9 +195,15 @@ export default function PriceComparisonTable({ products }: Props) {
       <PriceComparisonMobileList
         groups={sorted}
         expandedRows={expandedRows}
-        minPricePer100g={minPricePer100g}
+        bestValueVariantId={bestValueVariantId}
         onToggleExpanded={toggleExpanded}
       />
     </div>
   );
+}
+
+function getBestValueAmount(product: Product, sortKey: SortKey) {
+  if (sortKey === "pricePerServing") return getPricePerServing(product);
+  if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(product);
+  return product.pricePer100g;
 }

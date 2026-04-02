@@ -26,7 +26,6 @@ export default function PriceComparisonDesktopTable({
   groups: ProductGroupWithSelection[];
   bestValueVariantId: string | null;
   expandedRows: Record<string, boolean>;
-  minPricePer100g: number | null;
   onSort: (key: SortKey) => void;
   onToggleExpanded: (groupId: string) => void;
   sortDir: SortDir;
@@ -91,13 +90,13 @@ export default function PriceComparisonDesktopTable({
             <th className={headerClass}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.pricePerServing} options={filterOptions.pricePerServings} onChange={(v) => onFilter("pricePerServing", v)} formatFn={(n) => `£${n.toFixed(3)}`} numeric />
-                <span>Per Serving</span>
+                {sortableHeader("Per Serving", "pricePerServing")}
               </div>
             </th>
             <th className={headerClass}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.pricePerGramProtein} options={filterOptions.pricePerGramProteins} onChange={(v) => onFilter("pricePerGramProtein", v)} formatFn={(n) => `£${n.toFixed(3)}`} numeric />
-                <span>Per 1g Protein</span>
+                {sortableHeader("Per 1g Protein", "pricePerGramProtein")}
               </div>
             </th>
           </tr>
