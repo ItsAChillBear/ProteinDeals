@@ -73,6 +73,7 @@ export function PriceComparisonFilterDropdown({
   numeric = false,
   numericValues,
   multi = false,
+  label,
 }: {
   value: string;
   options: string[];
@@ -81,6 +82,7 @@ export function PriceComparisonFilterDropdown({
   numeric?: boolean;
   numericValues?: number[];
   multi?: boolean;
+  label?: string;
 }) {
   const fmt = formatFn ?? String;
   const allNumericValues = numericValues ?? options.map(Number).filter((n) => !isNaN(n));
@@ -152,7 +154,7 @@ export function PriceComparisonFilterDropdown({
   }, []);
 
   function getLabel() {
-    if (value === "all") return "All";
+    if (value === "all") return label ?? "All";
     if (value.startsWith(MULTI_PREFIX)) {
       const count = selectedValues.length;
       return count === 0 ? "All" : `${count} selected`;
@@ -171,7 +173,7 @@ export function PriceComparisonFilterDropdown({
   return (
     <div ref={ref} className="relative">
       <button ref={btnRef} type="button" onClick={() => setOpen((o) => !o)} className={triggerClass}>
-        <span className="w-[72px] flex-shrink-0 truncate">{getLabel()}</span>
+        <span className="min-w-0 flex-1 truncate">{getLabel()}</span>
         <ChevronDown className={clsx("h-2.5 w-2.5 flex-shrink-0 transition-transform", open && "rotate-180")} />
       </button>
       {open ? (

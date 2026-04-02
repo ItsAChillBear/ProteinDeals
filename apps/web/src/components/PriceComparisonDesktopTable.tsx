@@ -26,6 +26,7 @@ export default function PriceComparisonDesktopTable({
   filterOptions,
   onFilter,
   visibility,
+  viewMode,
 }: {
   groups: ProductGroupWithSelection[];
   bestValueVariantId: string | null;
@@ -39,6 +40,7 @@ export default function PriceComparisonDesktopTable({
   filterOptions: ColumnFilterOptions;
   onFilter: (key: keyof ColumnFilters, value: string) => void;
   visibility: ColumnVisibility;
+  viewMode: "card" | "table";
 }) {
   const headerClass =
     "px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap align-bottom";
@@ -53,6 +55,44 @@ export default function PriceComparisonDesktopTable({
   const proteinColSpan = (visibility.show100g ? 1 : 0) + (visibility.showServing ? 1 : 0);
   const caloriesColSpan = (visibility.show100g ? 1 : 0) + (visibility.showServing ? 1 : 0) + (visibility.show1gProtein ? 1 : 0);
   const priceColSpan = (visibility.showTotal ? 1 : 0) + (visibility.show100g ? 1 : 0) + (visibility.showServing ? 1 : 0) + (visibility.show1gProtein ? 1 : 0);
+  const totalColumns =
+    4 // product, flavour, size, servings
+    + proteinColSpan
+    + caloriesColSpan
+    + priceColSpan
+    + (planner.committed && Number(planner.proteinTarget) > 0 ? 1 : 0);
+
+  if (viewMode === "card") {
+    return (
+      <div className="hidden sm:block">
+        {/* Card rows — filter bar is rendered inside the first row group */}
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-gray-800">
+            {groups.map((group, i) => (
+              <PriceComparisonDesktopRowGroup
+                key={group.id}
+                group={group}
+                bestValueVariantId={bestValueVariantId}
+                filters={filters}
+                planner={planner}
+                visibility={visibility}
+                isExpanded={Boolean(expandedRows[group.id])}
+                onToggleExpanded={onToggleExpanded}
+                totalColumns={1}
+                viewMode={viewMode}
+                showFilterBar={i === 0}
+                filterOptions={filterOptions}
+                onFilter={onFilter}
+                onSort={onSort}
+                sortKey={sortKey}
+                sortDir={sortDir}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
     <div className="hidden overflow-x-auto overflow-y-visible sm:block">
@@ -113,7 +153,7 @@ export default function PriceComparisonDesktopTable({
             </th>
             <th className={`${headerClass} min-w-[70px]`}>
               <div className="flex flex-col items-center gap-1.5">
-                <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} numericValues={filterOptions.sizeGs} formatFn={(n) => { const match = filterOptions.sizes[filterOptions.sizeGs.indexOf(n)]; return match ?? `${n}g`; }} numeric onChange={(v) => onFilter("size", v)} />
+                <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} numericValues={filterOptions.sizeGs} formatFn={(n) => { const match = filterOptions.sizes[filterOptions.sizeGs.indexOf(n)]; return match ? match.replace(/^(\d+\.\d+?)0+(kg|g)$/, "$1$2") : `${n}g`; }} numeric onChange={(v) => onFilter("size", v)} />
                 {sortableHeader("Size", "size")}
               </div>
             </th>
@@ -208,6 +248,8 @@ export default function PriceComparisonDesktopTable({
               visibility={visibility}
               isExpanded={Boolean(expandedRows[group.id])}
               onToggleExpanded={onToggleExpanded}
+              totalColumns={totalColumns}
+              viewMode={viewMode}
             />
           ))}
         </tbody>

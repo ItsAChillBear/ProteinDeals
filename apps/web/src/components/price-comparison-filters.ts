@@ -1,6 +1,7 @@
 import { getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, getProteinPerServing } from "./price-comparison-metrics";
 import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import type { Product, ProductGroupWithSelection } from "./price-comparison-table.types";
+import { normalizeBaseName } from "./price-comparison-table.utils";
 
 export const RANGE_PREFIX = "range:";
 export const MULTI_PREFIX = "multi:";
@@ -16,6 +17,8 @@ export function buildMultiFilter(values: string[]): string {
 export interface ColumnFilters {
   size: string;
   flavour: string;
+  retailer: string;
+  product: string;
   servings: string;
   pricePerServing: string;
   price: string;
@@ -32,6 +35,8 @@ export interface ColumnFilterOptions {
   sizes: string[];
   sizeGs: number[];
   flavours: string[];
+  retailers: string[];
+  products: string[];
   servings: string[];
   pricePerServings: string[];
   prices: string[];
@@ -47,6 +52,8 @@ export interface ColumnFilterOptions {
 export const DEFAULT_FILTERS: ColumnFilters = {
   size: "all",
   flavour: "all",
+  retailer: "all",
+  product: "all",
   servings: "all",
   pricePerServing: "all",
   price: "all",
@@ -62,6 +69,8 @@ export const DEFAULT_FILTERS: ColumnFilters = {
 export const FILTER_KEYS: Array<keyof ColumnFilters> = [
   "size",
   "flavour",
+  "retailer",
+  "product",
   "servings",
   "pricePerServing",
   "price",
@@ -99,6 +108,10 @@ export function getFilterOptionsForFilters(
     })(),
     flavours: getOptionsForKey(allVariants, filters, "flavour", (variant) => variant.flavour ?? "")
       .filter(Boolean)
+      .sort(),
+    retailers: getOptionsForKey(allVariants, filters, "retailer", (variant) => variant.retailer)
+      .sort(),
+    products: getOptionsForKey(allVariants, filters, "product", (variant) => normalizeBaseName(variant))
       .sort(),
     servings: getOptionsForKey(visibleVariants, filters, "servings", (variant) =>
       variant.servings !== null ? String(variant.servings) : null
@@ -173,6 +186,8 @@ function getOptionsForKey(
     variantMatchesFilters(variant, {
       size: targetKey === "size" ? DEFAULT_FILTERS.size : filters.size,
       flavour: targetKey === "flavour" ? DEFAULT_FILTERS.flavour : filters.flavour,
+      retailer: targetKey === "retailer" ? DEFAULT_FILTERS.retailer : filters.retailer,
+      product: targetKey === "product" ? DEFAULT_FILTERS.product : filters.product,
       servings: targetKey === "servings" ? DEFAULT_FILTERS.servings : filters.servings,
       pricePerServing:
         targetKey === "pricePerServing" ? DEFAULT_FILTERS.pricePerServing : filters.pricePerServing,
@@ -229,6 +244,10 @@ function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters
       return options.sizes;
     case "flavour":
       return options.flavours;
+    case "retailer":
+      return options.retailers;
+    case "product":
+      return options.products;
     case "servings":
       return options.servings;
     case "pricePerServing":
@@ -253,6 +272,19 @@ function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters
 }
 
 export function variantMatchesFilters(variant: Product, filters: ColumnFilters) {
+  if (filters.retailer !== "all") {
+    if (filters.retailer.startsWith(MULTI_PREFIX)) {
+      const allowed = parseMultiFilter(filters.retailer);
+      if (!allowed.includes(variant.retailer)) return false;
+    } else if (variant.retailer !== filters.retailer) return false;
+  }
+  if (filters.product !== "all") {
+    const baseName = normalizeBaseName(variant);
+    if (filters.product.startsWith(MULTI_PREFIX)) {
+      const allowed = parseMultiFilter(filters.product);
+      if (!allowed.includes(baseName)) return false;
+    } else if (baseName !== filters.product) return false;
+  }
   if (filters.flavour !== "all") {
     if (filters.flavour.startsWith(MULTI_PREFIX)) {
       const allowed = parseMultiFilter(filters.flavour);

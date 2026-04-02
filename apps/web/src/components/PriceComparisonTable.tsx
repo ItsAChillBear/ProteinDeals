@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import PriceComparisonDesktopTable from "./PriceComparisonDesktopTable";
+import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
 import PriceComparisonMobileList from "./PriceComparisonMobileList";
 import PriceComparisonPlanner from "./PriceComparisonPlanner";
 import {
@@ -47,6 +48,7 @@ export default function PriceComparisonTable({ products }: Props) {
   const [filters, setFilters] = useState<ColumnFilters>(DEFAULT_FILTERS);
   const [planner, setPlanner] = useState<ProteinPlannerState>(DEFAULT_PROTEIN_PLANNER);
   const [visibility, setVisibility] = useState<ColumnVisibility>(DEFAULT_VISIBILITY);
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   const groups = useMemo(() => groupProducts(products), [products]);
   const allVariants = useMemo(() => groups.flatMap((group) => group.variants), [groups]);
@@ -175,10 +177,11 @@ export default function PriceComparisonTable({ products }: Props) {
         onReset={() => setPlanner(DEFAULT_PROTEIN_PLANNER)}
       />
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 px-6 py-3">
-        <p className="text-sm text-gray-400">
-          <span className="font-semibold text-white">{filteredGroups.length}</span> products,{" "}
-          <span className="font-semibold text-white">{filteredVariantCount}</span> variants
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <PriceComparisonFilterDropdown value={filters.retailer} options={filterOptions.retailers} onChange={(v) => setFilter("retailer", v)} multi label="Supplier" />
+          <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => setFilter("product", v)} multi label="Product" />
+          <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => setFilter("flavour", v)} multi label="Flavour" />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">Show:</span>
           {(
@@ -202,6 +205,27 @@ export default function PriceComparisonTable({ products }: Props) {
               {label}
             </button>
           ))}
+          <span className="mx-1 h-4 w-px bg-gray-700" />
+          <div className="flex rounded-md border border-gray-700 overflow-hidden text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => setViewMode("card")}
+              className={`px-2.5 py-1 transition ${viewMode === "card" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+            >
+              Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`px-2.5 py-1 transition border-l border-gray-700 ${viewMode === "table" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+            >
+              Table
+            </button>
+          </div>
+          <p className="text-sm text-gray-400">
+            <span className="font-semibold text-white">{filteredGroups.length}</span> products,{" "}
+            <span className="font-semibold text-white">{filteredVariantCount}</span> variants
+          </p>
           <span className="mx-1 h-4 w-px bg-gray-700" />
           <button
             type="button"
@@ -232,6 +256,7 @@ export default function PriceComparisonTable({ products }: Props) {
         filterOptions={filterOptions}
         onFilter={setFilter}
         visibility={visibility}
+        viewMode={viewMode}
       />
 
       <PriceComparisonMobileList

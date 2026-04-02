@@ -16,13 +16,18 @@ import type { ProteinPlannerState } from "./price-comparison-planner";
 export function ProductThumbnail({
   name,
   imageUrl,
+  size = "sm",
 }: {
   name: string;
   imageUrl: string | null;
+  size?: "sm" | "lg";
 }) {
+  const cls = size === "lg"
+    ? "h-24 w-24 rounded-xl border border-gray-800 bg-gray-950 object-cover"
+    : "h-14 w-14 rounded-xl border border-gray-800 bg-gray-950 object-cover";
   if (!imageUrl) {
     return (
-      <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-gray-800 bg-gray-950 px-1 text-center text-[10px] uppercase tracking-wide text-gray-600">
+      <div className={`flex items-center justify-center rounded-xl border border-dashed border-gray-800 bg-gray-950 px-1 text-center text-[10px] uppercase tracking-wide text-gray-600 ${size === "lg" ? "h-24 w-24" : "h-14 w-14"}`}>
         No image
       </div>
     );
@@ -33,7 +38,7 @@ export function ProductThumbnail({
       src={imageUrl}
       alt={name}
       loading="lazy"
-      className="h-14 w-14 rounded-xl border border-gray-800 bg-gray-950 object-cover"
+      className={cls}
     />
   );
 }
