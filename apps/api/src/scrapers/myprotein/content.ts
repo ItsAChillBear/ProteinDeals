@@ -189,7 +189,7 @@ function extractRichContentListTexts(html: string, key: string) {
   const matches = [...block.matchAll(/"content":\s*("(?:\\.|[^"\\])*")/g)];
   return matches
     .map((match) => decodeJsonStringLiteral(match[1]))
-    .map((value) => stripHtml(value))
+    .map((value) => convertRichTextToMarkedText(value))
     .map((value) => collapseWhitespace(value))
     .filter(Boolean);
 }
@@ -247,6 +247,18 @@ function decodeJsonStringLiteral(value: string) {
 
 function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ");
+}
+
+function convertRichTextToMarkedText(value: string) {
+  return value
+    .replace(/<(strong|b)[^>]*>/gi, "**")
+    .replace(/<\/(strong|b)>/gi, "**")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "\n- ")
+    .replace(/<\/li>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ");
 }
 
 function escapeRegExp(value: string) {

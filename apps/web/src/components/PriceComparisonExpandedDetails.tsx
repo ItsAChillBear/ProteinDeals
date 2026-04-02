@@ -39,7 +39,9 @@ export default function PriceComparisonExpandedDetails({
       {ingredients ? (
         <div className="mb-4">
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Ingredients</h4>
-          <p className="whitespace-pre-line text-sm leading-6 text-gray-300">{ingredients}</p>
+          <div className="whitespace-pre-line text-sm leading-6 text-gray-300">
+            {renderMarkedText(ingredients)}
+          </div>
         </div>
       ) : null}
 
@@ -71,4 +73,17 @@ export default function PriceComparisonExpandedDetails({
 
     </div>
   );
+}
+
+function renderMarkedText(value: string) {
+  return value.split("\n").map((line, lineIndex) => (
+    <span key={`${line}-${lineIndex}`}>
+      {line.split(/(\*\*.*?\*\*)/g).map((part, partIndex) => {
+        const match = part.match(/^\*\*(.*?)\*\*$/);
+        if (!match) return <span key={partIndex}>{part}</span>;
+        return <strong key={partIndex} className="font-semibold text-white">{match[1]}</strong>;
+      })}
+      {lineIndex < value.split("\n").length - 1 ? "\n" : null}
+    </span>
+  ));
 }
