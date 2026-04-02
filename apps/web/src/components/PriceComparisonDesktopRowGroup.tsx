@@ -3,11 +3,17 @@
 import { Fragment } from "react";
 import { CheckCircle, ChevronDown, ChevronUp, Tag, XCircle } from "lucide-react";
 import { clsx } from "clsx";
+import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
 import { matchesRange, RANGE_PREFIX, type ColumnFilters } from "./price-comparison-filters";
 import { formatCurrencyPrecise } from "./price-comparison-format";
 import { plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
-import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
+import {
+  getCaloriesPerGramProtein,
+  getPricePerGramProtein,
+  getPricePerServing,
+} from "./price-comparison-metrics";
+import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import {
   BuyButton,
   formatCurrency,
@@ -91,6 +97,18 @@ export function PriceComparisonDesktopRowGroup({
                 {displayProteinPer100g !== null ? `${displayProteinPer100g}g / 100g` : "-"}
               </td>
             ) : null}
+            {isFirstRow ? (
+              <td className="whitespace-nowrap px-4 py-2 text-center text-gray-300" rowSpan={rowSpan}>
+                {getCaloriesPer100g(product) !== null ? `${getCaloriesPer100g(product)}` : "-"}
+              </td>
+            ) : null}
+            {isFirstRow ? (
+              <td className="whitespace-nowrap px-4 py-2 text-center text-gray-300" rowSpan={rowSpan}>
+                {getCaloriesPerGramProtein(product) !== null
+                  ? getCaloriesPerGramProtein(product)!.toFixed(2)
+                  : "-"}
+              </td>
+            ) : null}
             <td className="px-4 py-2 text-center text-sm font-medium text-white">{variant.size}</td>
             <td className="px-4 py-2 text-center text-sm text-gray-400">
               {variant.servings ? `${variant.servings}` : "-"}
@@ -137,14 +155,9 @@ export function PriceComparisonDesktopRowGroup({
       })}
       {isExpanded ? (
         <tr className={isBestValue ? "bg-green-950/10" : "bg-gray-900/70"}>
-          <td colSpan={10} className="px-4 pb-5 pt-1">
-            <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
-              <div className="mb-3 flex flex-wrap gap-4 text-xs text-gray-400">
-                <span>Flavour: <span className="text-white">{product.flavour ?? "-"}</span></span>
-                <span>Size: <span className="text-white">{product.size}</span></span>
-                <span>Servings: <span className="text-white">{product.servings ?? "-"}</span></span>
-              </div>
-              <div className="mb-3">
+          <td colSpan={12} className="px-4 pb-5 pt-1">
+            <div className="space-y-4">
+              <div>
                 {product.inStock ? (
                   <span className="flex items-center gap-1 whitespace-nowrap text-green-400">
                     <CheckCircle className="h-4 w-4 flex-shrink-0" />
@@ -157,9 +170,7 @@ export function PriceComparisonDesktopRowGroup({
                   </span>
                 )}
               </div>
-              <p className="whitespace-pre-line text-sm leading-6 text-gray-300">
-                {product.description ?? group.description ?? "No extra scraped description yet."}
-              </p>
+              <PriceComparisonExpandedDetails group={group} />
               <div className="mt-4">
                 <ProductPageLink slug={product.slug} />
               </div>

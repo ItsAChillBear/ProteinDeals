@@ -9,6 +9,7 @@ import type {
   SortKey,
 } from "./price-comparison-table.types";
 import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
+import { getProteinPer100g } from "./price-comparison-nutrition";
 
 export function ProductThumbnail({
   name,
@@ -163,11 +164,15 @@ export function getDisplayProteinPer100g(
   selected: Product,
   variants: Product[]
 ) {
-  if (selected.proteinPer100g !== null) {
-    return selected.proteinPer100g;
+  const selectedProtein = getProteinPer100g(selected);
+  if (selectedProtein !== null) return selectedProtein;
+
+  for (const variant of variants) {
+    const nutritionProtein = getProteinPer100g(variant);
+    if (nutritionProtein !== null) return nutritionProtein;
   }
 
-  return variants.find((variant) => variant.proteinPer100g !== null)?.proteinPer100g ?? null;
+  return null;
 }
 
 export function sortGroups(

@@ -66,6 +66,8 @@ export default function PriceComparisonDesktopTable({
                 <span>Protein</span>
               </div>
             </th>
+            <th className={headerClass}>Calories / 100g</th>
+            <th className={headerClass}>Calories / 1g Protein</th>
             <th className={`${headerClass} min-w-[80px]`}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} onChange={(v) => onFilter("size", v)} />

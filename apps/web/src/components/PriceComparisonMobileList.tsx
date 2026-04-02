@@ -2,10 +2,16 @@
 
 import { CheckCircle, Tag, XCircle } from "lucide-react";
 import { clsx } from "clsx";
+import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
 import { formatCurrencyPrecise } from "./price-comparison-format";
 import { plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
-import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
+import {
+  getCaloriesPerGramProtein,
+  getPricePerGramProtein,
+  getPricePerServing,
+} from "./price-comparison-metrics";
+import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import {
   BuyButton,
   formatCurrency,
@@ -87,6 +93,11 @@ export default function PriceComparisonMobileList({
                         <span>{formatCurrency(variant.price)}</span>
                         <span>{formatCurrency(variant.pricePer100g)}/100g</span>
                         <span>
+                          {getCaloriesPer100g(variant) !== null
+                            ? `${getCaloriesPer100g(variant)} cal/100g`
+                            : "-"}
+                        </span>
+                        <span>
                           {getPricePerServing(variant) !== null
                             ? `${formatCurrencyPrecise(getPricePerServing(variant)!)} / serving`
                             : "-"}
@@ -94,6 +105,11 @@ export default function PriceComparisonMobileList({
                         <span>
                           {getPricePerGramProtein(variant) !== null
                             ? `${formatCurrencyPrecise(getPricePerGramProtein(variant)!)} / g protein`
+                            : "-"}
+                        </span>
+                        <span>
+                          {getCaloriesPerGramProtein(variant) !== null
+                            ? `${getCaloriesPerGramProtein(variant)!.toFixed(2)} cal / g protein`
                             : "-"}
                         </span>
                       </div>
@@ -119,7 +135,7 @@ export default function PriceComparisonMobileList({
             </div>
 
             {isExpanded ? (
-              <div className="mt-4 rounded-xl border border-gray-800 bg-gray-950/70 p-3">
+              <div className="mt-4 space-y-3">
                 <div className="mt-2">
                   {product.inStock ? (
                     <span className="flex items-center gap-1 whitespace-nowrap text-green-400">
@@ -133,9 +149,7 @@ export default function PriceComparisonMobileList({
                     </span>
                   )}
                 </div>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-300">
-                  {product.description ?? group.description ?? "No extra scraped description yet."}
-                </p>
+                <PriceComparisonExpandedDetails group={group} />
                 <div className="mt-3">
                   <ProductPageLink slug={product.slug} />
                 </div>

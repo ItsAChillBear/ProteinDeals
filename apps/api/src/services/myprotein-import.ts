@@ -28,6 +28,12 @@ export interface CompareProductRow {
   price: number;
   pricePer100g: number;
   proteinPer100g: number | null;
+  ingredients: string | null;
+  nutritionalInformation: Array<{
+    label: string;
+    per100g: string | null;
+    perServing: string | null;
+  }>;
   inStock: boolean;
   url: string;
   type: string;
@@ -203,7 +209,6 @@ function buildProductDescription(record: MyproteinVariantRecord) {
     record.keyBenefits.length ? `Key Benefits: ${record.keyBenefits.join(" | ")}` : null,
     record.whyChoose ? `Why Choose: ${record.whyChoose}` : null,
     record.suggestedUse ? `Suggested Use: ${record.suggestedUse}` : null,
-    record.ingredients ? `Ingredients: ${record.ingredients}` : null,
     record.productDetails ? `Product Details: ${record.productDetails}` : null,
   ].filter(Boolean);
 
@@ -241,6 +246,7 @@ function getRetailerProductId(record: MyproteinVariantRecord) {
 }
 
 function getFieldDiffs(record: MyproteinVariantRecord, current: MyproteinDbVariant) {
+  const nextProteinPer100g = getCanonicalProteinPer100g(record);
   const servingsPerPack = parseServings(record.servingsLabel);
   const nextDescription = buildProductDescription(record);
   const nextProductName = record.flavour
@@ -255,10 +261,16 @@ function getFieldDiffs(record: MyproteinVariantRecord, current: MyproteinDbVaria
     diff("name", current.product.name, nextProductName),
     diff("brand", current.product.brand, record.brand),
     diff("category", current.product.category, nextCategory),
-    diff("proteinPer100g", toNumber(current.product.proteinPer100g), record.proteinPer100g),
+    diff("proteinPer100g", toNumber(current.product.proteinPer100g), nextProteinPer100g),
     diff("servingSizeG", toNumber(current.product.servingSizeG), nextServingSize),
     diff("servingsPerPack", current.product.servingsPerPack, servingsPerPack),
     diff("description", current.product.description, nextDescription),
+    diff("ingredients", current.product.ingredients, record.ingredients),
+    diff(
+      "nutritionalInformation",
+      JSON.stringify(current.product.nutritionalInfo ?? null),
+      JSON.stringify(record.nutritionalInformation)
+    ),
     diff("url", current.url, record.variantUrl),
     diff("flavour", current.flavour, record.flavour),
     diff("sizeG", toNumber(current.sizeG), record.sizeG),
@@ -317,6 +329,7 @@ async function upsertScrapedVariant(
   );
   const category = inferCategory(record.productName);
   const servingsPerPack = parseServings(record.servingsLabel);
+  const proteinPer100g = getCanonicalProteinPer100g(record);
   const description = buildProductDescription(record);
   const productName = record.flavour ? `${record.productName} - ${record.flavour}` : record.productName;
   const imageUrl = await syncProductImageToStorage({
@@ -341,10 +354,7 @@ async function upsertScrapedVariant(
     name: productName,
     brand: record.brand,
     category,
-    proteinPer100g:
-      record.proteinPer100g !== null
-        ? new Prisma.Decimal(record.proteinPer100g.toFixed(2))
-        : null,
+    proteinPer100g: proteinPer100g !== null ? new Prisma.Decimal(proteinPer100g.toFixed(2)) : null,
     servingSizeG:
       record.sizeG && servingsPerPack
         ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2))
@@ -352,6 +362,8 @@ async function upsertScrapedVariant(
     servingsPerPack,
     imageUrl,
     description,
+    ingredients: record.ingredients,
+    nutritionalInfo: record.nutritionalInformation as unknown as Prisma.InputJsonValue,
     isActive: true,
   };
 
@@ -477,6 +489,8 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
           category: true,
           proteinPer100g: true,
           servingsPerPack: true,
+          ingredients: true,
+          nutritionalInfo: true,
           description: true,
         },
       },
@@ -511,12 +525,48 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
           row.product.proteinPer100g !== null
             ? Number(row.product.proteinPer100g)
             : null,
+        ingredients: row.product.ingredients,
+        nutritionalInformation: parseNutritionalInformation(row.product.nutritionalInfo),
         inStock: row.inStock,
         url: row.url,
         type: formatCategoryLabel(row.product.category),
         description: row.product.description,
       };
     });
+}
+
+function parseNutritionalInformation(value: Prisma.JsonValue | null | undefined) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((row) => {
+      if (!row || typeof row !== "object") return null;
+      const item = row as Record<string, unknown>;
+      return {
+        label: typeof item.label === "string" ? item.label : "",
+        per100g: typeof item.per100g === "string" ? item.per100g : null,
+        perServing: typeof item.perServing === "string" ? item.perServing : null,
+      };
+    })
+    .filter(
+      (
+        row
+      ): row is { label: string; per100g: string | null; perServing: string | null } =>
+        Boolean(row && row.label)
+    );
+}
+
+function getCanonicalProteinPer100g(record: MyproteinVariantRecord) {
+  const nutritionProtein = record.nutritionalInformation.find(
+    (row) => row.label.trim().toLowerCase() === "protein"
+  );
+  const nutritionProteinValue = extractGramAmount(nutritionProtein?.per100g ?? null);
+  return nutritionProteinValue ?? record.proteinPer100g;
+}
+
+function extractGramAmount(value: string | null) {
+  if (!value) return null;
+  const match = value.match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : null;
 }
 
 async function ensureRetailer() {

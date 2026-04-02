@@ -12,6 +12,12 @@ export interface Product {
   price: number;
   pricePer100g: number;
   proteinPer100g: number | null;
+  ingredients: string | null;
+  nutritionalInformation: Array<{
+    label: string;
+    per100g: string | null;
+    perServing: string | null;
+  }>;
   inStock: boolean;
   url: string;
   type: string;

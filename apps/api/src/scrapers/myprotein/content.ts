@@ -14,14 +14,29 @@ export function extractMyproteinProductContent(html: string) {
     });
   }
 
+  const ingredientsFallback = extractRichContentListTexts(
+    html,
+    "cm_ingredientsInformation"
+  );
+  const dietarySuitabilityFallback = extractRichContentListTexts(
+    html,
+    "cm_dietarySuitability"
+  );
+  const nutritionHtmlFallback = extractRichContentHtml(html, "cm_nutritionalPanel");
+
   return {
     description: firstNonEmpty([headingBlocks.get("description"), metaDescription($)]) ?? null,
     keyBenefits: splitBulletList(headingBlocks.get("key benefits")),
     whyChoose: firstNonEmpty([headingBlocks.get("why choose"), headingBlocks.get("why choose?")]) ?? null,
     suggestedUse: firstNonEmpty([headingBlocks.get("suggested use"), headingBlocks.get("how to use")]) ?? null,
-    ingredients: headingBlocks.get("ingredients") ?? null,
+    ingredients:
+      firstNonEmpty([
+        headingBlocks.get("ingredients"),
+        [...ingredientsFallback, ...dietarySuitabilityFallback].join("\n"),
+      ]) ?? null,
     faqEntries: extractFaqEntries($, headingBlocks.get("frequently asked questions") ?? null),
-    nutritionalInformation: extractNutritionRows($),
+    nutritionalInformation:
+      extractNutritionRowsFromCmsPayload(html) ?? extractNutritionRows($, nutritionHtmlFallback),
     productDetails: firstNonEmpty([headingBlocks.get("product details"), headingBlocks.get("details")]) ?? null,
   };
 }
@@ -42,16 +57,141 @@ function extractFaqEntries($: cheerio.CheerioAPI, sectionText: string | null) {
     .map((entry) => ({ question: entry, answer: "" }));
 }
 
-function extractNutritionRows($: cheerio.CheerioAPI) {
-  const rows: Array<{ label: string; value: string }> = [];
-  $("table tr").each((_, element) => {
-    const cells = $(element).find("th, td");
-    if (cells.length < 2) return;
-    const label = collapseWhitespace($(cells[0]).text());
-    const value = collapseWhitespace($(cells[1]).text());
-    if (label && value) rows.push({ label, value });
+function extractNutritionRows($: cheerio.CheerioAPI, fallbackHtml: string | null) {
+  if (fallbackHtml) {
+    const fallbackRows = extractNutritionRowsFromScope(cheerio.load(fallbackHtml));
+    if (fallbackRows.length) return fallbackRows;
+  }
+
+  return extractNutritionRowsFromScope($);
+}
+
+function extractNutritionRowsFromScope(scope: cheerio.CheerioAPI) {
+  const rows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
+  const allRows = scope("tr").toArray();
+  if (!allRows.length) return rows;
+
+  const headerIndex = allRows.findIndex((row) => {
+    const directCells = scope(row).children("th, td").toArray();
+    if (directCells.length < 3) return false;
+    const text = collapseWhitespace(scope(row).text()).toLowerCase();
+    return text.includes("per 100g") && /per\s+\d+g|per\s+serving/.test(text);
   });
+  if (headerIndex === -1) return rows;
+
+  const headerCells = scope(allRows[headerIndex]).children("th, td").toArray();
+  const per100gIndex = headerCells.findIndex((cell) =>
+    /per\s*100g/i.test(collapseWhitespace(scope(cell).text()))
+  );
+  const perServingIndex = headerCells.findIndex((cell) =>
+    /per\s*\d+g|per\s*serving/i.test(collapseWhitespace(scope(cell).text()))
+  );
+
+  if (per100gIndex <= 0 || perServingIndex <= 0 || per100gIndex === perServingIndex) {
+    return rows;
+  }
+
+  for (const row of allRows.slice(headerIndex + 1)) {
+    const cells = scope(row).children("th, td").toArray();
+    if (cells.length <= Math.max(per100gIndex, perServingIndex)) continue;
+
+    const label = collapseWhitespace(scope(cells[0]).text());
+    const per100g = collapseWhitespace(scope(cells[per100gIndex]).text()) || null;
+    const perServing = collapseWhitespace(scope(cells[perServingIndex]).text()) || null;
+    const candidate = { label, per100g, perServing };
+
+    if (isCleanNutritionRow(candidate)) rows.push(candidate);
+  }
+
   return rows;
+}
+
+function extractRichContentHtml(html: string, key: string) {
+  const block = extractCmsBlock(html, key);
+  if (!block) return null;
+  const match = block.match(/"content":\s*("(?:\\.|[^"\\])*")/);
+  if (!match) return null;
+  return decodeJsonStringLiteral(match[1]);
+}
+
+function extractNutritionRowsFromCmsPayload(html: string) {
+  const block = extractCmsBlock(html, "cm_nutritionalPanel");
+  if (!block) return null;
+  const match = block.match(/"content":\s*("(?:\\.|[^"\\])*")/);
+  if (!match) return null;
+
+  const decoded = decodeJsonStringLiteral(match[1]);
+  if (!decoded) return null;
+
+  const $ = cheerio.load(decoded);
+  const rows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
+
+  $("tr").each((_, row) => {
+    const cells = $(row)
+      .children("th, td")
+      .toArray()
+      .map((cell) => collapseWhitespace($(cell).text()));
+
+    if (cells.length < 3) return;
+    const candidate = {
+      label: cells[0],
+      per100g: cells[1] || null,
+      perServing: cells[2] || null,
+    };
+
+    if (isCleanNutritionRow(candidate)) rows.push(candidate);
+  });
+
+  return rows.length ? rows : null;
+}
+
+function extractRichContentListTexts(html: string, key: string) {
+  const block = extractCmsBlock(html, key);
+  if (!block) return [];
+  const matches = [...block.matchAll(/"content":\s*("(?:\\.|[^"\\])*")/g)];
+  return matches
+    .map((match) => decodeJsonStringLiteral(match[1]))
+    .map((value) => stripHtml(value))
+    .map((value) => collapseWhitespace(value))
+    .filter(Boolean);
+}
+
+function extractCmsBlock(html: string, key: string) {
+  const marker = `"key":"${key}"`;
+  const start = html.indexOf(marker);
+  if (start === -1) return null;
+  const rest = html.slice(start);
+  const nextKeyIndex = rest.slice(marker.length).search(/"key":"cm_/);
+  if (nextKeyIndex === -1) return rest.slice(0, 25000);
+  return rest.slice(0, marker.length + nextKeyIndex);
+}
+
+function decodeJsonStringLiteral(value: string) {
+  try {
+    return JSON.parse(value) as string;
+  } catch {
+    return "";
+  }
+}
+
+function stripHtml(value: string) {
+  return value.replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ");
+}
+
+function isCleanNutritionRow(row: {
+  label: string;
+  per100g: string | null;
+  perServing: string | null;
+}) {
+  const label = row.label.trim();
+  if (!label) return false;
+  if (/^(nutritional information|typical values|contains \d+ servings?)$/i.test(label)) {
+    return false;
+  }
+  if (label === row.per100g && label === row.perServing) return false;
+  if (label.length > 60) return false;
+  if (!row.per100g && !row.perServing) return false;
+  return true;
 }
 
 function normalizeHeading(value: string): string | null {
@@ -59,7 +199,7 @@ function normalizeHeading(value: string): string | null {
   return normalized ? normalized.replace(/[:?]+$/g, "") : null;
 }
 
-function collectSectionText($: cheerio.CheerioAPI, element: cheerio.AnyNode): string | null {
+function collectSectionText($: cheerio.CheerioAPI, element: any): string | null {
   const texts: string[] = [];
   let current = $(element).next();
   let hops = 0;

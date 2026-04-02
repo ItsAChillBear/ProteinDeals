@@ -24,7 +24,11 @@ export type ScraperRecord = {
   suggestedUse: string | null;
   ingredients: string | null;
   faqEntries: Array<{ question: string; answer: string }>;
-  nutritionalInformation: Array<{ label: string; value: string }>;
+  nutritionalInformation: Array<{
+    label: string;
+    per100g: string | null;
+    perServing: string | null;
+  }>;
   productDetails: string | null;
   scrapedAt: string;
 };

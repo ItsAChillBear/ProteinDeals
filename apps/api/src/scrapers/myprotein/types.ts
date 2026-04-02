@@ -1,4 +1,9 @@
 export type JsonLdNode = Record<string, unknown>;
+export interface NutritionRow {
+  label: string;
+  per100g: string | null;
+  perServing: string | null;
+}
 
 export interface MyproteinVariantRecord {
   retailer: "MyProtein";
@@ -29,7 +34,7 @@ export interface MyproteinVariantRecord {
   suggestedUse: string | null;
   ingredients: string | null;
   faqEntries: Array<{ question: string; answer: string }>;
-  nutritionalInformation: Array<{ label: string; value: string }>;
+  nutritionalInformation: NutritionRow[];
   productDetails: string | null;
   scrapedAt: string;
 }

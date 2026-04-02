@@ -39,6 +39,8 @@ model Product {
   brand           String           @db.VarChar(100)
   category        ProductCategory
   description     String?
+  ingredients     String?
+  nutritionalInfo Json?            @map("nutritional_info")
   proteinPer100g  Decimal?         @map("protein_per_100g") @db.Decimal(5, 2)
   servingSizeG    Decimal?         @map("serving_size_g") @db.Decimal(6, 2)
   servingsPerPack Int?             @map("servings_per_pack")
