@@ -36,7 +36,7 @@ export default async function ComparePage() {
 
   return (
     <div className="min-h-screen bg-gray-950 py-10">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-6">
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold text-white">
             Compare Protein Powder Prices

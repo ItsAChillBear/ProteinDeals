@@ -92,6 +92,10 @@ export function PriceComparisonDesktopRowGroup({
                 </td>
               </>
             ) : null}
+            <td className="px-2 py-2 text-center text-sm font-medium text-white">{variant.size}</td>
+            <td className="px-2 py-2 text-center text-sm text-gray-400">
+              {variant.servings ? `${variant.servings}` : "-"}
+            </td>
             {isFirstRow ? (
               <td className="whitespace-nowrap px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
                 {displayProteinPer100g !== null ? `${displayProteinPer100g}g` : "-"}
@@ -109,10 +113,6 @@ export function PriceComparisonDesktopRowGroup({
                   : "-"}
               </td>
             ) : null}
-            <td className="px-2 py-2 text-center text-sm font-medium text-white">{variant.size}</td>
-            <td className="px-2 py-2 text-center text-sm text-gray-400">
-              {variant.servings ? `${variant.servings}` : "-"}
-            </td>
             <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm font-semibold text-white">
               {formatCurrency(variant.price)}
             </td>
