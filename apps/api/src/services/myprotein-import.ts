@@ -7,6 +7,11 @@ export interface ImportMyproteinResult {
   createdProducts: number;
   createdVariants: number;
   createdPriceRecords: number;
+  updatedProducts: number;
+  updatedVariants: number;
+  deletedVariants: number;
+  deletedProducts: number;
+  unchanged: number;
 }
 
 export interface CompareProductRow {
@@ -29,163 +34,167 @@ export interface CompareProductRow {
   description: string | null;
 }
 
+type MyproteinDbVariant = Awaited<ReturnType<typeof loadMyproteinDbVariants>>[number];
+
+type DiffAction = "create" | "update" | "delete" | "unchanged";
+
+export interface MyproteinFieldDiff {
+  field: string;
+  current: string | number | boolean | null;
+  next: string | number | boolean | null;
+}
+
+export interface MyproteinSyncEntry {
+  id: string;
+  action: DiffAction;
+  reason: string;
+  retailerProductId: string;
+  scraped: MyproteinVariantRecord | null;
+  current: MyproteinDbVariant | null;
+  fieldDiffs: MyproteinFieldDiff[];
+}
+
+export interface MyproteinSyncPreview {
+  summary: Record<DiffAction, number>;
+  entries: MyproteinSyncEntry[];
+}
+
 export async function importMyproteinRecords(
   records: MyproteinVariantRecord[]
 ): Promise<ImportMyproteinResult> {
-  let imported = 0;
-  let createdProducts = 0;
-  let createdVariants = 0;
-  let createdPriceRecords = 0;
+  const preview = await previewMyproteinSync(records);
+  return applyMyproteinSync(preview.entries.map((entry) => entry.id), preview);
+}
 
-  const retailer = await ensureRetailer();
+export async function previewMyproteinSync(
+  records: MyproteinVariantRecord[]
+): Promise<MyproteinSyncPreview> {
+  const dbVariants = await loadMyproteinDbVariants();
+  const dbByRetailerProductId = new Map(
+    dbVariants
+      .filter((variant) => variant.retailerProductId)
+      .map((variant) => [variant.retailerProductId as string, variant])
+  );
+
+  const entries: MyproteinSyncEntry[] = [];
+  const seenRetailerProductIds = new Set<string>();
 
   for (const record of records) {
-    if (record.price === null || record.pricePer100g === null || record.sizeG === null) {
+    const retailerProductId = getRetailerProductId(record);
+    if (!retailerProductId) continue;
+    seenRetailerProductIds.add(retailerProductId);
+
+    const current = dbByRetailerProductId.get(retailerProductId) ?? null;
+    const fieldDiffs = current ? getFieldDiffs(record, current) : [];
+
+    entries.push({
+      id: retailerProductId,
+      action: current ? (fieldDiffs.length ? "update" : "unchanged") : "create",
+      reason: current
+        ? fieldDiffs.length
+          ? `${fieldDiffs.length} field${fieldDiffs.length === 1 ? "" : "s"} changed`
+          : "No changes detected"
+        : "Variant not currently in database",
+      retailerProductId,
+      scraped: record,
+      current,
+      fieldDiffs,
+    });
+  }
+
+  for (const variant of dbVariants) {
+    const retailerProductId = variant.retailerProductId;
+    if (!retailerProductId || seenRetailerProductIds.has(retailerProductId)) continue;
+
+    entries.push({
+      id: retailerProductId,
+      action: "delete",
+      reason: "Variant exists in database but was not found in this scrape",
+      retailerProductId,
+      scraped: null,
+      current: variant,
+      fieldDiffs: [],
+    });
+  }
+
+  entries.sort((left, right) => {
+    const weight = { create: 0, update: 1, delete: 2, unchanged: 3 } satisfies Record<
+      DiffAction,
+      number
+    >;
+    return (
+      weight[left.action] - weight[right.action] ||
+      left.retailerProductId.localeCompare(right.retailerProductId)
+    );
+  });
+
+  return {
+    summary: {
+      create: entries.filter((entry) => entry.action === "create").length,
+      update: entries.filter((entry) => entry.action === "update").length,
+      delete: entries.filter((entry) => entry.action === "delete").length,
+      unchanged: entries.filter((entry) => entry.action === "unchanged").length,
+    },
+    entries,
+  };
+}
+
+export async function applyMyproteinSync(
+  entryIds: string[],
+  preview?: MyproteinSyncPreview
+): Promise<ImportMyproteinResult> {
+  const resolvedPreview = preview ?? (await previewMyproteinSync([]));
+  const selectedIds = new Set(entryIds);
+  const entries = resolvedPreview.entries.filter((entry) => selectedIds.has(entry.id));
+
+  const result: ImportMyproteinResult = {
+    imported: 0,
+    createdProducts: 0,
+    createdVariants: 0,
+    createdPriceRecords: 0,
+    updatedProducts: 0,
+    updatedVariants: 0,
+    deletedVariants: 0,
+    deletedProducts: 0,
+    unchanged: 0,
+  };
+
+  await ensureRetailer();
+
+  for (const entry of entries) {
+    if (entry.action === "unchanged") {
+      result.unchanged += 1;
       continue;
     }
 
-    const productSlug = createProductSlug(
-      record.brand,
-      record.productName,
-      record.flavour,
-      record.sizeLabel
-    );
-    const category = inferCategory(record.productName);
-    const servingsPerPack = parseServings(record.servingsLabel);
-
-    const existingProduct = await db.product.findUnique({
-      where: {
-        slug: productSlug,
-      },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        brand: true,
-        category: true,
-        proteinPer100g: true,
-        servingSizeG: true,
-        servingsPerPack: true,
-        imageUrl: true,
-        description: true,
-      },
-    });
-    const imageUrl = await syncProductImageToStorage({
-      productSlug,
-      sourceUrl: record.imageUrl,
-      existingImageUrl: existingProduct?.imageUrl ?? null,
-    });
-
-    const product =
-      existingProduct ??
-      (await db.product.create({
-        data: {
-          slug: productSlug,
-          name: record.flavour
-            ? `${record.productName} - ${record.flavour}`
-            : record.productName,
-          brand: record.brand,
-          category,
-          proteinPer100g:
-            record.proteinPer100g !== null
-              ? new Prisma.Decimal(record.proteinPer100g.toFixed(2))
-              : null,
-          servingSizeG:
-            record.sizeG && servingsPerPack
-              ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2))
-              : null,
-          servingsPerPack,
-          imageUrl,
-          description: buildProductDescription(record),
-        },
-      }));
-
-    if (!existingProduct) {
-      createdProducts += 1;
-    } else {
-      await db.product.update({
-        where: {
-          id: existingProduct.id,
-        },
-        data: {
-          name: record.flavour
-            ? `${record.productName} - ${record.flavour}`
-            : record.productName,
-          brand: record.brand,
-          category,
-          proteinPer100g:
-            record.proteinPer100g !== null
-              ? new Prisma.Decimal(record.proteinPer100g.toFixed(2))
-              : null,
-          servingSizeG:
-            record.sizeG && servingsPerPack
-              ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2))
-              : null,
-          servingsPerPack,
-          imageUrl,
-          description: buildProductDescription(record),
-        },
-      });
+    if (entry.action === "delete") {
+      if (entry.current) {
+        const deletedProduct = await deleteDbVariant(entry.current);
+        result.deletedVariants += 1;
+        result.deletedProducts += deletedProduct ? 1 : 0;
+      }
+      continue;
     }
 
-    const retailerProductId =
-      record.retailerProductId ?? `${productSlug}-${record.sizeLabel ?? "default"}`;
-
-    const existingVariant = await db.productVariant.findFirst({
-      where: {
-        productId: product.id,
-        retailerId: retailer.id,
-        retailerProductId,
-      },
-    });
-
-    const variant =
-      existingVariant ??
-      (await db.productVariant.create({
-        data: {
-          productId: product.id,
-          retailerId: retailer.id,
-          retailerProductId,
-          url: record.variantUrl,
-          flavour: record.flavour,
-          sizeG: new Prisma.Decimal(record.sizeG.toFixed(2)),
-          inStock: record.inStock,
-          lastScrapedAt: new Date(record.scrapedAt),
-        },
-      }));
-
-    if (existingVariant) {
-      await db.productVariant.update({
-        where: {
-          id: existingVariant.id,
-        },
-        data: {
-          url: record.variantUrl,
-          flavour: record.flavour,
-          sizeG: new Prisma.Decimal(record.sizeG.toFixed(2)),
-          inStock: record.inStock,
-          lastScrapedAt: new Date(record.scrapedAt),
-        },
-      });
-    } else {
-      createdVariants += 1;
+    if (!entry.scraped) continue;
+    if (
+      entry.scraped.price === null ||
+      entry.scraped.pricePer100g === null ||
+      entry.scraped.sizeG === null
+    ) {
+      continue;
     }
 
-    await db.priceRecord.create({
-      data: {
-        variantId: variant.id,
-        price: new Prisma.Decimal(record.price.toFixed(2)),
-        pricePer100g: new Prisma.Decimal(record.pricePer100g.toFixed(4)),
-        wasOnSale: record.wasOnSale,
-        scrapedAt: new Date(record.scrapedAt),
-      },
-    });
-
-    createdPriceRecords += 1;
-    imported += 1;
+    const applyResult = await upsertScrapedVariant(entry.scraped, entry.current);
+    result.imported += 1;
+    result.createdProducts += applyResult.createdProduct ? 1 : 0;
+    result.createdVariants += applyResult.createdVariant ? 1 : 0;
+    result.updatedProducts += applyResult.updatedProduct ? 1 : 0;
+    result.updatedVariants += applyResult.updatedVariant ? 1 : 0;
+    result.createdPriceRecords += applyResult.createdPriceRecord ? 1 : 0;
   }
 
-  return { imported, createdProducts, createdVariants, createdPriceRecords };
+  return result;
 }
 
 function buildProductDescription(record: MyproteinVariantRecord) {
@@ -199,6 +208,258 @@ function buildProductDescription(record: MyproteinVariantRecord) {
   ].filter(Boolean);
 
   return sections.length ? sections.join("\n\n") : null;
+}
+
+async function loadMyproteinDbVariants() {
+  return db.productVariant.findMany({
+    where: {
+      retailer: {
+        slug: "myprotein",
+      },
+    },
+    include: {
+      product: true,
+      retailer: true,
+      priceRecords: {
+        orderBy: {
+          scrapedAt: "desc",
+        },
+        take: 1,
+      },
+    },
+  });
+}
+
+function getRetailerProductId(record: MyproteinVariantRecord) {
+  const productSlug = createProductSlug(
+    record.brand,
+    record.productName,
+    record.flavour,
+    record.sizeLabel
+  );
+  return record.retailerProductId ?? `${productSlug}-${record.sizeLabel ?? "default"}`;
+}
+
+function getFieldDiffs(record: MyproteinVariantRecord, current: MyproteinDbVariant) {
+  const servingsPerPack = parseServings(record.servingsLabel);
+  const nextDescription = buildProductDescription(record);
+  const nextProductName = record.flavour
+    ? `${record.productName} - ${record.flavour}`
+    : record.productName;
+  const nextCategory = inferCategory(record.productName);
+  const nextServingSize =
+    record.sizeG && servingsPerPack ? roundNullable(record.sizeG / servingsPerPack, 2) : null;
+  const currentPrice = current.priceRecords[0];
+
+  return [
+    diff("name", current.product.name, nextProductName),
+    diff("brand", current.product.brand, record.brand),
+    diff("category", current.product.category, nextCategory),
+    diff("proteinPer100g", toNumber(current.product.proteinPer100g), record.proteinPer100g),
+    diff("servingSizeG", toNumber(current.product.servingSizeG), nextServingSize),
+    diff("servingsPerPack", current.product.servingsPerPack, servingsPerPack),
+    diff("description", current.product.description, nextDescription),
+    diff("url", current.url, record.variantUrl),
+    diff("flavour", current.flavour, record.flavour),
+    diff("sizeG", toNumber(current.sizeG), record.sizeG),
+    diff("inStock", current.inStock, record.inStock),
+    diff("price", toNumber(currentPrice?.price ?? null), record.price),
+    diff(
+      "pricePer100g",
+      toNumber(currentPrice?.pricePer100g ?? null),
+      record.pricePer100g
+    ),
+    diff("wasOnSale", currentPrice?.wasOnSale ?? null, record.wasOnSale),
+  ].filter((entry): entry is MyproteinFieldDiff => entry !== null);
+}
+
+function diff(
+  field: string,
+  current: string | number | boolean | null | undefined,
+  next: string | number | boolean | null | undefined
+) {
+  const normalizedCurrent = normalizeComparable(current);
+  const normalizedNext = normalizeComparable(next);
+  if (normalizedCurrent === normalizedNext) return null;
+  return {
+    field,
+    current: normalizedCurrent,
+    next: normalizedNext,
+  } satisfies MyproteinFieldDiff;
+}
+
+function normalizeComparable(value: string | number | boolean | null | undefined) {
+  if (typeof value === "number") {
+    return Number(value.toFixed(4));
+  }
+  return value ?? null;
+}
+
+function toNumber(value: Prisma.Decimal | number | null | undefined) {
+  if (value === null || value === undefined) return null;
+  return Number(value);
+}
+
+function roundNullable(value: number, digits: number) {
+  return Number(value.toFixed(digits));
+}
+
+async function upsertScrapedVariant(
+  record: MyproteinVariantRecord,
+  current: MyproteinDbVariant | null
+) {
+  const retailer = await ensureRetailer();
+  const productSlug = createProductSlug(
+    record.brand,
+    record.productName,
+    record.flavour,
+    record.sizeLabel
+  );
+  const category = inferCategory(record.productName);
+  const servingsPerPack = parseServings(record.servingsLabel);
+  const description = buildProductDescription(record);
+  const productName = record.flavour ? `${record.productName} - ${record.flavour}` : record.productName;
+  const imageUrl = await syncProductImageToStorage({
+    productSlug,
+    sourceUrl: record.imageUrl,
+    existingImageUrl: current?.product.imageUrl ?? null,
+  });
+
+  let createdProduct = false;
+  let updatedProduct = false;
+  let createdVariant = false;
+  let updatedVariant = false;
+
+  const existingProduct =
+    current?.product ??
+    (await db.product.findUnique({
+      where: { slug: productSlug },
+    }));
+
+  const productData = {
+    slug: productSlug,
+    name: productName,
+    brand: record.brand,
+    category,
+    proteinPer100g:
+      record.proteinPer100g !== null
+        ? new Prisma.Decimal(record.proteinPer100g.toFixed(2))
+        : null,
+    servingSizeG:
+      record.sizeG && servingsPerPack
+        ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2))
+        : null,
+    servingsPerPack,
+    imageUrl,
+    description,
+    isActive: true,
+  };
+
+  const product = existingProduct
+    ? await db.product.update({
+        where: { id: existingProduct.id },
+        data: productData,
+      })
+    : await db.product.create({
+        data: productData,
+      });
+
+  createdProduct = !existingProduct;
+  updatedProduct = Boolean(existingProduct);
+
+  const retailerProductId = getRetailerProductId(record);
+  const existingVariant =
+    current ??
+    (await db.productVariant.findFirst({
+      where: {
+        productId: product.id,
+        retailerId: retailer.id,
+        retailerProductId,
+      },
+      include: {
+        product: true,
+        retailer: true,
+        priceRecords: {
+          orderBy: { scrapedAt: "desc" },
+          take: 1,
+        },
+      },
+    }));
+
+  const variant = existingVariant
+    ? await db.productVariant.update({
+        where: { id: existingVariant.id },
+        data: {
+          productId: product.id,
+          retailerId: retailer.id,
+          retailerProductId,
+          url: record.variantUrl,
+          flavour: record.flavour,
+          sizeG: new Prisma.Decimal(record.sizeG!.toFixed(2)),
+          inStock: record.inStock,
+          lastScrapedAt: new Date(record.scrapedAt),
+        },
+      })
+    : await db.productVariant.create({
+        data: {
+          productId: product.id,
+          retailerId: retailer.id,
+          retailerProductId,
+          url: record.variantUrl,
+          flavour: record.flavour,
+          sizeG: new Prisma.Decimal(record.sizeG!.toFixed(2)),
+          inStock: record.inStock,
+          lastScrapedAt: new Date(record.scrapedAt),
+        },
+      });
+
+  createdVariant = !existingVariant;
+  updatedVariant = Boolean(existingVariant);
+
+  await db.priceRecord.create({
+    data: {
+      variantId: variant.id,
+      price: new Prisma.Decimal(record.price!.toFixed(2)),
+      pricePer100g: new Prisma.Decimal(record.pricePer100g!.toFixed(4)),
+      wasOnSale: record.wasOnSale,
+      scrapedAt: new Date(record.scrapedAt),
+    },
+  });
+
+  return {
+    createdProduct,
+    updatedProduct,
+    createdVariant,
+    updatedVariant,
+    createdPriceRecord: true,
+  };
+}
+
+async function deleteDbVariant(current: MyproteinDbVariant) {
+  const productId = current.productId;
+
+  await db.productVariant.delete({
+    where: {
+      id: current.id,
+    },
+  });
+
+  const remaining = await db.productVariant.count({
+    where: {
+      productId,
+    },
+  });
+
+  if (remaining === 0) {
+    await db.product.delete({
+      where: {
+        id: productId,
+      },
+    });
+    return true;
+  }
+
+  return false;
 }
 
 export async function getCompareProducts(): Promise<CompareProductRow[]> {

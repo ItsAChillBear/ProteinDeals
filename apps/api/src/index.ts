@@ -7,7 +7,9 @@ import { createContext } from "./routers/index.js";
 import { scrapeMyproteinWheyProducts } from "./scrapers/myprotein.js";
 import {
   getCompareProducts,
+  previewMyproteinSync,
   importMyproteinRecords,
+  applyMyproteinSync,
 } from "./services/myprotein-import.js";
 
 const server = Fastify({
@@ -170,13 +172,18 @@ async function start() {
 
   server.post("/internal/scrapers/myprotein/import-records", async (request, reply) => {
     const startedAt = new Date().toISOString();
-    const body = request.body as { records?: unknown };
+    const body = request.body as { records?: unknown; entryIds?: unknown };
 
     try {
       const records = Array.isArray(body?.records) ? body.records : [];
-      const importResult = await importMyproteinRecords(records as Awaited<
-        ReturnType<typeof scrapeMyproteinWheyProducts>
-      >);
+      const preview = await previewMyproteinSync(
+        records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>
+      );
+      const rawEntryIds = Array.isArray(body?.entryIds) ? body.entryIds : null;
+      const entryIds =
+        rawEntryIds?.filter((value): value is string => typeof value === "string") ??
+        preview.entries.map((entry) => entry.id);
+      const importResult = await applyMyproteinSync(entryIds, preview);
 
       return {
         ok: true,
@@ -193,6 +200,35 @@ async function start() {
         startedAt,
         finishedAt: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Unknown import error",
+      };
+    }
+  });
+
+  server.post("/internal/scrapers/myprotein/preview-records", async (request, reply) => {
+    const startedAt = new Date().toISOString();
+    const body = request.body as { records?: unknown };
+
+    try {
+      const records = Array.isArray(body?.records) ? body.records : [];
+      const preview = await previewMyproteinSync(
+        records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>
+      );
+
+      return {
+        ok: true,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        count: records.length,
+        preview,
+      };
+    } catch (error) {
+      request.log.error(error);
+      reply.code(500);
+      return {
+        ok: false,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown preview error",
       };
     }
   });

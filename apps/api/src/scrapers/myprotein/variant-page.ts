@@ -89,7 +89,7 @@ function extractProteinPer100gFromTable(
   $: cheerio.CheerioAPI,
   table: unknown
 ): number | null {
-  const rows = $(table).find("tr").toArray();
+  const rows = $(table as any).find("tr").toArray();
   if (!rows.length) return null;
 
   const headerRow = rows.find((row) => {
