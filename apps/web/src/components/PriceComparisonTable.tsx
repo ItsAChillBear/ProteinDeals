@@ -165,8 +165,6 @@ export default function PriceComparisonTable({ products }: Props) {
   }
 
   const hasActiveFilters = FILTER_KEYS.some((key) => filters[key] !== DEFAULT_FILTERS[key]);
-  const hasActivePlanner =
-    planner.proteinTarget !== "" || (planner.budgetEnabled && planner.budgetAmount !== "");
   const sortLabel =
     sortKey === "pricePer100g"
       ? "Price / 100g"
@@ -205,15 +203,6 @@ export default function PriceComparisonTable({ products }: Props) {
               className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-200 transition hover:border-gray-500 hover:text-white"
             >
               Reset Filters
-            </button>
-          ) : null}
-          {hasActivePlanner ? (
-            <button
-              type="button"
-              onClick={() => setPlanner(DEFAULT_PROTEIN_PLANNER)}
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-200 transition hover:border-gray-500 hover:text-white"
-            >
-              Reset Planner
             </button>
           ) : null}
           <p className="text-xs text-gray-600">

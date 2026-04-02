@@ -1,8 +1,77 @@
 "use client";
 
+import { Plus, X } from "lucide-react";
 import type { BudgetPeriod, ProteinPlannerState } from "./price-comparison-planner";
 
-const PERIOD_OPTIONS: BudgetPeriod[] = ["day", "week", "month", "year"];
+const PERIOD_OPTIONS: { value: BudgetPeriod; label: string }[] = [
+  { value: "day", label: "Day" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
+];
+
+function PlannerInput({
+  label,
+  prefix,
+  suffix,
+  value,
+  placeholder,
+  step,
+  onChange,
+}: {
+  label: string;
+  prefix?: string;
+  suffix?: string;
+  value: string;
+  placeholder: string;
+  step?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">{label}</span>
+      <div className="flex items-center gap-0 rounded-lg border border-gray-700 bg-gray-950 px-3 transition focus-within:border-gray-500">
+        {prefix ? <span className="text-sm text-gray-500 pr-1">{prefix}</span> : null}
+        <input
+          type="number"
+          min="0"
+          step={step ?? "1"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-transparent py-2 text-sm text-white outline-none placeholder:text-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        {suffix ? <span className="text-xs text-gray-500 pl-1 whitespace-nowrap">{suffix}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+function AddOptionButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1.5 rounded-lg border border-dashed border-gray-700 px-3 py-2 text-xs font-medium text-gray-400 transition hover:border-gray-500 hover:text-gray-200 self-end"
+    >
+      <Plus className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
+function RemoveButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-600 transition hover:bg-gray-800 hover:text-gray-300 self-end mb-0.5"
+      aria-label="Remove"
+    >
+      <X className="h-3.5 w-3.5" />
+    </button>
+  );
+}
 
 export default function PriceComparisonPlanner({
   value,
@@ -14,89 +83,92 @@ export default function PriceComparisonPlanner({
   onReset: () => void;
 }) {
   const hasPlannerValue =
-    value.proteinTarget !== "" || (value.budgetEnabled && value.budgetAmount !== "");
+    value.proteinTarget !== "" ||
+    value.calorieTarget !== "" ||
+    (value.budgetEnabled && value.budgetAmount !== "");
 
   return (
-    <div className="border-b border-gray-800 bg-gray-900/70 px-6 py-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_auto_minmax(0,280px)] md:items-end">
-          <label className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              How much protein do you need per day?
-            </span>
-            <div className="flex items-center rounded-xl border border-gray-700 bg-gray-950 px-3">
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={value.proteinTarget}
-                onChange={(event) => onChange({ proteinTarget: event.target.value })}
-                placeholder="e.g. 150"
-                className="w-full bg-transparent py-2.5 text-sm text-white outline-none placeholder:text-gray-500"
-              />
-              <span className="text-xs text-gray-500">g/day</span>
-            </div>
-          </label>
-
-          <button
-            type="button"
-            onClick={() => onChange({ budgetEnabled: !value.budgetEnabled })}
-            className="h-11 rounded-xl border border-dashed border-gray-700 px-4 text-sm font-medium text-gray-300 transition hover:border-gray-500 hover:text-white"
-          >
-            {value.budgetEnabled ? "Remove Budget" : "+ Additional Budget"}
-          </button>
-
-          {value.budgetEnabled ? (
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
-              <label className="flex flex-col gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  What is your budget per day/week/month/year?
-                </span>
-                <div className="flex items-center rounded-xl border border-gray-700 bg-gray-950 px-3">
-                  <span className="text-sm text-gray-500">£</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={value.budgetAmount}
-                    onChange={(event) => onChange({ budgetAmount: event.target.value })}
-                    placeholder="e.g. 30"
-                    className="w-full bg-transparent py-2.5 pl-2 text-sm text-white outline-none placeholder:text-gray-500"
-                  />
-                </div>
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Period
-                </span>
-                <select
-                  value={value.budgetPeriod}
-                  onChange={(event) => onChange({ budgetPeriod: event.target.value as BudgetPeriod })}
-                  className="h-11 rounded-xl border border-gray-700 bg-gray-950 px-3 text-sm text-white outline-none transition focus:border-green-500"
-                >
-                  {PERIOD_OPTIONS.map((period) => (
-                    <option key={period} value={period}>
-                      {period}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : (
-            <div className="hidden md:block" />
-          )}
-        </div>
-
+    <div className="border-b border-gray-800 px-6 py-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Planner</span>
         {hasPlannerValue ? (
           <button
             type="button"
             onClick={onReset}
-            className="h-11 rounded-xl border border-gray-700 bg-gray-800 px-4 text-sm font-medium text-gray-200 transition hover:border-gray-500 hover:text-white"
+            className="text-xs text-gray-500 transition hover:text-gray-300"
           >
-            Reset Planner
+            Reset
           </button>
         ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3">
+        {/* Protein */}
+        <div className="w-52">
+          <PlannerInput
+            label="How much protein do you want per day from powders?"
+            suffix="g / day"
+            value={value.proteinTarget}
+            placeholder="e.g. 150"
+            onChange={(v) => onChange({ proteinTarget: v })}
+          />
+        </div>
+
+        {/* Calories — togglable */}
+        {value.calorieEnabled ? (
+          <div className="flex items-end gap-1.5">
+            <div className="w-48">
+              <PlannerInput
+                label="Calorie target"
+                suffix="kcal / day"
+                value={value.calorieTarget}
+                placeholder="e.g. 2000"
+                onChange={(v) => onChange({ calorieTarget: v })}
+              />
+            </div>
+            <RemoveButton onClick={() => onChange({ calorieEnabled: false, calorieTarget: "" })} />
+          </div>
+        ) : (
+          <AddOptionButton label="Calories" onClick={() => onChange({ calorieEnabled: true })} />
+        )}
+
+        {/* Budget — togglable */}
+        {value.budgetEnabled ? (
+          <div className="flex items-end gap-1.5">
+            <div className="w-36">
+              <PlannerInput
+                label="Budget"
+                prefix="£"
+                value={value.budgetAmount}
+                placeholder="e.g. 30"
+                step="0.01"
+                onChange={(v) => onChange({ budgetAmount: v })}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Period</span>
+              <div className="flex gap-1">
+                {PERIOD_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChange({ budgetPeriod: opt.value })}
+                    className={`rounded-lg px-2.5 py-2 text-xs font-medium transition ${
+                      value.budgetPeriod === opt.value
+                        ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/40"
+                        : "bg-gray-800 text-gray-400 hover:text-gray-200"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <RemoveButton onClick={() => onChange({ budgetEnabled: false, budgetAmount: "" })} />
+          </div>
+        ) : (
+          <AddOptionButton label="Budget" onClick={() => onChange({ budgetEnabled: true })} />
+        )}
       </div>
     </div>
   );
