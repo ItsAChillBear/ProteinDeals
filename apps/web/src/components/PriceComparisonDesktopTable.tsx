@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { ProductGroupWithSelection, SortDir, SortKey } from "./price-comparison-table.types";
 import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
+import type { ProteinPlannerState } from "./price-comparison-planner";
 import { PriceComparisonDesktopRowGroup } from "./PriceComparisonDesktopRowGroup";
 import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
 
@@ -20,6 +21,7 @@ export default function PriceComparisonDesktopTable({
   sortDir,
   sortKey,
   filters,
+  planner,
   filterOptions,
   onFilter,
 }: {
@@ -31,6 +33,7 @@ export default function PriceComparisonDesktopTable({
   sortDir: SortDir;
   sortKey: SortKey;
   filters: ColumnFilters;
+  planner: ProteinPlannerState;
   filterOptions: ColumnFilterOptions;
   onFilter: (key: keyof ColumnFilters, value: string) => void;
 }) {
@@ -108,6 +111,7 @@ export default function PriceComparisonDesktopTable({
               group={group}
               bestValueVariantId={bestValueVariantId}
               filters={filters}
+              planner={planner}
               isExpanded={Boolean(expandedRows[group.id])}
               onToggleExpanded={onToggleExpanded}
             />

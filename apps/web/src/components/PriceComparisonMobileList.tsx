@@ -4,6 +4,7 @@ import { CheckCircle, Tag, XCircle } from "lucide-react";
 import { clsx } from "clsx";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
 import { formatCurrencyPrecise } from "./price-comparison-format";
+import { plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
 import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 import {
   BuyButton,
@@ -17,11 +18,13 @@ export default function PriceComparisonMobileList({
   groups,
   expandedRows,
   bestValueVariantId,
+  planner,
   onToggleExpanded,
 }: {
   groups: ProductGroupWithSelection[];
   expandedRows: Record<string, boolean>;
   bestValueVariantId: string | null;
+  planner: ProteinPlannerState;
   onToggleExpanded: (groupId: string) => void;
 }) {
   return (
@@ -31,7 +34,11 @@ export default function PriceComparisonMobileList({
         const isExpanded = Boolean(expandedRows[group.id]);
         const isBestValue = product.inStock && product.id === bestValueVariantId;
         const activeFlavour = product.flavour ?? "";
-        const flavourVariants = getVariantsForFlavour(group, activeFlavour);
+        const flavourVariants = getVariantsForFlavour(group, activeFlavour).filter((variant) =>
+          plannerMatchesVariant(variant, planner)
+        );
+
+        if (!flavourVariants.length) return null;
 
         return (
           <div

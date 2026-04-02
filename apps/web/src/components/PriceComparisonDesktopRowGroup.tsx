@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
 import { matchesRange, RANGE_PREFIX, type ColumnFilters } from "./price-comparison-filters";
 import { formatCurrencyPrecise } from "./price-comparison-format";
+import { plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
 import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 import {
   BuyButton,
@@ -20,19 +21,21 @@ export function PriceComparisonDesktopRowGroup({
   group,
   bestValueVariantId,
   filters,
+  planner,
   isExpanded,
   onToggleExpanded,
 }: {
   group: ProductGroupWithSelection;
   bestValueVariantId: string | null;
   filters: ColumnFilters;
+  planner: ProteinPlannerState;
   isExpanded: boolean;
   onToggleExpanded: (groupId: string) => void;
 }) {
   const product = group.selected;
   const activeFlavour = filters.flavour !== "all" ? filters.flavour : product.flavour ?? "";
   const flavourVariants = getVariantsForFlavour(group, activeFlavour).filter((variant) =>
-    matchesVariantFilters(variant, filters)
+    matchesVariantFilters(variant, filters) && plannerMatchesVariant(variant, planner)
   );
 
   if (!flavourVariants.length) return null;
@@ -70,22 +73,12 @@ export function PriceComparisonDesktopRowGroup({
                   <button
                     type="button"
                     onClick={() => onToggleExpanded(group.id)}
-                    className="flex w-full items-start justify-between gap-3 text-left"
+                    className="flex w-full flex-col items-center gap-1"
                   >
-                    <div>
-                      <div className="line-clamp-2 font-medium leading-snug text-white transition-colors hover:text-green-300">
-                        {group.baseName}
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {group.brand} • {group.retailer} • {group.type} •{" "}
-                        {product.inStock ? "In stock" : "Out of stock"}
-                      </div>
+                    <div className="font-medium leading-snug text-white transition-colors hover:text-green-300">
+                      {group.baseName}
                     </div>
-                    {isExpanded ? (
-                      <ChevronUp className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" />
-                    ) : (
-                      <ChevronDown className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" />
-                    )}
+                    <div className="text-xs text-gray-500">{group.retailer}</div>
                   </button>
                 </td>
                 <td className="px-4 py-4 text-center align-top" rowSpan={rowSpan}>

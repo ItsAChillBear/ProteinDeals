@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import PriceComparisonDesktopTable from "./PriceComparisonDesktopTable";
 import PriceComparisonMobileList from "./PriceComparisonMobileList";
+import PriceComparisonPlanner from "./PriceComparisonPlanner";
 import {
   DEFAULT_FILTERS,
   FILTER_KEYS,
@@ -20,6 +21,12 @@ import type {
   SortKey,
 } from "./price-comparison-table.types";
 import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
+import {
+  countMatchingVariantsForGroup,
+  DEFAULT_PROTEIN_PLANNER,
+  plannerMatchesVariant,
+  type ProteinPlannerState,
+} from "./price-comparison-planner";
 import {
   getDefaultVariant,
   getFlavourOptions,
@@ -39,6 +46,7 @@ export default function PriceComparisonTable({ products }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [filters, setFilters] = useState<ColumnFilters>(DEFAULT_FILTERS);
+  const [planner, setPlanner] = useState<ProteinPlannerState>(DEFAULT_PROTEIN_PLANNER);
 
   const groups = useMemo(() => groupProducts(products), [products]);
   const allVariants = useMemo(() => groups.flatMap((group) => group.variants), [groups]);
@@ -76,6 +84,21 @@ export default function PriceComparisonTable({ products }: Props) {
     [allVariants, filters, visibleVariants]
   );
 
+  const filteredGroups = useMemo(
+    () =>
+      sorted.filter((group) => countMatchingVariantsForGroup(group, filters, planner) > 0),
+    [filters, planner, sorted]
+  );
+
+  const filteredVariantCount = useMemo(
+    () =>
+      filteredGroups.reduce(
+        (count, group) => count + countMatchingVariantsForGroup(group, filters, planner),
+        0
+      ),
+    [filteredGroups, filters, planner]
+  );
+
   const bestValueMetric = useMemo(() => {
     return sortKey === "pricePerServing" || sortKey === "pricePerGramProtein"
       ? sortKey
@@ -85,7 +108,7 @@ export default function PriceComparisonTable({ products }: Props) {
   const bestValueAmount = useMemo(() => {
     const inStockVisibleVariants = visibleVariants.filter((variant) => {
       if (!variant.inStock) return false;
-      return variantMatchesFilters(variant, filters);
+      return variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner);
     });
 
     const metricValues = inStockVisibleVariants
@@ -93,17 +116,17 @@ export default function PriceComparisonTable({ products }: Props) {
       .filter((value): value is number => value !== null);
 
     return metricValues.length ? Math.min(...metricValues) : null;
-  }, [bestValueMetric, filters, visibleVariants]);
+  }, [bestValueMetric, filters, planner, visibleVariants]);
 
   const bestValueVariantId = useMemo(() => {
     if (bestValueAmount === null) return null;
 
-    for (const group of sorted) {
+    for (const group of filteredGroups) {
       const activeFlavour =
         filters.flavour !== "all" ? filters.flavour : group.selected.flavour ?? "";
       const visibleGroupVariants = group.variants.filter((variant) => {
         if ((variant.flavour ?? "") !== activeFlavour) return false;
-        return variantMatchesFilters(variant, filters);
+        return variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner);
       });
 
       const match = visibleGroupVariants.find(
@@ -114,7 +137,7 @@ export default function PriceComparisonTable({ products }: Props) {
     }
 
     return null;
-  }, [bestValueAmount, bestValueMetric, filters, sorted]);
+  }, [bestValueAmount, bestValueMetric, filteredGroups, filters, planner]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -137,7 +160,13 @@ export default function PriceComparisonTable({ products }: Props) {
     setFilters(DEFAULT_FILTERS);
   }
 
+  function updatePlanner(patch: Partial<ProteinPlannerState>) {
+    setPlanner((current) => ({ ...current, ...patch }));
+  }
+
   const hasActiveFilters = FILTER_KEYS.some((key) => filters[key] !== DEFAULT_FILTERS[key]);
+  const hasActivePlanner =
+    planner.proteinTarget !== "" || (planner.budgetEnabled && planner.budgetAmount !== "");
   const sortLabel =
     sortKey === "pricePer100g"
       ? "Price / 100g"
@@ -157,10 +186,15 @@ export default function PriceComparisonTable({ products }: Props) {
 
   return (
     <div className="rounded-2xl border border-gray-800 bg-gray-900">
+      <PriceComparisonPlanner
+        value={planner}
+        onChange={updatePlanner}
+        onReset={() => setPlanner(DEFAULT_PROTEIN_PLANNER)}
+      />
       <div className="flex items-center justify-between border-b border-gray-800 px-6 py-4">
         <p className="text-sm text-gray-400">
-          <span className="font-semibold text-white">{sorted.length}</span> grouped
-          products across <span className="font-semibold text-white">{products.length}</span>{" "}
+          <span className="font-semibold text-white">{filteredGroups.length}</span> grouped
+          products across <span className="font-semibold text-white">{filteredVariantCount}</span>{" "}
           variants
         </p>
         <div className="flex items-center gap-3">
@@ -173,6 +207,15 @@ export default function PriceComparisonTable({ products }: Props) {
               Reset Filters
             </button>
           ) : null}
+          {hasActivePlanner ? (
+            <button
+              type="button"
+              onClick={() => setPlanner(DEFAULT_PROTEIN_PLANNER)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-200 transition hover:border-gray-500 hover:text-white"
+            >
+              Reset Planner
+            </button>
+          ) : null}
           <p className="text-xs text-gray-600">
             Sorted by: {sortLabel}
           </p>
@@ -180,7 +223,7 @@ export default function PriceComparisonTable({ products }: Props) {
       </div>
 
       <PriceComparisonDesktopTable
-        groups={sorted}
+        groups={filteredGroups}
         expandedRows={expandedRows}
         bestValueVariantId={bestValueVariantId}
         onSort={handleSort}
@@ -188,14 +231,16 @@ export default function PriceComparisonTable({ products }: Props) {
         sortDir={sortDir}
         sortKey={sortKey}
         filters={filters}
+        planner={planner}
         filterOptions={filterOptions}
         onFilter={setFilter}
       />
 
       <PriceComparisonMobileList
-        groups={sorted}
+        groups={filteredGroups}
         expandedRows={expandedRows}
         bestValueVariantId={bestValueVariantId}
+        planner={planner}
         onToggleExpanded={toggleExpanded}
       />
     </div>
