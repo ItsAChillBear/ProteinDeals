@@ -62,7 +62,27 @@ export default function PriceComparisonDesktopTable({
           <tr>
             {planner.committed && Number(planner.proteinTarget) > 0 ? (
               <th className="px-2 pt-2 pb-0 text-center text-[10px] font-bold uppercase tracking-widest text-green-500/80 border-x border-t border-green-500/20 bg-green-500/5" rowSpan={2}>
-                {planner.proteinTarget}g/day cost
+                <div className="flex flex-col items-center gap-1 pb-1">
+                  <span>{planner.proteinTarget}g/day</span>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onSort("dailyCost")}
+                      className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-semibold transition ${sortKey === "dailyCost" ? "bg-green-500/30 text-green-300" : "bg-gray-700/60 text-gray-400 hover:text-gray-200"}`}
+                    >
+                      £<SortIcon col="dailyCost" sortKey={sortKey} sortDir={sortDir} />
+                    </button>
+                    {planner.calorieEnabled ? (
+                      <button
+                        type="button"
+                        onClick={() => onSort("dailyCalories")}
+                        className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-semibold transition ${sortKey === "dailyCalories" ? "bg-amber-500/30 text-amber-300" : "bg-gray-700/60 text-gray-400 hover:text-gray-200"}`}
+                      >
+                        kcal<SortIcon col="dailyCalories" sortKey={sortKey} sortDir={sortDir} />
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
               </th>
             ) : null}
             <th colSpan={4} />

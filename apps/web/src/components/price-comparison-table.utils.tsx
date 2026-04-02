@@ -8,8 +8,10 @@ import type {
   SortDir,
   SortKey,
 } from "./price-comparison-table.types";
+import { getDailyCaloriesForTarget, getDailyCostForTarget } from "./price-comparison-planner";
 import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 import { getProteinPer100g } from "./price-comparison-nutrition";
+import type { ProteinPlannerState } from "./price-comparison-planner";
 
 export function ProductThumbnail({
   name,
@@ -178,11 +180,12 @@ export function getDisplayProteinPer100g(
 export function sortGroups(
   groups: ProductGroupWithSelection[],
   sortKey: SortKey,
-  sortDir: SortDir
+  sortDir: SortDir,
+  planner?: ProteinPlannerState
 ) {
   return [...groups].sort((a, b) => {
-    const aValue = getSortValue(a, sortKey);
-    const bValue = getSortValue(b, sortKey);
+    const aValue = getSortValue(a, sortKey, planner);
+    const bValue = getSortValue(b, sortKey, planner);
 
     if (typeof aValue === "string" && typeof bValue === "string") {
       return sortDir === "asc"
@@ -196,12 +199,20 @@ export function sortGroups(
   });
 }
 
-function getSortValue(group: ProductGroupWithSelection, sortKey: SortKey) {
+function getSortValue(group: ProductGroupWithSelection, sortKey: SortKey, planner?: ProteinPlannerState) {
   if (sortKey === "name") return group.baseName;
   if (sortKey === "size") return group.selected.sizeG;
   if (sortKey === "pricePerServing") return getPricePerServing(group.selected) ?? Number.POSITIVE_INFINITY;
-  if (sortKey === "pricePerGramProtein") {
-    return getPricePerGramProtein(group.selected) ?? Number.POSITIVE_INFINITY;
+  if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(group.selected) ?? Number.POSITIVE_INFINITY;
+  if (sortKey === "dailyCost") {
+    const target = Number(planner?.proteinTarget);
+    if (!target) return Number.POSITIVE_INFINITY;
+    return getDailyCostForTarget(group.selected, target) ?? Number.POSITIVE_INFINITY;
+  }
+  if (sortKey === "dailyCalories") {
+    const target = Number(planner?.proteinTarget);
+    if (!target) return Number.POSITIVE_INFINITY;
+    return getDailyCaloriesForTarget(group.selected, target) ?? Number.POSITIVE_INFINITY;
   }
   return group.selected[sortKey];
 }

@@ -1,5 +1,6 @@
 import {
   getCaloriesPerGramProtein,
+  getCaloriesPerServing,
   getPricePerServing,
   getProteinPerServing,
 } from "./price-comparison-metrics";
@@ -36,6 +37,15 @@ export function getDailyCostForTarget(variant: Product, proteinTargetG: number):
   if (!proteinPerServing || proteinPerServing <= 0 || pricePerServing === null) return null;
   const servingsPerDay = proteinTargetG / proteinPerServing;
   return servingsPerDay * pricePerServing;
+}
+
+export function getDailyCaloriesForTarget(variant: Product, proteinTargetG: number): number | null {
+  const proteinPerServing = getProteinPerServing(variant);
+  if (!proteinPerServing || proteinPerServing <= 0) return null;
+  const caloriesPerServing = getCaloriesPerServing(variant);
+  if (caloriesPerServing === null) return null;
+  const servingsPerDay = proteinTargetG / proteinPerServing;
+  return servingsPerDay * caloriesPerServing;
 }
 
 export function plannerMatchesVariant(

@@ -75,8 +75,8 @@ export default function PriceComparisonTable({ products }: Props) {
   }, [filters.flavour, groups]);
 
   const sorted = useMemo(
-    () => sortGroups(groupedWithSelection, sortKey, sortDir),
-    [groupedWithSelection, sortDir, sortKey]
+    () => sortGroups(groupedWithSelection, sortKey, sortDir, planner),
+    [groupedWithSelection, sortDir, sortKey, planner]
   );
 
   const visibleVariants = useMemo(() => getVisibleVariants(groupedWithSelection), [groupedWithSelection]);
@@ -220,15 +220,18 @@ export default function PriceComparisonTable({ products }: Props) {
             </button>
           ))}
           <span className="mx-1 h-4 w-px bg-gray-700" />
-          {hasActiveFilters ? (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-400 transition hover:text-gray-200"
-            >
-              Reset Filters
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              resetFilters();
+              setVisibility(DEFAULT_VISIBILITY);
+              setSortKey("pricePer100g");
+              setSortDir("asc");
+            }}
+            className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-400 transition hover:text-gray-200"
+          >
+            Reset All
+          </button>
           <span className="text-xs text-gray-600">Sorted by: {sortLabel}</span>
         </div>
       </div>

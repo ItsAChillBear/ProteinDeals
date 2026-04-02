@@ -7,7 +7,7 @@ import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
 import { matchesRange, RANGE_PREFIX, type ColumnFilters } from "./price-comparison-filters";
 import { formatCurrencyPrecise } from "./price-comparison-format";
-import { getDailyCostForTarget, plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
+import { getDailyCaloriesForTarget, getDailyCostForTarget, plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
 import type { ColumnVisibility } from "./price-comparison-visibility";
 import {
   getCaloriesPerGramProtein,
@@ -68,6 +68,9 @@ export function PriceComparisonDesktopRowGroup({
         const dailyCost = planner.committed && proteinTarget > 0
           ? getDailyCostForTarget(variant, proteinTarget)
           : null;
+        const dailyCalories = planner.committed && proteinTarget > 0 && planner.calorieEnabled
+          ? getDailyCaloriesForTarget(variant, proteinTarget)
+          : null;
 
         return (
           <tr
@@ -84,6 +87,11 @@ export function PriceComparisonDesktopRowGroup({
                 ) : (
                   <span className="text-gray-600">—</span>
                 )}
+                {dailyCalories !== null ? (
+                  <div className="mt-0.5 text-[11px] font-normal text-amber-400/80">
+                    {Math.round(dailyCalories)} kcal
+                  </div>
+                ) : null}
               </td>
             ) : null}
             {isFirstRow ? (
