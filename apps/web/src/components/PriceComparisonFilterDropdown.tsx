@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { clsx } from "clsx";
-import { RANGE_PREFIX } from "./PriceComparisonTable";
+import { RANGE_PREFIX } from "./price-comparison-filters";
 
 const triggerClass =
   "flex w-full items-center justify-between gap-1 rounded-lg border border-gray-700 bg-gray-900 px-1.5 py-0.5 text-[10px] text-gray-300 outline-none transition hover:border-gray-500 min-w-0";

@@ -2,7 +2,7 @@
 
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { ProductGroupWithSelection, SortDir, SortKey } from "./price-comparison-table.types";
-import type { ColumnFilters, ColumnFilterOptions } from "./PriceComparisonTable";
+import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
 import { PriceComparisonDesktopRowGroup } from "./PriceComparisonDesktopRowGroup";
 import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
 
@@ -58,6 +58,12 @@ export default function PriceComparisonDesktopTable({
                 <span>Flavour</span>
               </div>
             </th>
+            <th className={headerClass}>
+              <div className="flex flex-col items-center gap-1.5">
+                <PriceComparisonFilterDropdown value={filters.protein} options={filterOptions.proteins} onChange={(v) => onFilter("protein", v)} formatFn={(n) => `${n}g`} numeric />
+                <span>Protein</span>
+              </div>
+            </th>
             <th className={`${headerClass} min-w-[80px]`}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} onChange={(v) => onFilter("size", v)} />
@@ -82,12 +88,16 @@ export default function PriceComparisonDesktopTable({
                 {sortableHeader("Per 100g", "pricePer100g")}
               </div>
             </th>
-            <th className={headerClass}>Per Serving</th>
-            <th className={headerClass}>Per 1g Protein</th>
             <th className={headerClass}>
               <div className="flex flex-col items-center gap-1.5">
-                <PriceComparisonFilterDropdown value={filters.protein} options={filterOptions.proteins} onChange={(v) => onFilter("protein", v)} formatFn={(n) => `${n}g`} numeric />
-                <span>Protein</span>
+                <PriceComparisonFilterDropdown value={filters.pricePerServing} options={filterOptions.pricePerServings} onChange={(v) => onFilter("pricePerServing", v)} formatFn={(n) => `£${n.toFixed(3)}`} numeric />
+                <span>Per Serving</span>
+              </div>
+            </th>
+            <th className={headerClass}>
+              <div className="flex flex-col items-center gap-1.5">
+                <PriceComparisonFilterDropdown value={filters.pricePerGramProtein} options={filterOptions.pricePerGramProteins} onChange={(v) => onFilter("pricePerGramProtein", v)} formatFn={(n) => `£${n.toFixed(3)}`} numeric />
+                <span>Per 1g Protein</span>
               </div>
             </th>
           </tr>

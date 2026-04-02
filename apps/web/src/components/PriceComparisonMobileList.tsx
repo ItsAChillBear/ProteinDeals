@@ -3,6 +3,7 @@
 import { CheckCircle, Tag, XCircle } from "lucide-react";
 import { clsx } from "clsx";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
+import { formatCurrencyPrecise } from "./price-comparison-format";
 import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 import {
   BuyButton,
@@ -83,12 +84,12 @@ export default function PriceComparisonMobileList({
                         <span>{formatCurrency(variant.pricePer100g)}/100g</span>
                         <span>
                           {getPricePerServing(variant) !== null
-                            ? `${formatCurrency(getPricePerServing(variant)!)} / serving`
+                            ? `${formatCurrencyPrecise(getPricePerServing(variant)!)} / serving`
                             : "-"}
                         </span>
                         <span>
                           {getPricePerGramProtein(variant) !== null
-                            ? `${formatCurrency(getPricePerGramProtein(variant)!)} / g protein`
+                            ? `${formatCurrencyPrecise(getPricePerGramProtein(variant)!)} / g protein`
                             : "-"}
                         </span>
                       </div>

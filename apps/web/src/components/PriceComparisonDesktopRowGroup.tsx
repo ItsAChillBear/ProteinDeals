@@ -4,7 +4,8 @@ import { Fragment } from "react";
 import { CheckCircle, ChevronDown, ChevronUp, Tag, XCircle } from "lucide-react";
 import { clsx } from "clsx";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
-import { matchesRange, RANGE_PREFIX, type ColumnFilters } from "./PriceComparisonTable";
+import { matchesRange, RANGE_PREFIX, type ColumnFilters } from "./price-comparison-filters";
+import { formatCurrencyPrecise } from "./price-comparison-format";
 import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 import {
   BuyButton,
@@ -92,6 +93,11 @@ export function PriceComparisonDesktopRowGroup({
                 </td>
               </>
             ) : null}
+            {isFirstRow ? (
+              <td className="whitespace-nowrap px-4 py-2 text-center text-gray-300" rowSpan={rowSpan}>
+                {displayProteinPer100g !== null ? `${displayProteinPer100g}g / 100g` : "-"}
+              </td>
+            ) : null}
             <td className="px-4 py-2 text-center text-sm font-medium text-white">{variant.size}</td>
             <td className="px-4 py-2 text-center text-sm text-gray-400">
               {variant.servings ? `${variant.servings}` : "-"}
@@ -109,17 +115,30 @@ export function PriceComparisonDesktopRowGroup({
                 ) : null}
               </div>
             </td>
-            <td className="px-4 py-2 text-center text-sm text-gray-300">
-              {getPricePerServing(variant) !== null ? formatCurrency(getPricePerServing(variant)!) : "-"}
+            <td className="px-4 py-2 text-center text-sm">
+              {getPricePerServing(variant) !== null ? (
+                <div className="inline-flex items-center gap-2">
+                  <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
+                    {formatCurrencyPrecise(getPricePerServing(variant)!)}
+                  </span>
+                  {variantBestValue ? <Tag className="h-4 w-4 text-green-400" aria-label="Best value" /> : null}
+                </div>
+              ) : (
+                <span className="text-gray-300">-</span>
+              )}
             </td>
-            <td className="px-4 py-2 text-center text-sm text-gray-300">
-              {getPricePerGramProtein(variant) !== null ? formatCurrency(getPricePerGramProtein(variant)!) : "-"}
+            <td className="px-4 py-2 text-center text-sm">
+              {getPricePerGramProtein(variant) !== null ? (
+                <div className="inline-flex items-center gap-2">
+                  <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
+                    {formatCurrencyPrecise(getPricePerGramProtein(variant)!)}
+                  </span>
+                  {variantBestValue ? <Tag className="h-4 w-4 text-green-400" aria-label="Best value" /> : null}
+                </div>
+              ) : (
+                <span className="text-gray-300">-</span>
+              )}
             </td>
-            {isFirstRow ? (
-              <td className="whitespace-nowrap px-4 py-2 text-center text-gray-300" rowSpan={rowSpan}>
-                {displayProteinPer100g !== null ? `${displayProteinPer100g}g / 100g` : "-"}
-              </td>
-            ) : null}
           </tr>
         );
       })}
