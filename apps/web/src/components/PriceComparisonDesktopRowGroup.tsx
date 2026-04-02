@@ -69,82 +69,82 @@ export function PriceComparisonDesktopRowGroup({
           >
             {isFirstRow ? (
               <>
-                <td className="w-28 px-4 py-4 text-center align-top" rowSpan={rowSpan}>
-                  <div className="flex flex-col items-center gap-3">
-                    <ProductThumbnail name={group.baseName} imageUrl={group.imageUrl} />
-                    <BuyButton product={product} />
+                <td className="px-2 py-2 align-top" rowSpan={rowSpan}>
+                  <div className="flex items-start gap-2">
+                    <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                      <ProductThumbnail name={group.baseName} imageUrl={group.imageUrl} />
+                      <BuyButton product={product} />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onToggleExpanded(group.id)}
+                      className="flex flex-col items-start gap-0.5 text-left pt-0.5"
+                    >
+                      <div className="text-xs text-gray-500">{group.retailer}</div>
+                      <div className="text-sm font-medium leading-snug text-white transition-colors hover:text-green-300">
+                        {group.baseName}
+                      </div>
+                    </button>
                   </div>
                 </td>
-                <td className="max-w-sm px-4 py-4 text-center align-top" rowSpan={rowSpan}>
-                  <button
-                    type="button"
-                    onClick={() => onToggleExpanded(group.id)}
-                    className="flex w-full flex-col items-center gap-1"
-                  >
-                    <div className="font-medium leading-snug text-white transition-colors hover:text-green-300">
-                      {group.baseName}
-                    </div>
-                    <div className="text-xs text-gray-500">{group.retailer}</div>
-                  </button>
-                </td>
-                <td className="px-4 py-4 text-center align-top" rowSpan={rowSpan}>
+                <td className="px-2 py-2 text-center align-top" rowSpan={rowSpan}>
                   <div className="break-words text-sm font-medium text-white">{activeFlavour || "Default"}</div>
                 </td>
               </>
             ) : null}
             {isFirstRow ? (
-              <td className="whitespace-nowrap px-4 py-2 text-center text-gray-300" rowSpan={rowSpan}>
-                {displayProteinPer100g !== null ? `${displayProteinPer100g}g / 100g` : "-"}
+              <td className="whitespace-nowrap px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
+                {displayProteinPer100g !== null ? `${displayProteinPer100g}g` : "-"}
               </td>
             ) : null}
             {isFirstRow ? (
-              <td className="whitespace-nowrap px-4 py-2 text-center text-gray-300" rowSpan={rowSpan}>
+              <td className="whitespace-nowrap border-x border-amber-500/10 bg-amber-500/5 px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
                 {getCaloriesPer100g(product) !== null ? `${getCaloriesPer100g(product)}` : "-"}
               </td>
             ) : null}
             {isFirstRow ? (
-              <td className="whitespace-nowrap px-4 py-2 text-center text-gray-300" rowSpan={rowSpan}>
+              <td className="whitespace-nowrap border-x border-amber-500/10 bg-amber-500/5 px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
                 {getCaloriesPerGramProtein(product) !== null
                   ? getCaloriesPerGramProtein(product)!.toFixed(2)
                   : "-"}
               </td>
             ) : null}
-            <td className="px-4 py-2 text-center text-sm font-medium text-white">{variant.size}</td>
-            <td className="px-4 py-2 text-center text-sm text-gray-400">
+            <td className="px-2 py-2 text-center text-sm font-medium text-white">{variant.size}</td>
+            <td className="px-2 py-2 text-center text-sm text-gray-400">
               {variant.servings ? `${variant.servings}` : "-"}
             </td>
-            <td className="px-4 py-2 text-center text-sm font-semibold text-white">
+            <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm font-semibold text-white">
               {formatCurrency(variant.price)}
             </td>
-            <td className="px-4 py-2 text-center text-sm">
-              <div className="inline-flex items-center gap-2">
+            <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
+              <div className="inline-flex items-center gap-1">
                 <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
                   {formatCurrency(variant.pricePer100g)}
                 </span>
                 {variantBestValue ? (
-                  <Tag className="h-4 w-4 text-green-400" aria-label="Best value" />
+                  <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" />
                 ) : null}
               </div>
             </td>
-            <td className="px-4 py-2 text-center text-sm">
+            <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
               {getPricePerServing(variant) !== null ? (
-                <div className="inline-flex items-center gap-2">
+                <div className="inline-flex items-center gap-1">
                   <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
                     {formatCurrencyPrecise(getPricePerServing(variant)!)}
                   </span>
-                  {variantBestValue ? <Tag className="h-4 w-4 text-green-400" aria-label="Best value" /> : null}
+                  {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
                 </div>
               ) : (
                 <span className="text-gray-300">-</span>
               )}
             </td>
-            <td className="px-4 py-2 text-center text-sm">
+            <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
               {getPricePerGramProtein(variant) !== null ? (
-                <div className="inline-flex items-center gap-2">
+                <div className="inline-flex items-center gap-1">
                   <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>
                     {formatCurrencyPrecise(getPricePerGramProtein(variant)!)}
                   </span>
-                  {variantBestValue ? <Tag className="h-4 w-4 text-green-400" aria-label="Best value" /> : null}
+                  {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
                 </div>
               ) : (
                 <span className="text-gray-300">-</span>
@@ -155,7 +155,7 @@ export function PriceComparisonDesktopRowGroup({
       })}
       {isExpanded ? (
         <tr className={isBestValue ? "bg-green-950/10" : "bg-gray-900/70"}>
-          <td colSpan={12} className="px-4 pb-5 pt-1">
+          <td colSpan={11} className="px-4 pb-5 pt-1">
             <div className="space-y-4">
               <div>
                 {product.inStock ? (
@@ -192,6 +192,8 @@ function matchesVariantFilters(
   if (!matchesNumericFilter(variant.price, filters.price, 2)) return false;
   if (!matchesNumericFilter(variant.pricePer100g, filters.pricePer100g, 2)) return false;
   if (!matchesNumericFilter(variant.proteinPer100g, filters.protein)) return false;
+  if (!matchesNumericFilter(getCaloriesPer100g(variant), filters.caloriesPer100g)) return false;
+  if (!matchesNumericFilter(getCaloriesPerGramProtein(variant), filters.caloriesPerGramProtein, 2)) return false;
   return true;
 }
 

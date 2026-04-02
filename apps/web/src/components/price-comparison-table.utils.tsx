@@ -20,7 +20,7 @@ export function ProductThumbnail({
 }) {
   if (!imageUrl) {
     return (
-      <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-gray-800 bg-gray-950 px-2 text-center text-[10px] uppercase tracking-wide text-gray-600">
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-gray-800 bg-gray-950 px-1 text-center text-[10px] uppercase tracking-wide text-gray-600">
         No image
       </div>
     );
@@ -31,7 +31,7 @@ export function ProductThumbnail({
       src={imageUrl}
       alt={name}
       loading="lazy"
-      className="h-20 w-20 rounded-2xl border border-gray-800 bg-gray-950 object-cover"
+      className="h-14 w-14 rounded-xl border border-gray-800 bg-gray-950 object-cover"
     />
   );
 }
@@ -43,7 +43,7 @@ export function BuyButton({ product }: { product: Product }) {
       target="_blank"
       rel="noopener noreferrer sponsored"
       className={clsx(
-        "inline-flex w-20 items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-150",
+        "inline-flex w-14 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold transition-all duration-150",
         product.inStock
           ? "bg-green-500 text-gray-950 hover:bg-green-400"
           : "cursor-not-allowed bg-gray-700 text-gray-500"

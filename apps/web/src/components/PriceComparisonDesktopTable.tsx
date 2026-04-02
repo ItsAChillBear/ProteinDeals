@@ -38,7 +38,7 @@ export default function PriceComparisonDesktopTable({
   onFilter: (key: keyof ColumnFilters, value: string) => void;
 }) {
   const headerClass =
-    "px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap align-bottom";
+    "px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap align-bottom";
 
   const sortableHeader = (label: string, key: SortKey) => (
     <button type="button" onClick={() => onSort(key)} className="inline-flex items-center gap-1.5 transition-colors hover:text-gray-300">
@@ -51,10 +51,27 @@ export default function PriceComparisonDesktopTable({
     <div className="hidden overflow-x-auto overflow-y-visible sm:block">
       <table className="w-full text-sm">
         <thead className="border-b border-gray-800 bg-gray-800/50">
+          {/* Group label row */}
           <tr>
-            <th className={`${headerClass} w-28`}>Image</th>
-            <th className={headerClass}>{sortableHeader("Product", "name")}</th>
-            <th className={`${headerClass} min-w-[100px]`}>
+            <th colSpan={3} />
+            <th
+              colSpan={2}
+              className="px-2 pt-2 pb-0 text-center text-[10px] font-bold uppercase tracking-widest text-amber-500/80 border-x border-t border-amber-500/20 bg-amber-500/5"
+            >
+              Calories
+            </th>
+            <th colSpan={2} />
+            <th
+              colSpan={4}
+              className="px-2 pt-2 pb-0 text-center text-[10px] font-bold uppercase tracking-widest text-sky-400/80 border-x border-t border-sky-400/20 bg-sky-400/5"
+            >
+              Price
+            </th>
+          </tr>
+          {/* Column header row */}
+          <tr>
+            <th className={`${headerClass} w-28`}>{sortableHeader("Product", "name")}</th>
+            <th className={`${headerClass} min-w-[80px]`}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} />
                 <span>Flavour</span>
@@ -66,9 +83,19 @@ export default function PriceComparisonDesktopTable({
                 <span>Protein</span>
               </div>
             </th>
-            <th className={headerClass}>Calories / 100g</th>
-            <th className={headerClass}>Calories / 1g Protein</th>
-            <th className={`${headerClass} min-w-[80px]`}>
+            <th className={`${headerClass} border-x border-amber-500/20 bg-amber-500/5`}>
+              <div className="flex flex-col items-center gap-1.5">
+                <PriceComparisonFilterDropdown value={filters.caloriesPer100g} options={filterOptions.caloriesPer100gs} onChange={(v) => onFilter("caloriesPer100g", v)} formatFn={(n) => `${n}`} numeric />
+                <span>/100g</span>
+              </div>
+            </th>
+            <th className={`${headerClass} border-x border-amber-500/20 bg-amber-500/5`}>
+              <div className="flex flex-col items-center gap-1.5">
+                <PriceComparisonFilterDropdown value={filters.caloriesPerGramProtein} options={filterOptions.caloriesPerGramProteins} onChange={(v) => onFilter("caloriesPerGramProtein", v)} formatFn={(n) => n.toFixed(2)} numeric />
+                <span>/1g Prot</span>
+              </div>
+            </th>
+            <th className={`${headerClass} min-w-[70px]`}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} onChange={(v) => onFilter("size", v)} />
                 {sortableHeader("Size", "size")}
@@ -80,28 +107,28 @@ export default function PriceComparisonDesktopTable({
                 <span>Servings</span>
               </div>
             </th>
-            <th className={headerClass}>
+            <th className={`${headerClass} border-x border-sky-400/20 bg-sky-400/5`}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.price} options={filterOptions.prices} onChange={(v) => onFilter("price", v)} formatFn={(n) => `£${n.toFixed(2)}`} numeric />
-                {sortableHeader("Price", "price")}
+                {sortableHeader("Total", "price")}
               </div>
             </th>
-            <th className={headerClass}>
+            <th className={`${headerClass} border-x border-sky-400/20 bg-sky-400/5`}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.pricePer100g} options={filterOptions.pricePer100gs} onChange={(v) => onFilter("pricePer100g", v)} formatFn={(n) => `£${n.toFixed(2)}`} numeric />
                 {sortableHeader("Per 100g", "pricePer100g")}
               </div>
             </th>
-            <th className={headerClass}>
+            <th className={`${headerClass} border-x border-sky-400/20 bg-sky-400/5`}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.pricePerServing} options={filterOptions.pricePerServings} onChange={(v) => onFilter("pricePerServing", v)} formatFn={(n) => `£${n.toFixed(3)}`} numeric />
                 {sortableHeader("Per Serving", "pricePerServing")}
               </div>
             </th>
-            <th className={headerClass}>
+            <th className={`${headerClass} border-x border-sky-400/20 bg-sky-400/5`}>
               <div className="flex flex-col items-center gap-1.5">
                 <PriceComparisonFilterDropdown value={filters.pricePerGramProtein} options={filterOptions.pricePerGramProteins} onChange={(v) => onFilter("pricePerGramProtein", v)} formatFn={(n) => `£${n.toFixed(3)}`} numeric />
-                {sortableHeader("Per 1g Protein", "pricePerGramProtein")}
+                {sortableHeader("Per 1g Prot", "pricePerGramProtein")}
               </div>
             </th>
           </tr>
