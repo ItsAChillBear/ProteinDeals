@@ -129,10 +129,17 @@ function FilterDropdown({
   const [open, setOpen] = useState(false);
   const [sliderLo, setSliderLo] = useState(sliderMin);
   const [sliderHi, setSliderHi] = useState(sliderMax);
+  const [search, setSearch] = useState("");
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const sliderTouched = useRef(false);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredOptions = discreteOptions.filter((option) => {
+    if (!normalizedSearch) return true;
+    const label = formatFn ? fmt(Number(option)) : option;
+    return label.toLowerCase().includes(normalizedSearch);
+  });
 
   // Reset slider to full range when dropdown opens
   useEffect(() => {
@@ -140,6 +147,7 @@ function FilterDropdown({
       sliderTouched.current = false;
       setSliderLo(sliderMin);
       setSliderHi(sliderMax);
+      setSearch("");
       if (value.startsWith(RANGE_PREFIX)) {
         onChange("all");
       }
@@ -209,6 +217,15 @@ function FilterDropdown({
           style={{ top: dropdownPos.top, left: dropdownPos.left }}
         >
           <div className="py-1">
+            <div className="px-3 pb-2 pt-1">
+              <input
+                type="text"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search options..."
+                className="w-full rounded-lg border border-gray-700 bg-gray-950 px-2.5 py-2 text-[11px] text-white outline-none transition placeholder:text-gray-500 focus:border-green-500"
+              />
+            </div>
             <button
               type="button"
               onClick={() => select("all")}
@@ -241,13 +258,13 @@ function FilterDropdown({
               </>
             )}
 
-            {discreteOptions.length > 0 && (
+            {filteredOptions.length > 0 && (
               <>
                 <div className="mt-1 border-t border-gray-800 px-3 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-widest text-gray-600">
                   {"Exact"}
                 </div>
                 <div style={{ height: "200px", overflowY: "auto", overflowX: "hidden", display: "block" }}>
-                  {discreteOptions.map((o) => (
+                  {filteredOptions.map((o) => (
                     <div
                       key={o}
                       role="button"
@@ -261,6 +278,12 @@ function FilterDropdown({
                 </div>
               </>
             )}
+
+            {filteredOptions.length === 0 ? (
+              <div className="border-t border-gray-800 px-3 py-3 text-[11px] text-gray-500">
+                No matching options.
+              </div>
+            ) : null}
           </div>
         </div>
       )}
@@ -368,7 +391,7 @@ export default function PriceComparisonDesktopTable({
           {groups.map((group) => {
             const product = group.selected;
             const isExpanded = Boolean(expandedRows[group.id]);
-            const activeFlavour = product.flavour ?? "";
+            const activeFlavour = filters.flavour !== "all" ? filters.flavour : product.flavour ?? "";
             const flavourOptions = getFlavourOptions(group);
 
             const flavourVariants = getVariantsForFlavour(group, activeFlavour).filter((v) => {

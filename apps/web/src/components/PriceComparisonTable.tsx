@@ -77,6 +77,7 @@ export default function PriceComparisonTable({ products }: Props) {
   const [filters, setFilters] = useState<ColumnFilters>(DEFAULT_FILTERS);
 
   const groups = useMemo(() => groupProducts(products), [products]);
+  const allVariants = useMemo(() => groups.flatMap((group) => group.variants), [groups]);
 
   const groupedWithSelection = useMemo<ProductGroupWithSelection[]>(() => {
     return groups.map((group) => {
@@ -102,14 +103,11 @@ export default function PriceComparisonTable({ products }: Props) {
     [groupedWithSelection, sortDir, sortKey]
   );
 
-  const visibleVariants = useMemo(
-    () => getVisibleVariants(groupedWithSelection),
-    [groupedWithSelection]
-  );
+  const visibleVariants = useMemo(() => getVisibleVariants(groupedWithSelection), [groupedWithSelection]);
 
   const filterOptions = useMemo<ColumnFilterOptions>(
-    () => getFilterOptionsForFilters(visibleVariants, filters),
-    [filters, visibleVariants]
+    () => getFilterOptionsForFilters(allVariants, filters),
+    [allVariants, filters]
   );
 
   const minPricePer100g = useMemo(() => {
@@ -137,7 +135,7 @@ export default function PriceComparisonTable({ products }: Props) {
   }
 
   function setFilter(key: keyof ColumnFilters, value: string) {
-    setFilters((current) => sanitizeFilters(visibleVariants, { ...current, [key]: value }));
+    setFilters((current) => sanitizeFilters(allVariants, { ...current, [key]: value }));
   }
 
   function resetFilters() {
