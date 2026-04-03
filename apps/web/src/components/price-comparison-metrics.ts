@@ -1,7 +1,9 @@
 import type { Product } from "./price-comparison-table.types";
 import {
   getCaloriesPer100g,
+  getCaloriesPerServingFromNutrition,
   getProteinPer100g,
+  getProteinPerServingFromNutrition,
   getServingSizeG,
   getServingsPerPack,
 } from "./price-comparison-nutrition";
@@ -13,6 +15,8 @@ export function getPricePerServing(product: Product) {
 }
 
 export function getProteinPerServing(product: Product) {
+  const nutritionProteinPerServing = getProteinPerServingFromNutrition(product);
+  if (nutritionProteinPerServing !== null) return nutritionProteinPerServing;
   const proteinPer100g = getProteinPer100g(product);
   const servingSizeG = getServingSizeG(product);
   if (!proteinPer100g || !servingSizeG || servingSizeG <= 0) return null;
@@ -28,6 +32,8 @@ export function getPricePerGramProtein(product: Product) {
 }
 
 export function getCaloriesPerServing(product: Product) {
+  const nutritionCaloriesPerServing = getCaloriesPerServingFromNutrition(product);
+  if (nutritionCaloriesPerServing !== null) return nutritionCaloriesPerServing;
   const caloriesPer100g = getCaloriesPer100g(product);
   const servingSizeG = getServingSizeG(product);
   if (caloriesPer100g === null || !servingSizeG || servingSizeG <= 0) return null;

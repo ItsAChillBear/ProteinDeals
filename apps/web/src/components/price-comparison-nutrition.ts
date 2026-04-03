@@ -23,6 +23,28 @@ export function getCaloriesPer100g(product: Product) {
   return null;
 }
 
+export function getProteinPerServingFromNutrition(product: Product) {
+  const proteinRow = product.nutritionalInformation.find(
+    (row) => row.label.trim().toLowerCase() === "protein"
+  );
+  return extractNumericValue(proteinRow?.perServing ?? null);
+}
+
+export function getCaloriesPerServingFromNutrition(product: Product) {
+  const kcalRow = product.nutritionalInformation.find(
+    (row) =>
+      row.label.trim().toLowerCase() === "energy" &&
+      typeof row.perServing === "string" &&
+      row.perServing.toLowerCase().includes("kcal")
+  );
+
+  if (kcalRow?.perServing) {
+    return extractNumericValue(kcalRow.perServing);
+  }
+
+  return null;
+}
+
 export function getCaloriesPerGramProtein(product: Product) {
   const caloriesPer100g = getCaloriesPer100g(product);
   const proteinPer100g = getProteinPer100g(product);
@@ -34,7 +56,7 @@ export function getServingSizeG(product: Product) {
   const candidates = product.nutritionalInformation
     .map((row) => getServingSizeCandidate(row.per100g, row.perServing))
     .filter((value): value is number => value !== null)
-    .filter((value) => value > 0 && value <= 100);
+    .filter((value) => value > 0 && value <= product.sizeG);
 
   if (!candidates.length) return null;
   const average = candidates.reduce((sum, value) => sum + value, 0) / candidates.length;
