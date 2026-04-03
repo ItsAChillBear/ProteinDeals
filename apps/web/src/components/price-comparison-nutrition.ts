@@ -30,10 +30,47 @@ export function getCaloriesPerGramProtein(product: Product) {
   return caloriesPer100g / proteinPer100g;
 }
 
+export function getServingSizeG(product: Product) {
+  const candidates = product.nutritionalInformation
+    .map((row) => getServingSizeCandidate(row.per100g, row.perServing))
+    .filter((value): value is number => value !== null)
+    .filter((value) => value > 0 && value <= 100);
+
+  if (!candidates.length) return null;
+  const average = candidates.reduce((sum, value) => sum + value, 0) / candidates.length;
+  return Number(average.toFixed(1));
+}
+
+export function getServingsPerPack(product: Product) {
+  if (product.servings && product.servings > 0) return product.servings;
+  const servingSizeG = getServingSizeG(product);
+  if (servingSizeG === null || product.sizeG <= 0) return null;
+  return Math.round(product.sizeG / servingSizeG);
+}
+
 function extractNumericValue(value: string | null) {
   if (!value) return null;
   const kcalMatch = value.match(/(\d+(?:\.\d+)?)\s*kcal\b/i);
   if (kcalMatch) return Number(kcalMatch[1]);
   const match = value.match(/(\d+(?:\.\d+)?)/);
   return match ? Number(match[1]) : null;
+}
+
+function getServingSizeCandidate(per100g: string | null, perServing: string | null) {
+  const per100gMeasurement = parseMeasurement(per100g);
+  const perServingMeasurement = parseMeasurement(perServing);
+  if (!per100gMeasurement || !perServingMeasurement) return null;
+  if (per100gMeasurement.unit !== perServingMeasurement.unit) return null;
+  if (per100gMeasurement.value <= 0 || perServingMeasurement.value <= 0) return null;
+  return (100 * perServingMeasurement.value) / per100gMeasurement.value;
+}
+
+function parseMeasurement(value: string | null) {
+  if (!value) return null;
+  const match = value.match(/<?\s*(\d+(?:\.\d+)?)\s*(kcal|kj|mg|g)\b/i);
+  if (!match) return null;
+  return {
+    value: Number(match[1]),
+    unit: match[2].toLowerCase(),
+  };
 }

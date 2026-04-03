@@ -11,7 +11,7 @@ import {
   getPricePerGramProtein,
   getPricePerServing,
 } from "./price-comparison-metrics";
-import { getCaloriesPer100g } from "./price-comparison-nutrition";
+import { getCaloriesPer100g, getServingsPerPack } from "./price-comparison-nutrition";
 import {
   BuyButton,
   formatCurrency,
@@ -23,13 +23,13 @@ import {
 export default function PriceComparisonMobileList({
   groups,
   expandedRows,
-  bestValueVariantId,
+  bestValueVariantIds,
   planner,
   onToggleExpanded,
 }: {
   groups: ProductGroupWithSelection[];
   expandedRows: Record<string, boolean>;
-  bestValueVariantId: string | null;
+  bestValueVariantIds: Record<string, string | null>;
   planner: ProteinPlannerState;
   onToggleExpanded: (groupId: string) => void;
 }) {
@@ -38,11 +38,12 @@ export default function PriceComparisonMobileList({
       {groups.map((group) => {
         const product = group.selected;
         const isExpanded = Boolean(expandedRows[group.id]);
-        const isBestValue = product.inStock && product.id === bestValueVariantId;
         const activeFlavour = product.flavour ?? "";
         const flavourVariants = getVariantsForFlavour(group, activeFlavour).filter((variant) =>
           plannerMatchesVariant(variant, planner)
         );
+        const bestValueIds = Object.values(bestValueVariantIds).filter(Boolean) as string[];
+        const isBestValue = product.inStock && flavourVariants.some((v) => bestValueIds.includes(v.id));
 
         if (!flavourVariants.length) return null;
 
@@ -89,7 +90,7 @@ export default function PriceComparisonMobileList({
                     >
                       <div className="text-sm font-medium text-white">{variant.size}</div>
                       <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-400">
-                        <span>{variant.servings ? `${variant.servings} servings` : "-"}</span>
+                        <span>{getServingsPerPack(variant) ? `${getServingsPerPack(variant)} servings` : "-"}</span>
                         <span>{formatCurrency(variant.price)}</span>
                         <span>{formatCurrency(variant.pricePer100g)}/100g</span>
                         <span>
@@ -128,9 +129,9 @@ export default function PriceComparisonMobileList({
               </div>
             </div>
 
-            <div className="mt-3 text-xs text-gray-500">
+              <div className="mt-3 text-xs text-gray-500">
               {product.flavour ?? "No flavour"} • {product.size} •{" "}
-              {product.servings ? `${product.servings} servings` : "No servings"} •{" "}
+              {getServingsPerPack(product) ? `${getServingsPerPack(product)} servings` : "No servings"} •{" "}
               {product.inStock ? "In stock" : "Out of stock"}
             </div>
 

@@ -15,7 +15,7 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; s
 
 export default function PriceComparisonDesktopTable({
   groups,
-  bestValueVariantId,
+  bestValueVariantIds,
   expandedRows,
   onSort,
   onToggleExpanded,
@@ -29,7 +29,7 @@ export default function PriceComparisonDesktopTable({
   viewMode,
 }: {
   groups: ProductGroupWithSelection[];
-  bestValueVariantId: string | null;
+  bestValueVariantIds: Record<string, string | null>;
   expandedRows: Record<string, boolean>;
   onSort: (key: SortKey) => void;
   onToggleExpanded: (groupId: string) => void;
@@ -72,7 +72,7 @@ export default function PriceComparisonDesktopTable({
               <PriceComparisonDesktopRowGroup
                 key={group.id}
                 group={group}
-                bestValueVariantId={bestValueVariantId}
+                bestValueVariantIds={bestValueVariantIds}
                 filters={filters}
                 planner={planner}
                 visibility={visibility}
@@ -242,7 +242,7 @@ export default function PriceComparisonDesktopTable({
             <PriceComparisonDesktopRowGroup
               key={group.id}
               group={group}
-              bestValueVariantId={bestValueVariantId}
+              bestValueVariantIds={bestValueVariantIds}
               filters={filters}
               planner={planner}
               visibility={visibility}

@@ -1,17 +1,22 @@
 import type { Product } from "./price-comparison-table.types";
-import { getCaloriesPer100g, getProteinPer100g } from "./price-comparison-nutrition";
+import {
+  getCaloriesPer100g,
+  getProteinPer100g,
+  getServingSizeG,
+  getServingsPerPack,
+} from "./price-comparison-nutrition";
 
 export function getPricePerServing(product: Product) {
-  if (!product.servings || product.servings <= 0) return null;
-  return product.price / product.servings;
+  const servingsPerPack = getServingsPerPack(product);
+  if (!servingsPerPack || servingsPerPack <= 0) return null;
+  return product.price / servingsPerPack;
 }
 
 export function getProteinPerServing(product: Product) {
   const proteinPer100g = getProteinPer100g(product);
-  if (!proteinPer100g || !product.servings || product.sizeG <= 0) return null;
-  const totalProteinG = (product.sizeG * proteinPer100g) / 100;
-  if (totalProteinG <= 0) return null;
-  return totalProteinG / product.servings;
+  const servingSizeG = getServingSizeG(product);
+  if (!proteinPer100g || !servingSizeG || servingSizeG <= 0) return null;
+  return (proteinPer100g * servingSizeG) / 100;
 }
 
 export function getPricePerGramProtein(product: Product) {
@@ -24,9 +29,9 @@ export function getPricePerGramProtein(product: Product) {
 
 export function getCaloriesPerServing(product: Product) {
   const caloriesPer100g = getCaloriesPer100g(product);
-  if (caloriesPer100g === null || !product.servings || product.servings <= 0 || product.sizeG <= 0) return null;
-  const gramsPerServing = product.sizeG / product.servings;
-  return (caloriesPer100g * gramsPerServing) / 100;
+  const servingSizeG = getServingSizeG(product);
+  if (caloriesPer100g === null || !servingSizeG || servingSizeG <= 0) return null;
+  return (caloriesPer100g * servingSizeG) / 100;
 }
 
 export function getCaloriesPerGramProtein(product: Product) {

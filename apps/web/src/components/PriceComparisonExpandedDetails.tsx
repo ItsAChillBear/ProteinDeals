@@ -1,4 +1,5 @@
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
+import { getServingsPerPack } from "./price-comparison-nutrition";
 
 const NOISE_LABELS = /^(nutritional information|typical values|contains \d+ servings?)$/i;
 type NutritionRow = { label: string; per100g: string | null; perServing: string | null };
@@ -17,6 +18,7 @@ export default function PriceComparisonExpandedDetails({
 }) {
   const product = group.selected;
   const ingredients = product.ingredients;
+  const servings = getServingsPerPack(product);
   const nutritionRows = (product.nutritionalInformation ?? []).filter((row) =>
     isCleanNutritionRow(row)
   );
@@ -26,7 +28,7 @@ export default function PriceComparisonExpandedDetails({
       <div className="mb-3 flex flex-wrap gap-4 text-xs text-gray-400">
         <span>Flavour: <span className="text-white">{product.flavour ?? "-"}</span></span>
         <span>Size: <span className="text-white">{product.size}</span></span>
-        <span>Servings: <span className="text-white">{product.servings ?? "-"}</span></span>
+        <span>Servings: <span className="text-white">{servings ?? "-"}</span></span>
       </div>
 
       {product.description ? (

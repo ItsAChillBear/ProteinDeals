@@ -8,7 +8,7 @@ import { ScraperSummaryCards } from "./ScraperSummaryCards";
 import type { ImportResponse, PreviewResponse, ScraperRecord, ScraperResponse } from "./types";
 
 export function MyproteinScraperPanel() {
-  const [limit, setLimit] = useState("2");
+  const [limit, setLimit] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -134,6 +134,7 @@ export function MyproteinScraperPanel() {
               value={limit}
               onChange={(event) => setLimit(event.target.value)}
               inputMode="numeric"
+              placeholder="Unlimited"
               className="w-28 rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 text-stone-50 outline-none transition focus:border-amber-400"
             />
           </label>

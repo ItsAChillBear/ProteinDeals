@@ -18,7 +18,7 @@ import {
   getPricePerServing,
   getProteinPerServing,
 } from "./price-comparison-metrics";
-import { getCaloriesPer100g } from "./price-comparison-nutrition";
+import { getCaloriesPer100g, getServingsPerPack } from "./price-comparison-nutrition";
 import {
   BuyButton,
   formatCurrency,
@@ -29,7 +29,7 @@ import {
 
 export function PriceComparisonDesktopRowGroup({
   group,
-  bestValueVariantId,
+  bestValueVariantIds,
   filters,
   planner,
   visibility,
@@ -45,7 +45,7 @@ export function PriceComparisonDesktopRowGroup({
   sortDir,
 }: {
   group: ProductGroupWithSelection;
-  bestValueVariantId: string | null;
+  bestValueVariantIds: Record<string, string | null>;
   filters: ColumnFilters;
   planner: ProteinPlannerState;
   visibility: ColumnVisibility;
@@ -63,17 +63,29 @@ export function PriceComparisonDesktopRowGroup({
   const product = group.selected;
   const activeFlavour = product.flavour ?? "";
 
-  const flavourVariants = group.variants.filter((variant) =>
-    matchesVariantFilters(variant, filters) && plannerMatchesVariant(variant, planner)
-  );
+  const flavourVariants = group.variants
+    .filter((variant) => matchesVariantFilters(variant, filters) && plannerMatchesVariant(variant, planner))
+    .sort((a, b) => {
+      const metric = sortKey === "pricePerServing" || sortKey === "pricePerGramProtein" ? sortKey : "pricePer100g";
+      const aVal = metric === "pricePerServing" ? getPricePerServing(a)
+        : metric === "pricePerGramProtein" ? getPricePerGramProtein(a)
+        : a.pricePer100g;
+      const bVal = metric === "pricePerServing" ? getPricePerServing(b)
+        : metric === "pricePerGramProtein" ? getPricePerGramProtein(b)
+        : b.pricePer100g;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+      return aVal - bVal;
+    });
 
   if (!flavourVariants.length) return null;
 
   const displayProteinPer100g = getDisplayProteinPer100g(product, flavourVariants);
+  const bestValueIds = Object.values(bestValueVariantIds).filter(Boolean) as string[];
   const isBestValue =
     product.inStock &&
-    bestValueVariantId !== null &&
-    flavourVariants.some((variant) => variant.id === bestValueVariantId);
+    bestValueIds.length > 0 &&
+    flavourVariants.some((variant) => bestValueIds.includes(variant.id));
 
   const proteinTarget = Number(planner.proteinTarget);
   const showPlanner = planner.committed && proteinTarget > 0;
@@ -84,7 +96,9 @@ export function PriceComparisonDesktopRowGroup({
         {flavourVariants.map((variant, variantIndex) => {
           const isFirstRow = variantIndex === 0;
           const rowSpan = flavourVariants.length;
-          const variantBestValue = variant.id === bestValueVariantId;
+          const best100g = variant.id === bestValueVariantIds["pricePer100g"];
+          const bestServing = variant.id === bestValueVariantIds["pricePerServing"];
+          const best1gProtein = variant.id === bestValueVariantIds["pricePerGramProtein"];
           const dailyCost = showPlanner ? getDailyCostForTarget(variant, proteinTarget) : null;
           const dailyCalories = showPlanner && planner.calorieEnabled ? getDailyCaloriesForTarget(variant, proteinTarget) : null;
 
@@ -116,7 +130,7 @@ export function PriceComparisonDesktopRowGroup({
                 </>
               ) : null}
               <td className="px-2 py-2 text-center text-sm font-medium text-white">{formatSize(variant.size)}</td>
-              <td className="px-2 py-2 text-center text-sm text-gray-400">{variant.servings ?? "-"}</td>
+              <td className="px-2 py-2 text-center text-sm text-gray-400">{getServingsPerPack(variant) ?? "-"}</td>
               {visibility.show100g && isFirstRow ? (
                 <td className="whitespace-nowrap border-x border-violet-400/10 bg-violet-400/5 px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>
                   {displayProteinPer100g !== null ? `${displayProteinPer100g}g` : "-"}
@@ -150,8 +164,8 @@ export function PriceComparisonDesktopRowGroup({
               {visibility.show100g ? (
                 <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
                   <div className="inline-flex items-center gap-1">
-                    <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>{formatCurrency(variant.pricePer100g)}</span>
-                    {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
+                    <span className={clsx("font-semibold", best100g ? "text-green-400" : "text-gray-300")}>{formatCurrency(variant.pricePer100g)}</span>
+                    {best100g ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
                   </div>
                 </td>
               ) : null}
@@ -159,8 +173,8 @@ export function PriceComparisonDesktopRowGroup({
                 <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
                   {getPricePerServing(variant) !== null ? (
                     <div className="inline-flex items-center gap-1">
-                      <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>{formatCurrencyPrecise(getPricePerServing(variant)!)}</span>
-                      {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
+                      <span className={clsx("font-semibold", bestServing ? "text-green-400" : "text-gray-300")}>{formatCurrencyPrecise(getPricePerServing(variant)!)}</span>
+                      {bestServing ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
                     </div>
                   ) : <span className="text-gray-300">-</span>}
                 </td>
@@ -169,8 +183,8 @@ export function PriceComparisonDesktopRowGroup({
                 <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm">
                   {getPricePerGramProtein(variant) !== null ? (
                     <div className="inline-flex items-center gap-1">
-                      <span className={clsx("font-semibold", variantBestValue ? "text-green-400" : "text-gray-300")}>{formatCurrencyPrecise(getPricePerGramProtein(variant)!)}</span>
-                      {variantBestValue ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
+                      <span className={clsx("font-semibold", best1gProtein ? "text-green-400" : "text-gray-300")}>{formatCurrencyPrecise(getPricePerGramProtein(variant)!)}</span>
+                      {best1gProtein ? <Tag className="h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
                     </div>
                   ) : <span className="text-gray-300">-</span>}
                 </td>
@@ -318,7 +332,10 @@ export function PriceComparisonDesktopRowGroup({
                 </div>
                 {/* Variant rows */}
                 {flavourVariants.map((variant, i) => {
-                  const variantBestValue = variant.id === bestValueVariantId;
+                  const best100g = variant.id === bestValueVariantIds["pricePer100g"];
+                  const bestServing = variant.id === bestValueVariantIds["pricePerServing"];
+                  const best1gProtein = variant.id === bestValueVariantIds["pricePerGramProtein"];
+                  const anyBest = best100g || bestServing || best1gProtein;
                   const dailyCost = showPlanner ? getDailyCostForTarget(variant, proteinTarget) : null;
                   const dailyCalories = showPlanner && planner.calorieEnabled ? getDailyCaloriesForTarget(variant, proteinTarget) : null;
                   const proteinPerServing = getProteinPerServing(variant);
@@ -334,18 +351,16 @@ export function PriceComparisonDesktopRowGroup({
                       className={clsx(
                         "flex items-center relative",
                         i > 0 && "border-t border-gray-700/40",
-                        variantBestValue ? "bg-green-500/10" : "bg-transparent"
+                        anyBest ? "bg-green-500/10" : "bg-transparent"
                       )}
                     >
-                      {variantBestValue ? <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-green-400" /> : null}
+                      {anyBest ? <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-green-400" /> : null}
                       {/* Size + total cell */}
                       <div className="w-44 flex-shrink-0 flex items-center py-2.5">
-                        <div className="w-5 flex-shrink-0 flex items-center justify-center pl-1">
-                          {variantBestValue ? <Tag className="h-3 w-3 text-green-400" aria-label="Best value" /> : null}
-                        </div>
-                        <span className={clsx("w-14 flex-shrink-0 px-1 text-center text-sm font-bold", variantBestValue ? "text-green-300" : "text-white")}>{formatSize(variant.size)}</span>
+                        <div className="w-5 flex-shrink-0" />
+                        <span className={clsx("w-14 flex-shrink-0 px-1 text-center text-sm font-bold", anyBest ? "text-green-300" : "text-white")}>{formatSize(variant.size)}</span>
                         {visibility.showTotal ? (
-                          <span className={clsx("w-20 flex-shrink-0 text-center text-xs font-semibold", variantBestValue ? "text-green-300" : "text-gray-300")}>{formatCurrency(variant.price)}</span>
+                          <span className={clsx("w-20 flex-shrink-0 text-center text-xs font-semibold", anyBest ? "text-green-300" : "text-gray-300")}>{formatCurrency(variant.price)}</span>
                         ) : null}
                       </div>
 
@@ -354,10 +369,10 @@ export function PriceComparisonDesktopRowGroup({
                         {visibility.showServing ? (
                           <div className="flex-shrink-0 px-3 py-2.5 border-l border-gray-700/40">
                             <div className="flex">
-                              <Stat className="w-12">{variant.servings ?? "-"}</Stat>
+                              <Stat className="w-12">{getServingsPerPack(variant) ?? "-"}</Stat>
                               <Stat className="w-14" color="violet">{proteinPerServing !== null ? `${proteinPerServing.toFixed(1)}g` : "-"}</Stat>
                               <Stat className="w-12" color="amber">{caloriesPerServing !== null ? Math.round(caloriesPerServing) : "-"}</Stat>
-                              <Stat className="w-16" color="sky">{pricePerServing !== null ? formatCurrencyPrecise(pricePerServing) : "-"}</Stat>
+                              <Stat className="w-16" color="sky" bestValue={bestServing}>{pricePerServing !== null ? formatCurrencyPrecise(pricePerServing) : "-"}</Stat>
                             </div>
                           </div>
                         ) : null}
@@ -368,7 +383,7 @@ export function PriceComparisonDesktopRowGroup({
                             <div className="flex">
                               <Stat className="w-14" color="violet">{displayProteinPer100g !== null ? `${displayProteinPer100g}g` : "-"}</Stat>
                               <Stat className="w-12" color="amber">{calPer100g !== null ? calPer100g : "-"}</Stat>
-                              <Stat className="w-16" color="sky">{formatCurrency(variant.pricePer100g)}</Stat>
+                              <Stat className="w-16" color="sky" bestValue={best100g}>{formatCurrency(variant.pricePer100g)}</Stat>
                             </div>
                           </div>
                         ) : null}
@@ -378,7 +393,7 @@ export function PriceComparisonDesktopRowGroup({
                           <div className="flex-shrink-0 px-3 py-2.5 border-l border-gray-700/40">
                             <div className="flex">
                               <Stat className="w-12" color="amber">{calPerGramProtein !== null ? calPerGramProtein.toFixed(2) : "-"}</Stat>
-                              <Stat className="w-16" color="sky">{pricePerGramProtein !== null ? formatCurrencyPrecise(pricePerGramProtein) : "-"}</Stat>
+                              <Stat className="w-16" color="sky" bestValue={best1gProtein}>{pricePerGramProtein !== null ? formatCurrencyPrecise(pricePerGramProtein) : "-"}</Stat>
                             </div>
                           </div>
                         ) : null}
@@ -435,18 +450,23 @@ function Stat({
   color,
   className,
   children,
+  bestValue,
 }: {
   color?: "violet" | "amber" | "sky";
   className?: string;
   children: React.ReactNode;
+  bestValue?: boolean;
 }) {
-  const valueColor =
+  const valueColor = bestValue && color === "sky" ? "text-green-300" :
     color === "violet" ? "text-violet-300" :
     color === "amber" ? "text-amber-300" :
     color === "sky" ? "text-sky-300" :
     "text-gray-300";
   return (
-    <span className={clsx("flex-shrink-0 text-center text-[12px] font-medium", valueColor, className)}>{children}</span>
+    <span className={clsx("relative flex-shrink-0 text-center text-[12px] font-medium", valueColor, className)}>
+      {children}
+      {bestValue ? <Tag className="absolute -right-1 -top-1.5 h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}
+    </span>
   );
 }
 
