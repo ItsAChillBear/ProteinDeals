@@ -49,6 +49,7 @@ export default function PriceComparisonTable({ products }: Props) {
   const [planner, setPlanner] = useState<ProteinPlannerState>(DEFAULT_PROTEIN_PLANNER);
   const [visibility, setVisibility] = useState<ColumnVisibility>(DEFAULT_VISIBILITY);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [columnGroupMode, setColumnGroupMode] = useState<"nutrient" | "measure">("nutrient");
 
   const groups = useMemo(() => groupProducts(products), [products]);
   const allVariants = useMemo(() => groups.flatMap((group) => group.variants), [groups]);
@@ -251,6 +252,24 @@ export default function PriceComparisonTable({ products }: Props) {
               Table
             </button>
           </div>
+          {viewMode === "table" ? (
+            <div className="flex rounded-md border border-gray-700 overflow-hidden text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setColumnGroupMode("nutrient")}
+                className={`px-2.5 py-1 transition ${columnGroupMode === "nutrient" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                Protein / Calories / Price
+              </button>
+              <button
+                type="button"
+                onClick={() => setColumnGroupMode("measure")}
+                className={`px-2.5 py-1 transition border-l border-gray-700 ${columnGroupMode === "measure" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                /Serving / /100g / /1g Protein
+              </button>
+            </div>
+          ) : null}
           <p className="text-sm text-gray-400">
             <span className="font-semibold text-white">{filteredGroups.length}</span> products,{" "}
             <span className="font-semibold text-white">{filteredVariantCount}</span> variants
@@ -285,6 +304,7 @@ export default function PriceComparisonTable({ products }: Props) {
         onFilter={setFilter}
         visibility={visibility}
         viewMode={viewMode}
+        columnGroupMode={columnGroupMode}
       />
 
       <PriceComparisonMobileList
