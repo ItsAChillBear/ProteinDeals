@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import PriceComparisonDesktopTable from "./PriceComparisonDesktopTable";
 import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
 import PriceComparisonMobileList from "./PriceComparisonMobileList";
@@ -50,6 +50,7 @@ export default function PriceComparisonTable({ products }: Props) {
   const [visibility, setVisibility] = useState<ColumnVisibility>(DEFAULT_VISIBILITY);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [columnGroupMode, setColumnGroupMode] = useState<"nutrient" | "measure">("nutrient");
+  const activeFilters = useDeferredValue(filters);
 
   const groups = useMemo(() => groupProducts(products), [products]);
   const allVariants = useMemo(() => groups.flatMap((group) => group.variants), [groups]);
@@ -69,23 +70,23 @@ export default function PriceComparisonTable({ products }: Props) {
   const visibleVariants = useMemo(() => getVisibleVariants(groupedWithSelection), [groupedWithSelection]);
 
   const filterOptions = useMemo<ColumnFilterOptions>(
-    () => getFilterOptionsForFilters(visibleVariants, allVariants, filters),
-    [allVariants, filters, visibleVariants]
+    () => getFilterOptionsForFilters(visibleVariants, allVariants, activeFilters),
+    [activeFilters, allVariants, visibleVariants]
   );
 
   const filteredGroups = useMemo(
     () =>
-      sorted.filter((group) => countMatchingVariantsForGroup(group, filters, planner) > 0),
-    [filters, planner, sorted]
+      sorted.filter((group) => countMatchingVariantsForGroup(group, activeFilters, planner) > 0),
+    [activeFilters, planner, sorted]
   );
 
   const filteredVariantCount = useMemo(
     () =>
       filteredGroups.reduce(
-        (count, group) => count + countMatchingVariantsForGroup(group, filters, planner),
+        (count, group) => count + countMatchingVariantsForGroup(group, activeFilters, planner),
         0
       ),
-    [filteredGroups, filters, planner]
+    [activeFilters, filteredGroups, planner]
   );
 
   const bestValueVariantIds = useMemo(() => {
@@ -93,7 +94,7 @@ export default function PriceComparisonTable({ products }: Props) {
     const inStockFilteredVariants = filteredGroups.flatMap((group) =>
       group.variants.filter((variant) => {
         if (!variant.inStock) return false;
-        return variantMatchesFilters(variant, filters) && plannerMatchesVariant(variant, planner);
+        return variantMatchesFilters(variant, activeFilters) && plannerMatchesVariant(variant, planner);
       })
     );
 
@@ -111,14 +112,14 @@ export default function PriceComparisonTable({ products }: Props) {
       outer: for (const group of filteredGroups) {
         for (const variant of group.variants) {
           if (!variant.inStock) continue;
-          if (!variantMatchesFilters(variant, filters) || !plannerMatchesVariant(variant, planner)) continue;
+          if (!variantMatchesFilters(variant, activeFilters) || !plannerMatchesVariant(variant, planner)) continue;
           if (getBestValueAmount(variant, metric) === min) { found = variant.id; break outer; }
         }
       }
       result[metric] = found;
     }
     return result;
-  }, [filteredGroups, filters, planner]);
+  }, [activeFilters, filteredGroups, planner]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -134,7 +135,9 @@ export default function PriceComparisonTable({ products }: Props) {
   }
 
   function setFilter(key: keyof ColumnFilters, value: string) {
-    setFilters((current) => sanitizeFilters(allVariants, { ...current, [key]: value }));
+    startTransition(() => {
+      setFilters((current) => sanitizeFilters(allVariants, { ...current, [key]: value }));
+    });
   }
 
   function resetFilters() {
@@ -299,6 +302,7 @@ export default function PriceComparisonTable({ products }: Props) {
         sortDir={sortDir}
         sortKey={sortKey}
         filters={filters}
+        activeFilters={activeFilters}
         planner={planner}
         filterOptions={filterOptions}
         onFilter={setFilter}

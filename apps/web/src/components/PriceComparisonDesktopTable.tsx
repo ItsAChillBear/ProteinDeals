@@ -22,6 +22,7 @@ export default function PriceComparisonDesktopTable({
   sortDir,
   sortKey,
   filters,
+  activeFilters,
   planner,
   filterOptions,
   onFilter,
@@ -38,6 +39,7 @@ export default function PriceComparisonDesktopTable({
   sortDir: SortDir;
   sortKey: SortKey;
   filters: ColumnFilters;
+  activeFilters: ColumnFilters;
   planner: ProteinPlannerState;
   filterOptions: ColumnFilterOptions;
   onFilter: (key: keyof ColumnFilters, value: string) => void;
@@ -75,7 +77,7 @@ export default function PriceComparisonDesktopTable({
                 key={group.id}
                 group={group}
                 bestValueVariantIds={bestValueVariantIds}
-                filters={filters}
+                filters={activeFilters}
                 planner={planner}
                 visibility={visibility}
                 isExpanded={Boolean(expandedRows[group.id])}
@@ -198,7 +200,7 @@ export default function PriceComparisonDesktopTable({
               key={group.id}
               group={group}
               bestValueVariantIds={bestValueVariantIds}
-              filters={filters}
+              filters={activeFilters}
               planner={planner}
               visibility={visibility}
               isExpanded={Boolean(expandedRows[group.id])}

@@ -14,6 +14,7 @@ function RangeSlider({
   valueMin,
   valueMax,
   onChange,
+  onCommit,
   fmt,
 }: {
   min: number;
@@ -21,6 +22,7 @@ function RangeSlider({
   valueMin: number;
   valueMax: number;
   onChange: (lo: number, hi: number) => void;
+  onCommit: () => void;
   fmt: (n: number) => string;
 }) {
   const pct = (v: number) => ((v - min) / (max - min)) * 100;
@@ -48,6 +50,9 @@ function RangeSlider({
           max={max}
           value={valueMin}
           onChange={(e) => onChange(Math.min(Number(e.target.value), valueMax - 1), valueMax)}
+          onMouseUp={onCommit}
+          onTouchEnd={onCommit}
+          onKeyUp={onCommit}
           className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-green-400 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:bg-green-950 [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-green-400 [&::-moz-range-thumb]:bg-gray-900"
           style={{ zIndex: valueMin > max - 2 ? 5 : 3 }}
         />
@@ -57,6 +62,9 @@ function RangeSlider({
           max={max}
           value={valueMax}
           onChange={(e) => onChange(valueMin, Math.max(Number(e.target.value), valueMin + 1))}
+          onMouseUp={onCommit}
+          onTouchEnd={onCommit}
+          onKeyUp={onCommit}
           className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-green-400 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:bg-green-950 [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-green-400 [&::-moz-range-thumb]:bg-gray-900"
           style={{ zIndex: 4 }}
         />
@@ -116,10 +124,15 @@ export function PriceComparisonFilterDropdown({
     const justOpened = open && !prevOpenRef.current;
     prevOpenRef.current = open;
     if (!justOpened) return;
+    setSearch("");
+    if (value.startsWith(RANGE_PREFIX)) {
+      const [lo, hi] = value.replace(RANGE_PREFIX, "").split(":");
+      setSliderLo(Number(lo));
+      setSliderHi(Number(hi));
+      return;
+    }
     setSliderLo(sliderMin);
     setSliderHi(sliderMax);
-    setSearch("");
-    if (value.startsWith(RANGE_PREFIX)) onChange("all");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -204,8 +217,8 @@ export function PriceComparisonFilterDropdown({
                     onChange={(lo, hi) => {
                       setSliderLo(lo);
                       setSliderHi(hi);
-                      onChange(`${RANGE_PREFIX}${lo}:${hi}`);
                     }}
+                    onCommit={() => onChange(`${RANGE_PREFIX}${sliderLo}:${sliderHi}`)}
                   />
                 </div>
               </>
