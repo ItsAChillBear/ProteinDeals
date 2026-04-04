@@ -5,6 +5,7 @@ import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { appRouter } from "./routers/index.js";
 import { createContext } from "./routers/index.js";
 import { scrapeMyproteinWheyProducts } from "./scrapers/myprotein.js";
+import { scrapeMyproteinVoucherCodes } from "./scrapers/vouchercodes.js";
 import {
   getCompareProducts,
   previewMyproteinSync,
@@ -119,6 +120,76 @@ async function start() {
           send("variant", { record });
         },
       });
+
+      send("complete", {
+        ok: true,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        count: records.length,
+        records,
+      });
+    } catch (error) {
+      request.log.error(error);
+      send("error", {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unknown scraper error",
+      });
+    } finally {
+      reply.raw.end();
+    }
+
+    return reply;
+  });
+
+  server.post("/internal/scrapers/vouchercodes/run", async (request, reply) => {
+    const startedAt = new Date().toISOString();
+
+    try {
+      const records = await scrapeMyproteinVoucherCodes();
+
+      return {
+        ok: true,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        count: records.length,
+        records,
+      };
+    } catch (error) {
+      request.log.error(error);
+      reply.code(500);
+      return {
+        ok: false,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown scraper error",
+      };
+    }
+  });
+
+  server.get("/internal/scrapers/vouchercodes/stream", async (request, reply) => {
+    const startedAt = new Date().toISOString();
+
+    reply.raw.setHeader("Content-Type", "text/event-stream");
+    reply.raw.setHeader("Cache-Control", "no-cache, no-transform");
+    reply.raw.setHeader("Connection", "keep-alive");
+    reply.raw.flushHeaders?.();
+
+    const send = (event: string, payload: unknown) => {
+      reply.raw.write(`event: ${event}\n`);
+      reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    try {
+      send("progress", { message: "Starting VoucherCodes scrape" });
+      const records = await scrapeMyproteinVoucherCodes({
+        onProgress: async (message: string) => {
+          send("progress", { message });
+        },
+      });
+
+      for (const record of records) {
+        send("record", { record });
+      }
 
       send("complete", {
         ok: true,

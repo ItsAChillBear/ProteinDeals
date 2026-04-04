@@ -1,4 +1,5 @@
 import { MyproteinScraperPanel } from "./scraper-panel";
+import { VoucherCodesScraperPanel } from "./VoucherCodesScraperPanel";
 
 export default function ScrapersAdminPage() {
   return (
@@ -12,12 +13,13 @@ export default function ScrapersAdminPage() {
             Scraper Control Room
           </h1>
           <p className="max-w-3xl text-sm leading-6 text-stone-300">
-            Run the Myprotein whey scraper manually and inspect the live
-            variant output before wiring it into permanent storage.
+            Run the Myprotein whey scraper or the VoucherCodes Myprotein scraper and
+            inspect live output before deciding what to do with the results.
           </p>
         </section>
 
         <MyproteinScraperPanel />
+        <VoucherCodesScraperPanel />
       </div>
     </main>
   );
