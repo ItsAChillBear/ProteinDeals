@@ -25,6 +25,12 @@ export interface Product {
   url: string;
   type: string;
   description: string | null;
+  discountCodes: Array<{
+    label: string;
+    code: string;
+    type: "refer" | "promo";
+    description?: string;
+  }>;
 }
 
 export interface ProductGroup {

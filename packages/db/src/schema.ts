@@ -238,6 +238,47 @@ export const priceAlerts = pgTable(
   })
 );
 
+export const voucherCodes = pgTable(
+  "voucher_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    retailerId: uuid("retailer_id")
+      .notNull()
+      .references(() => retailers.id, { onDelete: "cascade" }),
+    source: varchar("source", { length: 100 }).notNull(),
+    externalId: varchar("external_id", { length: 255 }),
+    title: varchar("title", { length: 500 }).notNull(),
+    code: varchar("code", { length: 100 }).notNull(),
+    description: text("description"),
+    sourceUrl: text("source_url").notNull(),
+    merchantUrl: text("merchant_url"),
+    isExclusive: boolean("is_exclusive").notNull().default(false),
+    worksWithSale: boolean("works_with_sale").notNull().default(false),
+    termsAvailable: boolean("terms_available").notNull().default(false),
+    lastUsedText: text("last_used_text"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    testStatus: varchar("test_status", { length: 50 }),
+    testMessageType: varchar("test_message_type", { length: 100 }),
+    testMessage: text("test_message"),
+    testedAt: timestamp("tested_at", { withTimezone: true }),
+    lastImportedAt: timestamp("last_imported_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    retailerIdIdx: index("voucher_codes_retailer_id_idx").on(table.retailerId),
+    testStatusIdx: index("voucher_codes_test_status_idx").on(table.testStatus),
+    lastImportedAtIdx: index("voucher_codes_last_imported_at_idx").on(table.lastImportedAt),
+    retailerCodeIdx: index("voucher_codes_retailer_code_key").on(table.retailerId, table.code),
+  })
+);
+
 // ─── Relations ───────────────────────────────────────────────────────────────
 
 export const productsRelations = relations(products, ({ many }) => ({
@@ -247,6 +288,7 @@ export const productsRelations = relations(products, ({ many }) => ({
 export const retailersRelations = relations(retailers, ({ many }) => ({
   variants: many(productVariants),
   scrapeJobs: many(scrapeJobs),
+  voucherCodes: many(voucherCodes),
 }));
 
 export const productVariantsRelations = relations(
@@ -283,6 +325,13 @@ export const priceAlertsRelations = relations(priceAlerts, ({ one }) => ({
   variant: one(productVariants, {
     fields: [priceAlerts.variantId],
     references: [productVariants.id],
+  }),
+}));
+
+export const voucherCodesRelations = relations(voucherCodes, ({ one }) => ({
+  retailer: one(retailers, {
+    fields: [voucherCodes.retailerId],
+    references: [retailers.id],
   }),
 }));
 export {};

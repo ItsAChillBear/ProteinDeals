@@ -71,6 +71,7 @@ model Retailer {
   updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
   variants                 ProductVariant[]
   scrapeJobs               ScrapeJob[]
+  voucherCodes             VoucherCode[]
 
   @@index([slug], map: "retailers_slug_idx")
   @@index([isActive], map: "retailers_is_active_idx")
@@ -153,4 +154,35 @@ model PriceAlert {
   @@index([email], map: "price_alerts_email_idx")
   @@index([isActive], map: "price_alerts_is_active_idx")
   @@map("price_alerts")
+}
+
+model VoucherCode {
+  id                 String    @id @default(uuid()) @db.Uuid
+  retailerId         String    @map("retailer_id") @db.Uuid
+  source             String    @db.VarChar(100)
+  externalId         String?   @map("external_id") @db.VarChar(255)
+  title              String    @db.VarChar(500)
+  code               String    @db.VarChar(100)
+  description        String?
+  sourceUrl          String    @map("source_url")
+  merchantUrl        String?   @map("merchant_url")
+  isExclusive        Boolean   @default(false) @map("is_exclusive")
+  worksWithSale      Boolean   @default(false) @map("works_with_sale")
+  termsAvailable     Boolean   @default(false) @map("terms_available")
+  lastUsedText       String?   @map("last_used_text")
+  expiresAt          DateTime? @map("expires_at") @db.Timestamptz(6)
+  testStatus         String?   @map("test_status") @db.VarChar(50)
+  testMessageType    String?   @map("test_message_type") @db.VarChar(100)
+  testMessage        String?   @map("test_message")
+  testedAt           DateTime? @map("tested_at") @db.Timestamptz(6)
+  lastImportedAt     DateTime  @default(now()) @map("last_imported_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  retailer           Retailer  @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+
+  @@unique([retailerId, code], map: "voucher_codes_retailer_code_key")
+  @@index([retailerId], map: "voucher_codes_retailer_id_idx")
+  @@index([testStatus], map: "voucher_codes_test_status_idx")
+  @@index([lastImportedAt], map: "voucher_codes_last_imported_at_idx")
+  @@map("voucher_codes")
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type VoucherCodesRecord = {
   id: number;
@@ -32,13 +32,71 @@ type VoucherCodesResponse = {
   records?: VoucherCodesRecord[];
 };
 
+type VoucherCodeTestResult = {
+  id: number;
+  code: string | null;
+  title: string | null;
+  status:
+    | "working"
+    | "not_applicable"
+    | "invalid"
+    | "expired"
+    | "already_used"
+    | "better_offer"
+    | "error";
+  isWorking: boolean;
+  messageType: string | null;
+  message: string | null;
+  quantityTested: number;
+  basketSubtotal: number | null;
+  basketTotalAfterCode: number | null;
+  discountAmount: number | null;
+  testedAt: string;
+};
+
+type VoucherCodesTestResponse = {
+  ok: boolean;
+  startedAt: string;
+  finishedAt: string;
+  count?: number;
+  error?: string;
+  testResults?: VoucherCodeTestResult[];
+};
+
+type VoucherCodesImportResponse = {
+  ok: boolean;
+  startedAt: string;
+  finishedAt: string;
+  error?: string;
+  importResult?: {
+    imported: number;
+    created: number;
+    updated: number;
+    skipped: number;
+  };
+};
+
 export function VoucherCodesScraperPanel() {
   const [isRunning, setIsRunning] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lines, setLines] = useState<string[]>([]);
   const [records, setRecords] = useState<VoucherCodesRecord[]>([]);
   const [result, setResult] = useState<VoucherCodesResponse | null>(null);
+  const [testResults, setTestResults] = useState<VoucherCodeTestResult[]>([]);
+  const [importResult, setImportResult] = useState<VoucherCodesImportResponse["importResult"] | null>(
+    null
+  );
   const progressContainerRef = useRef<HTMLDivElement | null>(null);
+  const testResultsById = useMemo(
+    () =>
+      Object.fromEntries(testResults.map((testResult) => [testResult.id, testResult])) as Record<
+        number,
+        VoucherCodeTestResult
+      >,
+    [testResults]
+  );
 
   async function runScraper() {
     setIsRunning(true);
@@ -46,6 +104,8 @@ export function VoucherCodesScraperPanel() {
     setLines([]);
     setRecords([]);
     setResult(null);
+    setTestResults([]);
+    setImportResult(null);
 
     try {
       const payload = await streamVoucherScraperRun(setLines, setRecords);
@@ -54,6 +114,66 @@ export function VoucherCodesScraperPanel() {
       setError(runError instanceof Error ? runError.message : "Unknown error");
     } finally {
       setIsRunning(false);
+    }
+  }
+
+  async function testCodes() {
+    setIsTesting(true);
+    setError(null);
+
+    try {
+      if (!records.length) {
+        throw new Error("Run the voucher scraper first so there are codes to test");
+      }
+
+      const response = await fetch("/api/admin/scrapers/vouchers/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ records }),
+      });
+
+      const payload = (await response.json()) as VoucherCodesTestResponse;
+      if (!response.ok || !payload.ok || !payload.testResults) {
+        throw new Error(payload.error ?? "Voucher code test failed");
+      }
+
+      setTestResults(payload.testResults);
+    } catch (runError) {
+      setError(runError instanceof Error ? runError.message : "Unknown error");
+    } finally {
+      setIsTesting(false);
+    }
+  }
+
+  async function importWorkingCodes() {
+    setIsImporting(true);
+    setError(null);
+
+    try {
+      if (!records.length || !testResults.length) {
+        throw new Error("Run and test the voucher codes before importing them");
+      }
+
+      const response = await fetch("/api/admin/scrapers/vouchers/import", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ records, testResults }),
+      });
+
+      const payload = (await response.json()) as VoucherCodesImportResponse;
+      if (!response.ok || !payload.ok || !payload.importResult) {
+        throw new Error(payload.error ?? "Voucher code import failed");
+      }
+
+      setImportResult(payload.importResult);
+    } catch (runError) {
+      setError(runError instanceof Error ? runError.message : "Unknown error");
+    } finally {
+      setIsImporting(false);
     }
   }
 
@@ -84,6 +204,30 @@ export function VoucherCodesScraperPanel() {
         >
           {isRunning ? "Running..." : "Run Voucher Scraper"}
         </button>
+        <button
+          type="button"
+          onClick={testCodes}
+          disabled={isTesting || isRunning || records.length === 0}
+          className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-stone-700 disabled:bg-stone-900 disabled:text-stone-500"
+        >
+          {isTesting ? "Testing..." : "Test Codes"}
+        </button>
+        <button
+          type="button"
+          onClick={importWorkingCodes}
+          disabled={
+            isImporting ||
+            isRunning ||
+            isTesting ||
+            !testResults.some(
+              (resultItem) =>
+                resultItem.status === "working" || resultItem.status === "better_offer"
+            )
+          }
+          className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-5 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-stone-700 disabled:bg-stone-900 disabled:text-stone-500"
+        >
+          {isImporting ? "Importing..." : "Import Working Codes"}
+        </button>
       </header>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -96,9 +240,48 @@ export function VoucherCodesScraperPanel() {
         />
       </div>
 
+      {testResults.length ? (
+        <div className="grid gap-4 md:grid-cols-4">
+          <StatCard
+            label="Working"
+            value={String(testResults.filter((resultItem) => resultItem.status === "working").length)}
+          />
+          <StatCard
+            label="Better Offer"
+            value={String(
+              testResults.filter((resultItem) => resultItem.status === "better_offer").length
+            )}
+          />
+          <StatCard
+            label="Not Applicable"
+            value={String(
+              testResults.filter((resultItem) => resultItem.status === "not_applicable").length
+            )}
+          />
+          <StatCard
+            label="Failed"
+            value={String(
+              testResults.filter(
+                (resultItem) =>
+                  resultItem.status === "invalid" ||
+                  resultItem.status === "expired" ||
+                  resultItem.status === "already_used" ||
+                  resultItem.status === "error"
+              ).length
+            )}
+          />
+        </div>
+      ) : null}
+
       {error ? (
         <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-4 text-sm text-red-200">
           {error}
+        </div>
+      ) : null}
+      {importResult ? (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100">
+          Imported {importResult.imported} working codes. Created {importResult.created},
+          updated {importResult.updated}, skipped {importResult.skipped}.
         </div>
       ) : null}
 
@@ -141,6 +324,11 @@ export function VoucherCodesScraperPanel() {
                           <Badge tone={record.worksWithSale ? "sky" : "stone"}>
                             {record.worksWithSale ? "Works with sale" : "No sale flag"}
                           </Badge>
+                          {testResultsById[record.id] ? (
+                            <Badge tone={toneForTestStatus(testResultsById[record.id].status)}>
+                              {labelForTestStatus(testResultsById[record.id].status)}
+                            </Badge>
+                          ) : null}
                         </div>
                       </div>
 
@@ -157,9 +345,34 @@ export function VoucherCodesScraperPanel() {
                       <div>Expires: {record.expiresAt ? new Date(record.expiresAt).toLocaleString() : "-"}</div>
                       <div>Terms button: {record.termsAvailable ? "Yes" : "No"}</div>
                       <div>CTA: {record.ctaText ?? "-"}</div>
+                      {testResultsById[record.id] ? (
+                        <>
+                          <div>
+                            Quantity tested: {testResultsById[record.id].quantityTested}
+                          </div>
+                          <div>
+                            Discount:
+                            {" "}
+                            {formatCurrency(testResultsById[record.id].discountAmount)}
+                          </div>
+                          <div>
+                            Basket total:
+                            {" "}
+                            {formatCurrency(testResultsById[record.id].basketTotalAfterCode)}
+                          </div>
+                          <div>
+                            Test message:
+                            {" "}
+                            {testResultsById[record.id].messageType ?? "-"}
+                          </div>
+                        </>
+                      ) : null}
                     </div>
 
                     {record.description ? <p className="text-xs text-stone-300">{record.description}</p> : null}
+                    {testResultsById[record.id]?.message ? (
+                      <p className="text-xs text-stone-400">{testResultsById[record.id].message}</p>
+                    ) : null}
 
                     <div className="flex flex-wrap gap-4 text-xs">
                       {record.merchantUrl ? (
@@ -256,4 +469,45 @@ function Badge(props: { tone: "amber" | "emerald" | "sky" | "stone"; children: s
           : "bg-stone-800 text-stone-300";
 
   return <span className={`inline-flex rounded-full px-3 py-1 ${className}`}>{props.children}</span>;
+}
+
+function formatCurrency(value: number | null) {
+  if (value === null) return "-";
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function toneForTestStatus(status: VoucherCodeTestResult["status"]): "amber" | "emerald" | "sky" | "stone" {
+  switch (status) {
+    case "working":
+      return "emerald";
+    case "better_offer":
+      return "sky";
+    case "not_applicable":
+      return "amber";
+    default:
+      return "stone";
+  }
+}
+
+function labelForTestStatus(status: VoucherCodeTestResult["status"]) {
+  switch (status) {
+    case "working":
+      return "Working";
+    case "better_offer":
+      return "Better offer";
+    case "not_applicable":
+      return "Not applicable";
+    case "invalid":
+      return "Invalid";
+    case "expired":
+      return "Expired";
+    case "already_used":
+      return "Already used";
+    default:
+      return "Error";
+  }
 }

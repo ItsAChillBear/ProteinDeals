@@ -5,9 +5,14 @@ import { getServingsPerPack } from "./price-comparison-nutrition";
 const NOISE_LABELS = /^(nutritional information|typical values|contains \d+ servings?)$/i;
 
 type DiscountCode = { label: string; code: string; type: "refer" | "promo"; description?: string };
-const RETAILER_CODES: Record<string, DiscountCode[]> = {
+const RETAILER_REFER_CODES: Record<string, DiscountCode[]> = {
   MyProtein: [
-    { label: "Refer a Friend", code: "CHILL-R3E", type: "refer", description: "Get £15 credit when you spend £45 on your first order." },
+    {
+      label: "Refer a Friend",
+      code: "CHILL-R3E",
+      type: "refer",
+      description: "Get £15 credit when you spend £45 on your first order.",
+    },
   ],
 };
 
@@ -31,7 +36,7 @@ export default function PriceComparisonExpandedDetails({
   group: ProductGroupWithSelection;
 }) {
   const product = group.selected;
-  const codes = RETAILER_CODES[group.retailer] ?? [];
+  const codes = [...(RETAILER_REFER_CODES[group.retailer] ?? []), ...(product.discountCodes ?? [])];
   const ingredients = product.ingredients;
   const servings = getServingsPerPack(product);
   const nutritionRows = (product.nutritionalInformation ?? []).filter((row) =>

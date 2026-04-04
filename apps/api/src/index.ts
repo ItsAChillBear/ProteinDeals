@@ -6,6 +6,7 @@ import { appRouter } from "./routers/index.js";
 import { createContext } from "./routers/index.js";
 import { scrapeMyproteinWheyProducts } from "./scrapers/myprotein.js";
 import { scrapeMyproteinVoucherCodes } from "./scrapers/vouchercodes.js";
+import { testVoucherCodes } from "./scrapers/vouchercodes-tester.js";
 import {
   getCompareProducts,
   previewMyproteinSync,
@@ -13,6 +14,7 @@ import {
   applyMyproteinSync,
   clearMyproteinDatabase,
 } from "./services/myprotein-import.js";
+import { importWorkingVoucherCodes } from "./services/voucher-code-import.js";
 
 const server = Fastify({
   logger: {
@@ -209,6 +211,63 @@ async function start() {
     }
 
     return reply;
+  });
+
+  server.post("/internal/scrapers/vouchercodes/test-records", async (request, reply) => {
+    const startedAt = new Date().toISOString();
+    const body = request.body as { records?: unknown };
+
+    try {
+      const records = Array.isArray(body?.records) ? body.records : [];
+      const testResults = await testVoucherCodes(records as Parameters<typeof testVoucherCodes>[0]);
+
+      return {
+        ok: true,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        count: testResults.length,
+        testResults,
+      };
+    } catch (error) {
+      request.log.error(error);
+      reply.code(500);
+      return {
+        ok: false,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown voucher test error",
+      };
+    }
+  });
+
+  server.post("/internal/scrapers/vouchercodes/import-records", async (request, reply) => {
+    const startedAt = new Date().toISOString();
+    const body = request.body as { records?: unknown; testResults?: unknown };
+
+    try {
+      const records = Array.isArray(body?.records) ? body.records : [];
+      const testResults = Array.isArray(body?.testResults) ? body.testResults : [];
+      const importResult = await importWorkingVoucherCodes({
+        records: records as Parameters<typeof importWorkingVoucherCodes>[0]["records"],
+        testResults: testResults as Parameters<typeof importWorkingVoucherCodes>[0]["testResults"],
+      });
+
+      return {
+        ok: true,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        importResult,
+      };
+    } catch (error) {
+      request.log.error(error);
+      reply.code(500);
+      return {
+        ok: false,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown voucher import error",
+      };
+    }
   });
 
   server.post("/internal/scrapers/myprotein/import", async (request, reply) => {
