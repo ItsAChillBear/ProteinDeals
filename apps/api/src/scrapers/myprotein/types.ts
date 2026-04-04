@@ -43,6 +43,10 @@ export interface MyproteinVariantRecord {
 }
 
 export interface ScrapeMyproteinOptions {
+  categoryTargets?: Array<{
+    url: string;
+    label: string;
+  }>;
   categoryUrl?: string;
   categoryUrls?: string[];
   limitProducts?: number;

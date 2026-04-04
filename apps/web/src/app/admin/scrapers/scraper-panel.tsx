@@ -13,13 +13,33 @@ import type {
   ScraperResponse,
 } from "./types";
 
-const SCRAPER_WEBSITES = [
+type ScraperSection = {
+  id: string;
+  label: string;
+  url: string;
+  disabled?: boolean;
+};
+
+type ScraperWebsite = {
+  id: string;
+  label: string;
+  sections: ScraperSection[];
+};
+
+const SCRAPER_WEBSITES: ScraperWebsite[] = [
   {
     id: "myprotein",
     label: "MyProtein",
     sections: [
       { id: "whey-protein", label: "Whey Protein", url: "https://www.myprotein.com/c/nutrition/protein/whey-protein/" },
-      { id: "clear-protein", label: "Clear Protein", url: "https://www.myprotein.com/c/clear-protein/" },
+      { id: "clear-protein-drinks", label: "Clear Protein Drinks", url: "https://www.myprotein.com/c/clear-protein/" },
+      { id: "protein-isolate", label: "Protein Isolate", url: "https://www.myprotein.com/c/nutrition/protein/protein-isolate/" },
+      { id: "casein-protein", label: "Casein Protein", url: "https://www.myprotein.com/c/nutrition/protein/milk-protein/" },
+      { id: "protein-blends", label: "Protein Blends", url: "https://www.myprotein.com/c/nutrition/protein/blends/" },
+      { id: "protein-smoothies", label: "Protein Smoothies", url: "https://www.myprotein.com/p/sports-nutrition/breakfast-smoothie/13251950/" },
+      { id: "protein-samples", label: "Protein Samples", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-foods/protein-samples/" },
+      { id: "collagen-protein", label: "Collagen Protein", url: "https://www.myprotein.com/c/nutrition/collagen/" },
+      { id: "vegan-shakes", label: "Vegan Shakes", url: "https://www.myprotein.com/c/nutrition/protein/vegan-protein/" },
       { id: "protein-diet", label: "Diet Protein", url: "https://www.myprotein.com/c/nutrition/protein/diet/" },
       { id: "weight-gainers", label: "Weight Gainers", url: "https://www.myprotein.com/c/nutrition/weight-management/weight-gainers/" },
       { id: "meal-replacement", label: "Meal Replacement", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/meal-replacement/" },
@@ -28,7 +48,7 @@ const SCRAPER_WEBSITES = [
 ] as const;
 
 export function MyproteinScraperPanel() {
-  const [websiteId, setWebsiteId] = useState<(typeof SCRAPER_WEBSITES)[number]["id"]>("myprotein");
+  const [websiteId, setWebsiteId] = useState<ScraperWebsite["id"]>("myprotein");
   const [selectedSectionIds, setSelectedSectionIds] = useState<string[]>(
     SCRAPER_WEBSITES[0].sections.map((section) => section.id)
   );
@@ -50,6 +70,7 @@ export function MyproteinScraperPanel() {
   const selectedSections = selectedWebsite.sections.filter((section) =>
     selectedSectionIds.includes(section.id)
   );
+  const includeDeletes = selectedSections.length === selectedWebsite.sections.length;
 
   async function runScraper() {
     setIsRunning(true);
@@ -66,7 +87,11 @@ export function MyproteinScraperPanel() {
 
     try {
       const scrapeResult = await streamScraperRun(
-        { websiteId, categoryUrls: selectedSections.map((section) => section.url) },
+        {
+          websiteId,
+          categoryUrls: selectedSections.map((section) => section.url),
+          categoryLabels: selectedSections.map((section) => section.label),
+        },
         setProgressLines,
         setLiveRecords,
         {
@@ -76,7 +101,7 @@ export function MyproteinScraperPanel() {
         }
       );
       setResult(scrapeResult);
-      await loadPreview(scrapeResult.records ?? []);
+      await loadPreview(scrapeResult.records ?? [], includeDeletes);
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : "Unknown error");
       setResult(null);
@@ -86,8 +111,8 @@ export function MyproteinScraperPanel() {
     }
   }
 
-  async function loadPreview(records: ScraperResponse["records"]) {
-    const response = await fetch(`/api/admin/scrapers/myprotein/preview`, {
+  async function loadPreview(records: ScraperResponse["records"], shouldIncludeDeletes = includeDeletes) {
+    const response = await fetch(`/api/admin/scrapers/myprotein/preview?includeDeletes=${shouldIncludeDeletes ? "true" : "false"}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ records }),
@@ -110,18 +135,21 @@ export function MyproteinScraperPanel() {
         throw new Error("Run the scraper first so there are results to apply");
       }
 
-      const response = await fetch(`/api/admin/scrapers/myprotein/import`, {
+      const response = await fetch(
+        `/api/admin/scrapers/myprotein/import?includeDeletes=${includeDeletes ? "true" : "false"}`,
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ records, entryIds }),
-      });
+        }
+      );
       const payload = (await response.json()) as ImportResponse;
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error ?? "Apply failed");
       }
 
       setImportResult(payload);
-      await loadPreview(records);
+      await loadPreview(records, includeDeletes);
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : "Unknown error");
     } finally {
@@ -237,7 +265,7 @@ export function MyproteinScraperPanel() {
           <select
             value={websiteId}
             onChange={(event) => {
-              const nextWebsiteId = event.target.value as (typeof SCRAPER_WEBSITES)[number]["id"];
+              const nextWebsiteId = event.target.value as ScraperWebsite["id"];
               setWebsiteId(nextWebsiteId);
               const nextWebsite =
                 SCRAPER_WEBSITES.find((website) => website.id === nextWebsiteId) ?? SCRAPER_WEBSITES[0];
@@ -289,7 +317,9 @@ export function MyproteinScraperPanel() {
                   />
                   <span className="space-y-1">
                     <span className="block font-medium text-stone-100">{section.label}</span>
-                    <span className="block text-xs leading-5 text-stone-400">{section.url}</span>
+                    <span className="block text-xs leading-5 text-stone-400">
+                      {section.url}
+                    </span>
                   </span>
                 </label>
               );
@@ -321,7 +351,7 @@ export function MyproteinScraperPanel() {
 }
 
 async function streamScraperRun(
-  options: { websiteId: string; categoryUrls: string[] },
+  options: { websiteId: string; categoryUrls: string[]; categoryLabels: string[] },
   onProgress: Dispatch<SetStateAction<string[]>>,
   onRecord: Dispatch<SetStateAction<ScraperRecord[]>>,
   streamOptions?: {
@@ -332,8 +362,9 @@ async function streamScraperRun(
 ) {
   const params = new URLSearchParams();
   params.set("website", options.websiteId);
-  for (const categoryUrl of options.categoryUrls) {
+  for (const [index, categoryUrl] of options.categoryUrls.entries()) {
     params.append("categoryUrl", categoryUrl);
+    params.append("categoryLabel", options.categoryLabels[index] ?? "");
   }
 
   return new Promise<ScraperResponse>((resolve, reject) => {

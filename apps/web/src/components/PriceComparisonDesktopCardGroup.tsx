@@ -82,8 +82,7 @@ export default function PriceComparisonDesktopCardGroup({
         <div className="rounded-xl border border-theme overflow-hidden">
           <div className="flex">
             <div className="w-48 flex-shrink-0 flex flex-col items-center justify-center gap-2 px-3 py-3 border-r border-theme bg-surface-2">
-              <div className="text-[10px] text-theme-3">{group.retailer}</div>
-              <div className="text-center text-[11px] leading-4 text-theme-4">{group.category}</div>
+              <div className="text-xs font-medium text-theme-2">{group.retailer}</div>
               <ProductThumbnail name={group.baseName} imageUrl={group.imageUrl} size="lg" />
               <div className="flex flex-col items-center gap-1 w-full">
                 <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-sm font-semibold text-theme hover:text-green-500 transition-colors leading-tight line-clamp-2 text-center">{group.baseName}</button>

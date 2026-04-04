@@ -57,8 +57,20 @@ export async function scrapeMyproteinWheyProducts(
     const listingHtml = await fetchText(category.url, fetchImpl);
     const listingNodes = extractJsonLdNodes(listingHtml);
     const productUrls = extractCategoryProductUrls(listingNodes, category.url);
+    const resolvedProductUrls =
+      productUrls.length > 0
+        ? productUrls
+        : isProductUrl(category.url)
+          ? [category.url]
+          : [];
 
-    for (const productUrl of productUrls) {
+    if (productUrls.length === 0 && resolvedProductUrls.length > 0) {
+      await options.onProgress?.(
+        `Category ${category.label} resolved as a direct product target`
+      );
+    }
+
+    for (const productUrl of resolvedProductUrls) {
       const existing = productCategoryMap.get(productUrl) ?? [];
       if (!existing.some((entry) => entry.url === category.url)) {
         existing.push(category);
@@ -251,6 +263,15 @@ async function resolveCategoryTargets(
   options: ScrapeMyproteinOptions,
   fetchImpl: typeof fetch
 ): Promise<CategoryTarget[]> {
+  if (options.categoryTargets?.length) {
+    return dedupeCategoryTargets(
+      options.categoryTargets.filter(
+        (target): target is CategoryTarget =>
+          Boolean(target.url && target.label)
+      )
+    );
+  }
+
   const explicitCategoryUrls = options.categoryUrls ?? (options.categoryUrl ? [options.categoryUrl] : null);
   if (explicitCategoryUrls?.length) {
     return dedupeCategoryTargets(explicitCategoryUrls.map((url) => ({ url, label: inferCategoryLabel(url) })));
@@ -286,12 +307,19 @@ function isProteinCategoryUrl(url: string) {
 }
 
 function inferCategoryLabel(url: string) {
-  const pathname = new URL(url).pathname.replace(/\/+$/, "");
-  const slug = pathname.split("/").filter(Boolean).at(-1) ?? "other";
+  const parts = new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+  const slug =
+    parts[0] === "p"
+      ? parts.at(-2) ?? parts.at(-1) ?? "other"
+      : parts.at(-1) ?? "other";
   return slug
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function isProductUrl(url: string) {
+  return url.includes("/p/");
 }
 
 function pickBestImageUrl(...candidates: Array<string | null>) {

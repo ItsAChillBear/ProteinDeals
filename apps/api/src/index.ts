@@ -32,6 +32,7 @@ const server = Fastify({
 function getMyproteinScrapeOptions(query: unknown) {
   const params = query as {
     categoryUrl?: string | string[];
+    categoryLabel?: string | string[];
   };
 
   const rawCategoryUrls = Array.isArray(params?.categoryUrl)
@@ -43,8 +44,24 @@ function getMyproteinScrapeOptions(query: unknown) {
   const categoryUrls = rawCategoryUrls.filter(
     (value): value is string => typeof value === "string" && value.length > 0
   );
+  const rawCategoryLabels = Array.isArray(params?.categoryLabel)
+    ? params.categoryLabel
+    : typeof params?.categoryLabel === "string"
+      ? [params.categoryLabel]
+      : [];
+  const categoryLabels = rawCategoryLabels.filter(
+    (value): value is string => typeof value === "string" && value.length > 0
+  );
+  const categoryTargets =
+    categoryUrls.length && categoryLabels.length === categoryUrls.length
+      ? categoryUrls.map((url, index) => ({
+          url,
+          label: categoryLabels[index]!,
+        }))
+      : undefined;
 
   return {
+    categoryTargets,
     categoryUrls: categoryUrls.length ? categoryUrls : undefined,
   };
 }
@@ -321,11 +338,14 @@ async function start() {
     async (request, reply) => {
       const startedAt = new Date().toISOString();
       const body = request.body as { records?: unknown; entryIds?: unknown };
+      const query = request.query as { includeDeletes?: string };
+      const includeDeletes = query.includeDeletes === "true";
 
       try {
         const records = Array.isArray(body?.records) ? body.records : [];
         const preview = await previewMyproteinSync(
-          records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>
+          records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>,
+          { includeDeletes }
         );
         const rawEntryIds = Array.isArray(body?.entryIds) ? body.entryIds : null;
         const entryIds =
@@ -383,11 +403,14 @@ async function start() {
     async (request, reply) => {
       const startedAt = new Date().toISOString();
       const body = request.body as { records?: unknown };
+      const query = request.query as { includeDeletes?: string };
+      const includeDeletes = query.includeDeletes === "true";
 
       try {
         const records = Array.isArray(body?.records) ? body.records : [];
         const preview = await previewMyproteinSync(
-          records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>
+          records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>,
+          { includeDeletes }
         );
 
         return {

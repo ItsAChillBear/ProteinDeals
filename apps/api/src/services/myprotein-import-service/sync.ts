@@ -17,8 +17,12 @@ export async function importMyproteinRecords(
 }
 
 export async function previewMyproteinSync(
-  records: MyproteinVariantRecord[]
+  records: MyproteinVariantRecord[],
+  options: {
+    includeDeletes?: boolean;
+  } = {}
 ): Promise<MyproteinSyncPreview> {
+  const includeDeletes = options.includeDeletes ?? true;
   const dbVariants = await loadMyproteinDbVariants();
   const dbByRetailerProductId = new Map(
     dbVariants
@@ -52,19 +56,21 @@ export async function previewMyproteinSync(
     });
   }
 
-  for (const variant of dbVariants) {
-    const retailerProductId = variant.retailerProductId;
-    if (!retailerProductId || seenRetailerProductIds.has(retailerProductId)) continue;
+  if (includeDeletes) {
+    for (const variant of dbVariants) {
+      const retailerProductId = variant.retailerProductId;
+      if (!retailerProductId || seenRetailerProductIds.has(retailerProductId)) continue;
 
-    entries.push({
-      id: retailerProductId,
-      action: "delete",
-      reason: "Variant exists in database but was not found in this scrape",
-      retailerProductId,
-      scraped: null,
-      current: variant,
-      fieldDiffs: [],
-    });
+      entries.push({
+        id: retailerProductId,
+        action: "delete",
+        reason: "Variant exists in database but was not found in this scrape",
+        retailerProductId,
+        scraped: null,
+        current: variant,
+        fieldDiffs: [],
+      });
+    }
   }
 
   const weight = { create: 0, update: 1, delete: 2, unchanged: 3 } satisfies Record<
