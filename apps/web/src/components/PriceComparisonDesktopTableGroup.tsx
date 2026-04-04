@@ -113,7 +113,7 @@ export default function PriceComparisonDesktopTableGroup({
         ))}
         {isExpanded ? (
           <tr className={calorieMode ? "bg-surface" : isBestValue ? "bg-green-500/5" : "bg-surface"}>
-            <td colSpan={totalColumns} className="px-4 pb-5 pt-1">
+            <td colSpan={totalColumns + 1} className="px-4 pb-5 pt-1">
               <div className="space-y-4">
                 <PriceComparisonExpandedDetails group={group} />
                 <ProductPageLink slug={product.slug} />
@@ -235,20 +235,22 @@ function ConsolidatedTableRow({ sizeVariants, sizeIndex, totalSizes, group, best
         </td>
       ) : null}
       {isFirstRow ? (
-        <td className="px-2 py-2 align-middle" rowSpan={totalSizes}>
-          <div className="flex items-center gap-2">
-            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+        <>
+          <td className="w-6 px-1 text-center align-middle" rowSpan={totalSizes}>
+            <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-theme-4 hover:text-theme-2 transition-colors">
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+          </td>
+          <td className="px-2 py-2 align-middle" rowSpan={totalSizes}>
+            <div className="flex items-center gap-2">
               <ProductThumbnail name={group.baseName} imageUrl={group.imageUrl} />
-              <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-theme-4 hover:text-theme-2 transition-colors">
-                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
+              <div className="flex flex-col items-center gap-0.5 min-w-0 text-center">
+                <div className="text-xs font-medium text-theme-2">{group.retailer}</div>
+                <span className="text-sm font-semibold leading-tight text-theme text-center">{group.baseName}</span>
+              </div>
             </div>
-            <div className="flex flex-col items-center gap-0.5 min-w-0 text-center">
-              <div className="text-xs font-medium text-theme-2">{group.retailer}</div>
-              <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-sm font-semibold leading-tight text-theme transition-colors hover:text-green-500 text-center">{group.baseName}</button>
-            </div>
-          </div>
-        </td>
+          </td>
+        </>
       ) : null}
       <td className="px-2 py-2 text-center align-middle w-24 max-w-[96px]">
         {hasFlavours ? (

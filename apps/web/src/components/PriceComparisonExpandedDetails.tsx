@@ -123,7 +123,7 @@ export default function PriceComparisonExpandedDetails({
                             <button
                               type="button"
                               onClick={() => navigator.clipboard.writeText(c.code)}
-                              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono font-semibold tracking-wide transition ${c.type === "refer" ? "border border-amber-500/40 bg-amber-500/10 text-theme-2 hover:bg-amber-500/20" : "border border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20"}`}
+                              className={`inline-flex items-center justify-between gap-1.5 rounded-lg px-2.5 py-1 font-mono font-semibold tracking-wide transition min-w-[9rem] ${c.type === "refer" ? "border border-amber-500/40 bg-amber-500/10 text-theme-2 hover:bg-amber-500/20" : "border border-green-500/30 bg-green-500/10 text-green-500 hover:bg-green-500/20"}`}
                               title="Click to copy"
                             >
                               {c.code}
