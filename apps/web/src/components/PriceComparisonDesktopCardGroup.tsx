@@ -22,7 +22,7 @@ import {
 import { getCaloriesPer100g, getServingsPerPack } from "./price-comparison-nutrition";
 import type { ColumnVisibility } from "./price-comparison-visibility";
 import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
-import { ProductPageLink, ProductThumbnail, formatCurrency } from "./price-comparison-table.utils";
+import { ProductThumbnail, formatCurrency } from "./price-comparison-table.utils";
 import { Stat, formatSize } from "./price-comparison-card.shared";
 import { applyPriceMode, type PriceMode } from "./price-comparison-metrics";
 
@@ -85,7 +85,7 @@ export default function PriceComparisonDesktopCardGroup({
               <div className="text-[10px] text-theme-3">{group.retailer}</div>
               <ProductThumbnail name={group.baseName} imageUrl={group.imageUrl} size="lg" />
               <div className="flex flex-col items-center gap-1 w-full">
-                <a href={product.url} target="_blank" rel="noopener noreferrer sponsored" className="text-sm font-semibold text-theme hover:text-green-500 transition-colors leading-tight line-clamp-2 text-center">{group.baseName}</a>
+                <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-sm font-semibold text-theme hover:text-green-500 transition-colors leading-tight line-clamp-2 text-center">{group.baseName}</button>
                 <div className="flex w-full items-center justify-between gap-1">
                   <button type="button" onClick={() => onToggleExpanded(group.id)} className="flex-shrink-0 p-1">{isExpanded ? <ChevronUp className="h-4 w-4 text-theme-4" /> : <ChevronDown className="h-4 w-4 text-theme-4" />}</button>
                   {activeFlavour ? <span className="flex-1 rounded bg-surface-3 px-1 py-0.5 text-[10px] text-theme-2 text-center">{activeFlavour}</span> : <span className="flex-1" />}
@@ -106,7 +106,6 @@ export default function PriceComparisonDesktopCardGroup({
             <div className="space-y-3">
               {product.inStock ? <span className="flex items-center gap-1 text-green-500"><CheckCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">In Stock</span></span> : <span className="flex items-center gap-1 text-red-500"><XCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">Out of Stock</span></span>}
               <PriceComparisonExpandedDetails group={group} />
-              <ProductPageLink slug={product.slug} />
             </div>
           </div>
         ) : null}

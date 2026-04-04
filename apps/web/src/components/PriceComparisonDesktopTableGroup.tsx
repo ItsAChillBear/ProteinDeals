@@ -104,7 +104,7 @@ export default function PriceComparisonDesktopTableGroup({
                 )}
               </div>
               <PriceComparisonExpandedDetails group={group} />
-              <div className="mt-4"><ProductPageLink slug={product.slug} /></div>
+              <ProductPageLink slug={product.slug} />
             </div>
           </td>
         </tr>
@@ -171,7 +171,7 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
               </div>
               <div className="flex flex-col items-center gap-0.5 min-w-0 text-center">
                 <div className="text-xs text-theme-3">{group.retailer}</div>
-                <a href={product.url} target="_blank" rel="noopener noreferrer sponsored" className="text-sm font-medium leading-snug text-theme transition-colors hover:text-green-500">{group.baseName}</a>
+                <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-sm font-medium leading-snug text-theme transition-colors hover:text-green-500 text-center">{group.baseName}</button>
               </div>
             </div>
           </td>
