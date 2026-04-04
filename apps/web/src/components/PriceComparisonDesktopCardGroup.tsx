@@ -77,7 +77,7 @@ export default function PriceComparisonDesktopCardGroup({
   const isOverridden = hasAnySubscription && localMode !== priceMode;
 
   return (
-    <tr className={clsx("transition-colors", calorieMode ? "hover-bg" : isBestValue ? "bg-green-500/5 hover:bg-green-500/10" : "hover-bg")}>
+    <tr className="transition-colors hover-bg">
       <td colSpan={totalColumns} className="px-4 py-3">
         <div className="rounded-xl border border-theme overflow-hidden">
           <div className="flex">
@@ -186,7 +186,7 @@ function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, cal
         <span className="w-14 flex-shrink-0 px-1 text-center text-sm font-bold text-theme leading-[1.2rem]">{formatSize(variant.size)}</span>
         {visibility.showTotal ? (
           <div className="w-20 flex-shrink-0 flex flex-col items-center">
-            <span className={clsx("text-xs font-semibold leading-[1.2rem]", calorieMode ? isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-green-500" : "text-green-500")}>{formatCurrency(v.price)}</span>
+            <span className="text-xs font-semibold leading-[1.2rem] text-green-500">{formatCurrency(v.price)}</span>
             {effectiveMode === "subscription" && hasSubscription && variant.subscriptionPrice != null ? <span className="text-[10px] leading-tight text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
           </div>
         ) : null}
