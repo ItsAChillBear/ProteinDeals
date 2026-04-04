@@ -11,6 +11,7 @@ export interface Product {
   flavour: string | null;
   size: string;
   sizeG: number;
+  servingSizeG: number | null;
   servings: number | null;
   price: number;
   pricePer100g: number;

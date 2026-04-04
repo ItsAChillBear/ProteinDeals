@@ -234,6 +234,7 @@ async function scrapeVariant(args: {
     sizeLabel,
     sizeG,
     servingsLabel: variantPage.servingsLabel,
+    pricePerServingLabel: variantPage.pricePerServingLabel,
     price,
     originalPrice: variantPage.originalPrice,
     wasOnSale:

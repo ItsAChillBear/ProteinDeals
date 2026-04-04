@@ -338,14 +338,15 @@ async function start() {
     async (request, reply) => {
       const startedAt = new Date().toISOString();
       const body = request.body as { records?: unknown; entryIds?: unknown };
-      const query = request.query as { includeDeletes?: string };
+      const query = request.query as { includeDeletes?: string; categoryUrl?: string | string[] };
       const includeDeletes = query.includeDeletes === "true";
+      const scrapeOptions = getMyproteinScrapeOptions(request.query);
 
       try {
         const records = Array.isArray(body?.records) ? body.records : [];
         const preview = await previewMyproteinSync(
           records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>,
-          { includeDeletes }
+          { includeDeletes, deleteCategoryUrls: scrapeOptions.categoryUrls }
         );
         const rawEntryIds = Array.isArray(body?.entryIds) ? body.entryIds : null;
         const entryIds =
@@ -375,9 +376,10 @@ async function start() {
 
   server.post("/internal/scrapers/myprotein/clear", async (request, reply) => {
     const startedAt = new Date().toISOString();
+    const scrapeOptions = getMyproteinScrapeOptions(request.query);
 
     try {
-      const clearResult = await clearMyproteinDatabase();
+      const clearResult = await clearMyproteinDatabase(scrapeOptions.categoryUrls);
 
       return {
         ok: true,
@@ -403,14 +405,15 @@ async function start() {
     async (request, reply) => {
       const startedAt = new Date().toISOString();
       const body = request.body as { records?: unknown };
-      const query = request.query as { includeDeletes?: string };
+      const query = request.query as { includeDeletes?: string; categoryUrl?: string | string[] };
       const includeDeletes = query.includeDeletes === "true";
+      const scrapeOptions = getMyproteinScrapeOptions(request.query);
 
       try {
         const records = Array.isArray(body?.records) ? body.records : [];
         const preview = await previewMyproteinSync(
           records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>,
-          { includeDeletes }
+          { includeDeletes, deleteCategoryUrls: scrapeOptions.categoryUrls }
         );
 
         return {

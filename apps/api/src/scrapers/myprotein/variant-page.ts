@@ -14,6 +14,7 @@ export async function parseVariantPage(html: string, pageUrl: string, fetchImpl:
     flavour: parts.length >= 4 ? parts[parts.length - 1] : null,
     sizeLabel: parts.length >= 2 ? parts[1] : null,
     servingsLabel: parts.length >= 3 ? parts[2] : null,
+    pricePerServingLabel: extractPricePerServing($, html),
     price: firstNumber([
       $("#pdp-sticky-price .price").text(),
       $("[data-e2e='product-price']").first().text(),
@@ -33,6 +34,30 @@ export async function parseVariantPage(html: string, pageUrl: string, fetchImpl:
     imageUrl: extractVariantImageUrl($, pageUrl),
     retailerProductId: new URL(pageUrl).searchParams.get("variation"),
   };
+}
+
+function extractPricePerServing($: cheerio.CheerioAPI, html: string) {
+  const candidates = [
+    $(".pricePerServing").first().text(),
+    $("[class*='pricePerServing']").first().text(),
+    $("[data-e2e*='price-per-serving']").first().text(),
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = collapseWhitespace(candidate);
+    if (/\bper serving\b/i.test(normalized)) {
+      return normalized;
+    }
+  }
+
+  const documentText = collapseWhitespace(
+    html
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\\u00a0|&nbsp;/gi, " ")
+      .replace(/\s+/g, " ")
+  );
+  const match = documentText.match(/(?:£|\$|€)\s*\d+(?:\.\d+)?\s+per serving\b/i);
+  return match ? match[0].trim() : null;
 }
 
 function extractVariantImageUrl($: cheerio.CheerioAPI, pageUrl: string) {

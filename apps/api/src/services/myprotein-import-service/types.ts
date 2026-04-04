@@ -32,6 +32,7 @@ export interface CompareProductRow {
   flavour: string | null;
   size: string;
   sizeG: number;
+  servingSizeG: number | null;
   servings: number | null;
   price: number;
   pricePer100g: number;
@@ -42,11 +43,7 @@ export interface CompareProductRow {
   subscriptionSavings: number | null;
   proteinPer100g: number | null;
   ingredients: string | null;
-  nutritionalInformation: Array<{
-    label: string;
-    per100g: string | null;
-    perServing: string | null;
-  }>;
+  nutritionalInformation: NutritionalInformationRow[];
   inStock: boolean;
   url: string;
   type: string;
@@ -88,6 +85,8 @@ export type NutritionalInformationRow = {
   label: string;
   per100g: string | null;
   perServing: string | null;
+  perDailyServing: string | null;
+  referenceIntake: string | null;
 };
 
 export type NutritionalInformationJson = Prisma.JsonValue | null | undefined;

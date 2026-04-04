@@ -57,8 +57,8 @@ export default function PriceComparisonToolbar({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
-            <button type="button" onClick={() => setPriceMode("single")} className={`px-2.5 py-1 transition ${priceMode === "single" ? "bg-green-600 text-white" : "text-theme-3 hover:text-theme"}`}>Single</button>
-            <button type="button" onClick={() => setPriceMode("subscription")} className={`px-2.5 py-1 transition border-l border-theme-2 ${priceMode === "subscription" ? "bg-green-600 text-white" : "text-theme-3 hover:text-theme"}`}>Subscribe</button>
+            <button type="button" onClick={() => setPriceMode("single")} className={`px-2.5 py-1 transition ${priceMode === "single" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme"}`}>Single</button>
+            <button type="button" onClick={() => setPriceMode("subscription")} className={`px-2.5 py-1 transition border-l border-theme-2 ${priceMode === "subscription" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme"}`}>Subscribe</button>
           </div>
           <span className="mx-1 h-4 w-px bg-theme-2" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-4">Show:</span>
@@ -69,7 +69,7 @@ export default function PriceComparisonToolbar({
               onClick={() => setVisibility((current) => ({ ...current, [key]: !current[key] }))}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                 visibility[key]
-                  ? "bg-green-600 text-white hover:bg-green-700/80"
+                  ? "bg-green-500 text-white hover:bg-green-700/80"
                   : "bg-surface-2 text-theme-4 line-through hover:text-theme-3"
               }`}
             >
@@ -79,17 +79,17 @@ export default function PriceComparisonToolbar({
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
-            <button type="button" onClick={() => setFlavourMode("consolidate")} className={`px-2.5 py-1 transition ${flavourMode === "consolidate" ? "bg-green-600 text-white" : "text-theme-3 hover:text-theme"}`}>Consolidate</button>
-            <button type="button" onClick={() => setFlavourMode("separate")} className={`px-2.5 py-1 transition border-l border-theme-2 ${flavourMode === "separate" ? "bg-green-600 text-white" : "text-theme-3 hover:text-theme"}`}>Separate</button>
+            <button type="button" onClick={() => setFlavourMode("consolidate")} className={`px-2.5 py-1 transition ${flavourMode === "consolidate" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme"}`}>Consolidate</button>
+            <button type="button" onClick={() => setFlavourMode("separate")} className={`px-2.5 py-1 transition border-l border-theme-2 ${flavourMode === "separate" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme"}`}>Separate</button>
           </div>
           <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
-            <button type="button" onClick={() => setViewMode("card")} className={`px-2.5 py-1 transition ${viewMode === "card" ? "bg-green-600 text-white" : "text-theme-3 hover:text-theme"}`}>Cards</button>
-            <button type="button" onClick={() => setViewMode("table")} className={`px-2.5 py-1 transition border-l border-theme-2 ${viewMode === "table" ? "bg-green-600 text-white" : "text-theme-3 hover:text-theme"}`}>Table</button>
+            <button type="button" onClick={() => setViewMode("card")} className={`px-2.5 py-1 transition ${viewMode === "card" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme"}`}>Cards</button>
+            <button type="button" onClick={() => setViewMode("table")} className={`px-2.5 py-1 transition border-l border-theme-2 ${viewMode === "table" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme"}`}>Table</button>
           </div>
           {viewMode === "table" ? (
             <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
-              <button type="button" onClick={() => setColumnGroupMode("nutrient")} className={`px-2.5 py-1 transition ${columnGroupMode === "nutrient" ? "bg-green-600 text-white" : "text-theme-3 hover:text-theme"}`}>Protein / Calories / Price</button>
-              <button type="button" onClick={() => setColumnGroupMode("measure")} className={`px-2.5 py-1 transition border-l border-theme-2 ${columnGroupMode === "measure" ? "bg-green-600 text-white" : "text-theme-3 hover:text-theme"}`}>/Serving / /100g / /1g Protein</button>
+              <button type="button" onClick={() => setColumnGroupMode("nutrient")} className={`px-2.5 py-1 transition ${columnGroupMode === "nutrient" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme"}`}>Protein / Calories / Price</button>
+              <button type="button" onClick={() => setColumnGroupMode("measure")} className={`px-2.5 py-1 transition border-l border-theme-2 ${columnGroupMode === "measure" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme"}`}>/Serving / /100g / /1g Protein</button>
             </div>
           ) : null}
           <button type="button" onClick={resetAll} className="rounded-md px-2.5 py-1 text-xs font-medium text-theme-3 transition hover:text-theme">Reset All</button>

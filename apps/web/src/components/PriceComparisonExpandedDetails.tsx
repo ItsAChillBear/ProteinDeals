@@ -20,13 +20,73 @@ const CODE_TYPE_LABELS: Record<DiscountCode["type"], string> = {
   refer: "Refer a Friend",
   promo: "Promo Codes",
 };
-type NutritionRow = { label: string; per100g: string | null; perServing: string | null };
+type NutritionRow = {
+  label: string;
+  per100g: string | null;
+  perServing: string | null;
+  perDailyServing?: string | null;
+  referenceIntake?: string | null;
+};
 
 function isCleanNutritionRow(row: NutritionRow) {
   if (NOISE_LABELS.test(row.label.trim())) return false;
-  if (row.label === row.per100g && row.label === row.perServing) return false;
+  if (
+    row.label === row.per100g &&
+    row.label === row.perServing &&
+    row.label === row.perDailyServing
+  ) {
+    return false;
+  }
   if (row.label.length > 60) return false;
   return true;
+}
+
+function isMeasurementValue(value: string | null) {
+  if (!value) return false;
+  return /<?\s*\d+(?:\.\d+)?\s*(kcal|kj|mg|g|μg|ug)\b/i.test(value.trim());
+}
+
+function isReferenceIntakeValue(value: string | null) {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "-" ||
+    /^<?\s*\d+(?:\.\d+)?\s*%?$/.test(normalized) ||
+    /less than\s+\d+%/.test(normalized)
+  );
+}
+
+function getNutritionColumnLabels(rows: NutritionRow[]) {
+  const hasDailyServing = rows.some((row) => Boolean(row.perDailyServing));
+  const hasReferenceIntake = rows.some((row) => Boolean(row.referenceIntake));
+
+  if (hasDailyServing || hasReferenceIntake) {
+    return {
+      second: hasDailyServing ? "Per Daily Serving" : "Per 100g",
+      third: hasReferenceIntake ? "% Reference Intake" : "Per Serving",
+    };
+  }
+
+  const per100gMeasurements = rows.filter((row) => isMeasurementValue(row.per100g)).length;
+  const perServingMeasurements = rows.filter((row) => isMeasurementValue(row.perServing)).length;
+  const perServingReferenceIntakes = rows.filter((row) => isReferenceIntakeValue(row.perServing)).length;
+
+  if (
+    rows.length > 0 &&
+    per100gMeasurements >= Math.ceil(rows.length * 0.5) &&
+    perServingReferenceIntakes >= Math.ceil(rows.length * 0.5) &&
+    perServingMeasurements <= Math.floor(rows.length * 0.25)
+  ) {
+    return {
+      second: "Per Daily Serving",
+      third: "% Reference Intake",
+    };
+  }
+
+  return {
+    second: "Per 100g",
+    third: "Per Serving",
+  };
 }
 
 export default function PriceComparisonExpandedDetails({
@@ -40,6 +100,7 @@ export default function PriceComparisonExpandedDetails({
   const nutritionRows = (product.nutritionalInformation ?? []).filter((row) =>
     isCleanNutritionRow(row)
   );
+  const nutritionColumnLabels = getNutritionColumnLabels(nutritionRows);
 
   const codesByType = CODE_TYPE_ORDER.map((type) => ({
     type,
@@ -82,16 +143,24 @@ export default function PriceComparisonExpandedDetails({
                   <thead className="bg-surface-2 text-theme-3">
                     <tr>
                       <th className="px-3 py-2 font-semibold">Nutrient</th>
-                      <th className="px-3 py-2 font-semibold">Per 100g</th>
-                      <th className="px-3 py-2 font-semibold">Per Serving</th>
+                      <th className="px-3 py-2 font-semibold">{nutritionColumnLabels.second}</th>
+                      <th className="px-3 py-2 font-semibold">{nutritionColumnLabels.third}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-theme">
                     {nutritionRows.map((row) => (
                       <tr key={row.label}>
                         <td className="px-3 py-2 text-theme-2">{row.label}</td>
-                        <td className="px-3 py-2 text-theme-2">{row.per100g ?? "-"}</td>
-                        <td className="px-3 py-2 text-theme-2">{row.perServing ?? "-"}</td>
+                        <td className="px-3 py-2 text-theme-2">
+                          {nutritionColumnLabels.second === "Per Daily Serving"
+                            ? row.perDailyServing ?? row.per100g ?? "-"
+                            : row.per100g ?? row.perDailyServing ?? "-"}
+                        </td>
+                        <td className="px-3 py-2 text-theme-2">
+                          {nutritionColumnLabels.third === "% Reference Intake"
+                            ? row.referenceIntake ?? row.perServing ?? "-"
+                            : row.perServing ?? row.referenceIntake ?? "-"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

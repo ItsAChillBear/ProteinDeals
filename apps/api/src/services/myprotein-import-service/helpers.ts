@@ -31,7 +31,7 @@ export function getRetailerProductId(record: MyproteinVariantRecord) {
 
 export function getFieldDiffs(record: MyproteinVariantRecord, current: MyproteinDbVariant) {
   const nextProteinPer100g = getCanonicalProteinPer100g(record);
-  const servingsPerPack = parseServings(record.servingsLabel);
+  const servingsPerPack = deriveServingsPerPack(record);
   const nextDescription = buildProductDescription(record);
   const nextProductName = record.flavour
     ? `${record.productName} - ${record.flavour}`
@@ -123,6 +123,10 @@ export function parseNutritionalInformation(value: NutritionalInformationJson) {
         label: typeof item.label === "string" ? item.label : "",
         per100g: typeof item.per100g === "string" ? item.per100g : null,
         perServing: typeof item.perServing === "string" ? item.perServing : null,
+        perDailyServing:
+          typeof item.perDailyServing === "string" ? item.perDailyServing : null,
+        referenceIntake:
+          typeof item.referenceIntake === "string" ? item.referenceIntake : null,
       };
     })
     .filter((row): row is NutritionalInformationRow => Boolean(row && row.label));
@@ -208,6 +212,48 @@ function slugify(value: string) {
 }
 
 export function parseServings(value: string | null): number | null {
+  if (!value) return null;
+  const match = value.match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : null;
+}
+
+export function deriveServingsPerPack(record: Pick<
+  MyproteinVariantRecord,
+  "servingsLabel" | "suggestedUse" | "sizeG" | "price" | "pricePerServingLabel"
+>) {
+  const explicitServings = parseServings(record.servingsLabel);
+  if (explicitServings && explicitServings > 0) return explicitServings;
+
+  const servingSizeFromSuggestedUse = parseServingSizeFromSuggestedUse(record.suggestedUse);
+  if (record.sizeG && servingSizeFromSuggestedUse && servingSizeFromSuggestedUse > 0) {
+    return Math.round(record.sizeG / servingSizeFromSuggestedUse);
+  }
+
+  const pricePerServing = parsePricePerServing(record.pricePerServingLabel);
+  if (record.price && pricePerServing && pricePerServing > 0) {
+    return Math.round(record.price / pricePerServing);
+  }
+
+  return null;
+}
+
+function parseServingSizeFromSuggestedUse(value: string | null) {
+  if (!value) return null;
+  const normalized = value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+
+  const gramMatch = normalized.match(/\((\d+(?:\.\d+)?)\s*g\)/i);
+  if (gramMatch) return Number(gramMatch[1]);
+
+  const directMatch = normalized.match(/\b(?:one|1)\s+(?:scoop|serving|portion|tablet|capsule|softgel|gummy|stick|sachet)\b[^0-9]{0,30}(\d+(?:\.\d+)?)\s*g\b/i);
+  if (directMatch) return Number(directMatch[1]);
+
+  const servingSizeMatch = normalized.match(/\bserving size\b[^0-9]{0,10}(\d+(?:\.\d+)?)\s*g\b/i);
+  if (servingSizeMatch) return Number(servingSizeMatch[1]);
+
+  return null;
+}
+
+function parsePricePerServing(value: string | null) {
   if (!value) return null;
   const match = value.match(/(\d+(?:\.\d+)?)/);
   return match ? Number(match[1]) : null;

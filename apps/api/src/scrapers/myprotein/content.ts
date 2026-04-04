@@ -119,7 +119,13 @@ function extractNutritionRowsFromCmsPayload(html: string) {
 
 function extractNutritionRowsFromParsedRows(
   parsedRows: string[][]
-): Array<{ label: string; per100g: string | null; perServing: string | null }> | null {
+): Array<{
+  label: string;
+  per100g: string | null;
+  perServing: string | null;
+  perDailyServing?: string | null;
+  referenceIntake?: string | null;
+}> | null {
   if (!parsedRows.length) return null;
 
   const normalizedRows = parsedRows
@@ -131,12 +137,59 @@ function extractNutritionRowsFromParsedRows(
   const fastPath = extractNutritionRowsUsingExplicitHeader(normalizedRows);
   if (fastPath.length) return fastPath;
 
+  const servingOnlyRows = extractNutritionRowsUsingServingOnlyHeader(normalizedRows);
+  if (servingOnlyRows.length) return servingOnlyRows;
+
   const scored = extractNutritionRowsUsingHeuristics(normalizedRows);
   return scored.length ? scored : null;
 }
 
+function extractNutritionRowsUsingServingOnlyHeader(parsedRows: string[][]) {
+  const rows: Array<{
+    label: string;
+    per100g: string | null;
+    perServing: string | null;
+    perDailyServing?: string | null;
+    referenceIntake?: string | null;
+  }> = [];
+
+  const headerIndex = parsedRows.findIndex((cells) => hasServingOnlyHeaderColumns(cells));
+  if (headerIndex === -1) return rows;
+
+  const headerCells = parsedRows[headerIndex];
+  const perServingIndex = findServingOnlyColumnIndex(headerCells);
+  const percentIndex = findReferenceIntakeColumnIndex(headerCells);
+
+  if (perServingIndex <= 0) return rows;
+
+  for (const cells of parsedRows.slice(headerIndex + 1)) {
+    if (cells.length <= perServingIndex) continue;
+
+    const perServing = cells[perServingIndex] || null;
+    const maybePercent = percentIndex !== -1 && cells.length > percentIndex ? cells[percentIndex] || null : null;
+
+    const candidate = {
+      label: cells[0],
+      per100g: null,
+      perServing: null,
+      perDailyServing: perServing,
+      referenceIntake: isReferenceIntakeValue(maybePercent) ? maybePercent : null,
+    };
+
+    if (isCleanNutritionRow(candidate)) rows.push(candidate);
+  }
+
+  return rows;
+}
+
 function extractNutritionRowsUsingExplicitHeader(parsedRows: string[][]) {
-  const rows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
+  const rows: Array<{
+    label: string;
+    per100g: string | null;
+    perServing: string | null;
+    perDailyServing?: string | null;
+    referenceIntake?: string | null;
+  }> = [];
 
   const headerIndex = parsedRows.findIndex((headerCells) => hasNutritionHeaderColumns(headerCells));
   if (headerIndex === -1) return rows;
@@ -165,7 +218,13 @@ function extractNutritionRowsUsingExplicitHeader(parsedRows: string[][]) {
 }
 
 function extractNutritionRowsUsingHeuristics(parsedRows: string[][]) {
-  let bestRows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
+  let bestRows: Array<{
+    label: string;
+    per100g: string | null;
+    perServing: string | null;
+    perDailyServing?: string | null;
+    referenceIntake?: string | null;
+  }> = [];
   let bestScore = 0;
 
   for (let start = 0; start < parsedRows.length; start += 1) {
@@ -184,6 +243,8 @@ function extractNutritionRowsUsingHeuristics(parsedRows: string[][]) {
           label: string;
           per100g: string | null;
           perServing: string | null;
+          perDailyServing?: string | null;
+          referenceIntake?: string | null;
         }> = [];
 
         for (const cells of parsedRows.slice(start + 1)) {
@@ -228,6 +289,14 @@ function hasNutritionHeaderColumns(headerCells: string[]) {
   );
 }
 
+function hasServingOnlyHeaderColumns(headerCells: string[]) {
+  return (
+    findServingOnlyColumnIndex(headerCells) !== -1 &&
+    findReferenceIntakeColumnIndex(headerCells) !== -1 &&
+    findPer100gColumnIndex(headerCells) === -1
+  );
+}
+
 function isPer100gHeader(value: string) {
   return /(?:^|\b)(?:per\s*)?100g(?:\s+contains)?(?:\b|$)/i.test(value);
 }
@@ -238,9 +307,45 @@ function isPerServingHeader(value: string) {
   );
 }
 
+function findServingOnlyColumnIndex(headerCells: string[]) {
+  const servingIndexes = headerCells
+    .map((cell, index) => ({
+      index,
+      normalized: cell.trim().toLowerCase(),
+    }))
+    .filter(
+      ({ normalized }) =>
+        normalized &&
+        /(?:^|\b)(?:per\s+daily\s+serving|daily\s+serving|per\s+portion|per\s+dose)(?:\b|$)/i.test(
+          normalized
+        )
+    )
+    .map(({ index }) => index);
+
+  const nonLabelServingIndex = servingIndexes.find((index) => index > 0);
+  if (nonLabelServingIndex !== undefined) return nonLabelServingIndex;
+  return servingIndexes[0] ?? -1;
+}
+
+function findReferenceIntakeColumnIndex(headerCells: string[]) {
+  return headerCells.findIndex((cell) => {
+    const normalized = cell.trim().toLowerCase();
+    if (!normalized) return false;
+    return /(?:reference intake|nutrition reference value|nrv|%ri|%\s*reference intake)/i.test(
+      normalized
+    );
+  });
+}
+
 function scoreNutritionCandidate(
   headerCells: string[],
-  rows: Array<{ label: string; per100g: string | null; perServing: string | null }>,
+  rows: Array<{
+    label: string;
+    per100g: string | null;
+    perServing: string | null;
+    perDailyServing?: string | null;
+    referenceIntake?: string | null;
+  }>,
   per100gIndex: number,
   perServingIndex: number
 ) {
@@ -315,6 +420,20 @@ function parseMeasurement(value: string | null) {
   };
 }
 
+function looksLikeMeasurement(value: string | null) {
+  return Boolean(parseMeasurement(value));
+}
+
+function isReferenceIntakeValue(value: string | null) {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    /^-+$/.test(normalized) ||
+    /^<?\s*\d+(?:\.\d+)?\s*%?$/.test(normalized) ||
+    /less than\s+\d+%/.test(normalized)
+  );
+}
+
 function extractNutritionRowsFromText(text: string) {
   const section = extractSection(
     text,
@@ -334,7 +453,13 @@ function extractNutritionRowsFromText(text: string) {
   const rowPattern =
     /(Energy|Fat|of which saturates|Carbohydrate|of which sugars|Fibre|Protein|Salt)\s+([^\s]+)\s+([^\s]+)(?=\s+(?:Energy|Fat|of which saturates|Carbohydrate|of which sugars|Fibre|Protein|Salt)\s+|$)/gi;
 
-  const rows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
+  const rows: Array<{
+    label: string;
+    per100g: string | null;
+    perServing: string | null;
+    perDailyServing?: string | null;
+    referenceIntake?: string | null;
+  }> = [];
   for (const match of normalized.matchAll(rowPattern)) {
     const candidate = {
       label: collapseWhitespace(match[1]),
@@ -433,6 +558,8 @@ function isCleanNutritionRow(row: {
   label: string;
   per100g: string | null;
   perServing: string | null;
+  perDailyServing?: string | null;
+  referenceIntake?: string | null;
 }) {
   const label = row.label.trim();
   if (!label) return false;
@@ -440,9 +567,9 @@ function isCleanNutritionRow(row: {
   if (/^(nutritional information|typical values|contains \d+ servings?)$/i.test(label)) {
     return false;
   }
-  if (label === row.per100g && label === row.perServing) return false;
+  if (label === row.per100g && label === row.perServing && label === row.perDailyServing) return false;
   if (label.length > 60) return false;
-  if (!row.per100g && !row.perServing) return false;
+  if (!row.per100g && !row.perServing && !row.perDailyServing && !row.referenceIntake) return false;
   return true;
 }
 

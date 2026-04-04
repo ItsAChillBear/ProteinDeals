@@ -112,7 +112,12 @@ export function MyproteinScraperPanel() {
   }
 
   async function loadPreview(records: ScraperResponse["records"], shouldIncludeDeletes = includeDeletes) {
-    const response = await fetch(`/api/admin/scrapers/myprotein/preview?includeDeletes=${shouldIncludeDeletes ? "true" : "false"}`, {
+    const params = new URLSearchParams();
+    params.set("includeDeletes", shouldIncludeDeletes ? "true" : "false");
+    for (const section of selectedSections) {
+      params.append("categoryUrl", section.url);
+    }
+    const response = await fetch(`/api/admin/scrapers/myprotein/preview?${params.toString()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ records }),
@@ -136,7 +141,14 @@ export function MyproteinScraperPanel() {
       }
 
       const response = await fetch(
-        `/api/admin/scrapers/myprotein/import?includeDeletes=${includeDeletes ? "true" : "false"}`,
+        `/api/admin/scrapers/myprotein/import?${(() => {
+          const params = new URLSearchParams();
+          params.set("includeDeletes", includeDeletes ? "true" : "false");
+          for (const section of selectedSections) {
+            params.append("categoryUrl", section.url);
+          }
+          return params.toString();
+        })()}`,
         {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -158,8 +170,12 @@ export function MyproteinScraperPanel() {
   }
 
   async function clearDatabase() {
+    const scopeLabel =
+      selectedSections.length === selectedWebsite.sections.length
+        ? `${selectedWebsite.label} data`
+        : `${selectedWebsite.label} data for ${selectedSections.length} selected section${selectedSections.length === 1 ? "" : "s"}`;
     const confirmed = window.confirm(
-      "Clear all Myprotein scraper data from the database? This deletes Myprotein variants, price history, alerts, and any orphaned products."
+      `Clear ${scopeLabel} from the database? This deletes matching variants, price history, alerts, and any orphaned products.`
     );
     if (!confirmed) return;
 
@@ -168,7 +184,11 @@ export function MyproteinScraperPanel() {
     setImportResult(null);
 
     try {
-      const response = await fetch(`/api/admin/scrapers/myprotein/clear`, {
+      const params = new URLSearchParams();
+      for (const section of selectedSections) {
+        params.append("categoryUrl", section.url);
+      }
+      const response = await fetch(`/api/admin/scrapers/myprotein/clear?${params.toString()}`, {
         method: "POST",
       });
       const payload = (await response.json()) as ClearResponse;
@@ -286,13 +306,22 @@ export function MyproteinScraperPanel() {
             <span className="block text-xs uppercase tracking-[0.25em] text-stone-400">
               Sections
             </span>
-            <button
-              type="button"
-              onClick={() => setSelectedSectionIds(selectedWebsite.sections.map((section) => section.id))}
-              className="text-xs font-semibold text-amber-300 transition hover:text-amber-200"
-            >
-              Select all
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedSectionIds([])}
+                className="text-xs font-semibold text-stone-400 transition hover:text-stone-200"
+              >
+                Deselect all
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedSectionIds(selectedWebsite.sections.map((section) => section.id))}
+                className="text-xs font-semibold text-amber-300 transition hover:text-amber-200"
+              >
+                Select all
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

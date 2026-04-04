@@ -59,6 +59,7 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
           category: true,
           categoryLabels: true,
           proteinPer100g: true,
+          servingSizeG: true,
           servingsPerPack: true,
           ingredients: true,
           nutritionalInfo: true,
@@ -109,6 +110,8 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
         flavour: row.flavour,
         size: formatSizeLabel(Number(row.sizeG)),
         sizeG: Number(row.sizeG),
+        servingSizeG:
+          row.product.servingSizeG !== null ? Number(row.product.servingSizeG) : null,
         servings: row.product.servingsPerPack,
         price: Number(latest.price),
         pricePer100g: Number(latest.pricePer100g),

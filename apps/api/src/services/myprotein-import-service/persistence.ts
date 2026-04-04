@@ -5,11 +5,11 @@ import { ensureRetailer } from "./db.js";
 import {
   buildProductDescription,
   createProductSlug,
+  deriveServingsPerPack,
   getCanonicalProteinPer100g,
   getRetailerProductId,
   getSubscriptionPricePer100g,
   inferCategoryFromLabels,
-  parseServings,
 } from "./helpers.js";
 import type { ClearMyproteinResult, MyproteinDbVariant } from "./types.js";
 
@@ -19,7 +19,9 @@ type PersistableMyproteinRecord = MyproteinVariantRecord & {
   sizeG: number;
 };
 
-export async function clearMyproteinDatabase(): Promise<ClearMyproteinResult> {
+export async function clearMyproteinDatabase(
+  selectedCategoryUrls?: string[]
+): Promise<ClearMyproteinResult> {
   const retailer = await db.retailer.findUnique({
     where: {
       slug: "myprotein",
@@ -45,10 +47,29 @@ export async function clearMyproteinDatabase(): Promise<ClearMyproteinResult> {
     select: {
       id: true,
       productId: true,
+      product: {
+        select: {
+          categoryUrls: true,
+        },
+      },
     },
   });
 
-  if (!variants.length) {
+  const normalizedSelectedCategoryUrls =
+    selectedCategoryUrls?.filter((value): value is string => typeof value === "string" && value.length > 0) ??
+    [];
+
+  const variantsToDelete =
+    normalizedSelectedCategoryUrls.length === 0
+      ? variants
+      : variants.filter((variant) => {
+          const categoryUrls = Array.isArray(variant.product.categoryUrls)
+            ? variant.product.categoryUrls.filter((value): value is string => typeof value === "string")
+            : [];
+          return categoryUrls.some((url) => normalizedSelectedCategoryUrls.includes(url));
+        });
+
+  if (!variantsToDelete.length) {
     return {
       deletedProducts: 0,
       deletedVariants: 0,
@@ -57,8 +78,8 @@ export async function clearMyproteinDatabase(): Promise<ClearMyproteinResult> {
     };
   }
 
-  const variantIds = variants.map((variant) => variant.id);
-  const productIds = [...new Set(variants.map((variant) => variant.productId))];
+  const variantIds = variantsToDelete.map((variant) => variant.id);
+  const productIds = [...new Set(variantsToDelete.map((variant) => variant.productId))];
   const remainingVariantsByProduct = await db.productVariant.groupBy({
     by: ["productId"],
     where: {
@@ -138,7 +159,7 @@ export async function upsertScrapedVariant(
     record.categoryLabels,
     record.categoryUrls
   );
-  const servingsPerPack = parseServings(record.servingsLabel);
+  const servingsPerPack = deriveServingsPerPack(record);
   const proteinPer100g = getCanonicalProteinPer100g(record);
   const description = buildProductDescription(record);
   const productName = record.flavour ? `${record.productName} - ${record.flavour}` : record.productName;

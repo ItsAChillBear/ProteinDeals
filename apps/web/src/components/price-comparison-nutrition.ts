@@ -27,19 +27,19 @@ export function getProteinPerServingFromNutrition(product: Product) {
   const proteinRow = product.nutritionalInformation.find(
     (row) => row.label.trim().toLowerCase() === "protein"
   );
-  return extractNumericValue(proteinRow?.perServing ?? null);
+  return extractNumericValue(proteinRow?.perServing ?? proteinRow?.perDailyServing ?? null);
 }
 
 export function getCaloriesPerServingFromNutrition(product: Product) {
   const kcalRow = product.nutritionalInformation.find(
     (row) =>
       row.label.trim().toLowerCase() === "energy" &&
-      typeof row.perServing === "string" &&
-      row.perServing.toLowerCase().includes("kcal")
+      typeof (row.perServing ?? row.perDailyServing) === "string" &&
+      (row.perServing ?? row.perDailyServing)!.toLowerCase().includes("kcal")
   );
 
-  if (kcalRow?.perServing) {
-    return extractNumericValue(kcalRow.perServing);
+  if (kcalRow?.perServing || kcalRow?.perDailyServing) {
+    return extractNumericValue(kcalRow.perServing ?? kcalRow.perDailyServing ?? null);
   }
 
   return null;
@@ -53,8 +53,12 @@ export function getCaloriesPerGramProtein(product: Product) {
 }
 
 export function getServingSizeG(product: Product) {
+  if (product.servingSizeG && product.servingSizeG > 0) {
+    return product.servingSizeG;
+  }
+
   const candidates = product.nutritionalInformation
-    .map((row) => getServingSizeCandidate(row.per100g, row.perServing))
+    .map((row) => getServingSizeCandidate(row.per100g, row.perServing ?? row.perDailyServing ?? null))
     .filter((value): value is number => value !== null)
     .filter((value) => value > 0 && value <= product.sizeG);
 

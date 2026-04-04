@@ -4,6 +4,8 @@ export interface NutritionRow {
   label: string;
   per100g: string | null;
   perServing: string | null;
+  perDailyServing?: string | null;
+  referenceIntake?: string | null;
 }
 
 export interface MyproteinVariantRecord {
@@ -21,6 +23,7 @@ export interface MyproteinVariantRecord {
   sizeLabel: string | null;
   sizeG: number | null;
   servingsLabel: string | null;
+  pricePerServingLabel: string | null;
   price: number | null;
   originalPrice: number | null;
   wasOnSale: boolean;

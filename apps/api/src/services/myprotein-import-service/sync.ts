@@ -20,9 +20,11 @@ export async function previewMyproteinSync(
   records: MyproteinVariantRecord[],
   options: {
     includeDeletes?: boolean;
+    deleteCategoryUrls?: string[];
   } = {}
 ): Promise<MyproteinSyncPreview> {
   const includeDeletes = options.includeDeletes ?? true;
+  const deleteCategoryUrls = options.deleteCategoryUrls ?? [];
   const dbVariants = await loadMyproteinDbVariants();
   const dbByRetailerProductId = new Map(
     dbVariants
@@ -60,6 +62,14 @@ export async function previewMyproteinSync(
     for (const variant of dbVariants) {
       const retailerProductId = variant.retailerProductId;
       if (!retailerProductId || seenRetailerProductIds.has(retailerProductId)) continue;
+      if (deleteCategoryUrls.length > 0) {
+        const variantCategoryUrls = Array.isArray(variant.product.categoryUrls)
+          ? variant.product.categoryUrls.filter((value): value is string => typeof value === "string")
+          : [];
+        if (!variantCategoryUrls.some((url) => deleteCategoryUrls.includes(url))) {
+          continue;
+        }
+      }
 
       entries.push({
         id: retailerProductId,
