@@ -163,21 +163,21 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
                 </button>
               </div>
               <div className="flex flex-col items-center gap-0.5 min-w-0 text-center">
-                <div className="text-xs text-theme-3">{group.retailer}</div>
-                <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-sm font-medium leading-snug text-theme transition-colors hover:text-green-500 text-center">{group.baseName}</button>
+                <div className="text-xs font-medium text-theme-2">{group.retailer}</div>
+                <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-sm font-semibold leading-tight text-theme transition-colors hover:text-green-500 text-center">{group.baseName}</button>
               </div>
             </div>
           </td>
           <td className="px-2 py-2 text-center align-middle w-24 max-w-[96px]" rowSpan={rowSpan}>
-            <div className="break-words text-sm font-medium text-theme">{product.flavour || "Default"}</div>
+            <div className="break-words rounded bg-surface-3 px-1 py-0.5 text-[10px] text-theme-2">{product.flavour || "Default"}</div>
           </td>
         </>
       ) : null}
-      <td className="px-2 py-2 text-center text-sm font-medium text-theme">
+      <td className="px-2 py-2 text-center text-sm font-bold text-theme">
         {formatSize(variant.size)}
       </td>
       {columnGroupMode === "nutrient" ? (
-        <td className="px-2 py-2 text-center text-sm text-theme-3">{getServingsPerPack(v) ?? "-"}</td>
+        <td className="px-2 py-2 text-center text-[12px] font-medium text-theme-2">{getServingsPerPack(v) ?? "-"}</td>
       ) : null}
       {columnGroupMode === "nutrient" ? (
         <>
@@ -210,14 +210,14 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
 }
 
 function GroupedCell({ children, rowSpan }: { children: React.ReactNode; rowSpan?: number }) {
-  return <td className="whitespace-nowrap border-x border-violet-400/20 bg-violet-400/5 px-2 py-2 text-center text-sm text-violet-500" rowSpan={rowSpan}>{children}</td>;
+  return <td className="whitespace-nowrap border-x border-violet-400/20 bg-violet-400/5 px-2 py-2 text-center text-[12px] font-medium text-violet-500" rowSpan={rowSpan}>{children}</td>;
 }
 
 function CaloriesGroupedCell({ children, rowSpan, isLowest, isHighest }: { children: React.ReactNode; rowSpan?: number; isLowest?: boolean; isHighest?: boolean; }) {
   const color = isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-amber-500";
   const cellBg = isLowest ? "bg-amber-500/15" : isHighest ? "bg-orange-500/15" : "bg-amber-500/5";
   return (
-    <td className={clsx("whitespace-nowrap border-x border-amber-500/20 px-2 py-2 text-center text-sm", cellBg)} rowSpan={rowSpan}>
+    <td className={clsx("whitespace-nowrap border-x border-amber-500/20 px-2 py-2 text-center text-[12px] font-medium", cellBg)} rowSpan={rowSpan}>
       <span className="relative inline-block">
         <span className={color}>{children}</span>
         {isLowest ? <TrendingDown className="absolute -right-4 -top-1.5 h-3.5 w-3.5 text-amber-500" aria-label="Lowest calorie" /> : null}
@@ -235,7 +235,7 @@ function MeasureCell({ children, rowSpan, tone, isLowest, isHighest, sectionStar
     ? isLowest ? "bg-amber-500/15" : isHighest ? "bg-orange-500/15" : ""
     : "";
   return (
-    <td className={clsx("whitespace-nowrap px-2 py-2 text-center text-sm", sectionStart ? "border-l border-theme" : "", color, cellBg)} rowSpan={rowSpan}>
+    <td className={clsx("whitespace-nowrap px-2 py-2 text-center text-[12px] font-medium", sectionStart ? "border-l border-theme" : "", color, cellBg)} rowSpan={rowSpan}>
       {tone === "amber" && (isLowest || isHighest) ? (
         <span className="relative inline-block">
           {children}
@@ -253,7 +253,7 @@ function PriceCell({ bestValue, value, dimmed = false, sectionEnd = false }: { b
     ? bestValue ? "border-x border-green-500/30 bg-green-500/15" : "border-x border-green-500/10 bg-green-500/5"
     : bestValue ? "bg-green-500/15" : "";
   return (
-    <td className={clsx("px-2 py-2 text-center text-sm", cellBg, !dimmed && sectionEnd ? "border-r border-theme" : "")}>
+    <td className={clsx("px-2 py-2 text-center text-[12px] font-medium", cellBg, !dimmed && sectionEnd ? "border-r border-theme" : "")}>
       {value ? (
         <span className="relative inline-block">
           <span className="font-semibold text-green-500">{value}</span>
@@ -273,7 +273,7 @@ function TotalCell({ price, hasSubscription, effectiveMode, onToggle, saving }: 
           <button type="button" onClick={() => effectiveMode !== "subscription" && onToggle()} className={clsx("px-1.5 py-0.5 transition-colors border-l border-sky-700/50", effectiveMode === "subscription" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>Sub</button>
         </div>
       ) : null}
-      <span>{price}</span>
+      <span className="text-xs font-semibold">{price}</span>
       {saving ? <span className="text-xs font-normal text-red-400 whitespace-nowrap">-{saving.amount} (-{saving.pct}%)</span> : null}
     </div>
   );

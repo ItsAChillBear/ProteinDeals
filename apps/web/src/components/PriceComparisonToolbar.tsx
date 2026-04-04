@@ -111,6 +111,42 @@ export default function PriceComparisonToolbar({
             <button type="button" onClick={() => setPriceMode("single")} className={`px-2.5 py-1 transition ${priceMode === "single" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Single</button>
             <button type="button" onClick={() => setPriceMode("subscription")} className={`px-2.5 py-1 transition border-l border-theme-2 ${priceMode === "subscription" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Subscribe</button>
           </div>
+          <span className="mx-1 h-4 w-px bg-theme-2" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-4">Show:</span>
+          {VISIBILITY_BUTTONS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => {
+                setVisibility((current) => {
+                  const next = { ...current, [key]: !current[key] };
+                  if (!next.showServing && activeColumn === "pricePerServing") {
+                    setActiveColumn("pricePer100g");
+                    setSortKey(servingMetric === "price" ? "pricePer100g" : "caloriesPer100g");
+                    setSortDir("asc");
+                  }
+                  if (!next.show100g && activeColumn === "pricePer100g") {
+                    setActiveColumn("pricePerServing");
+                    setSortKey(servingMetric === "price" ? "pricePerServing" : "caloriesPerServing");
+                    setSortDir("asc");
+                  }
+                  if (!next.show1gProtein && activeColumn === "pricePerGramProtein") {
+                    setActiveColumn("pricePer100g");
+                    setSortKey(servingMetric === "price" ? "pricePer100g" : "caloriesPer100g");
+                    setSortDir("asc");
+                  }
+                  return next;
+                });
+              }}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                visibility[key]
+                  ? "bg-green-700/60 text-green-200 hover:bg-green-700/80"
+                  : "bg-surface-2 text-theme-4 line-through hover:text-theme-3"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-theme-3"><span className="font-semibold text-theme">{filteredGroupsLength}</span> products, <span className="font-semibold text-theme">{filteredVariantCount}</span> variants</span>
@@ -127,12 +163,14 @@ export default function PriceComparisonToolbar({
           <button type="button" onClick={resetAll} className="rounded-md px-2.5 py-1 text-xs font-medium text-theme-3 transition hover:text-theme">Reset All</button>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <PriceComparisonFilterDropdown value={filters.retailer} options={filterOptions.retailers} onChange={(v) => onFilter("retailer", v)} multi label="Supplier" />
-        <PriceComparisonFilterDropdown value={filters.category} options={filterOptions.categories} onChange={(v) => onFilter("category", v)} multi label="Category" />
-        <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => onFilter("product", v)} multi label="Product" />
-        <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi label="Flavour" />
-        <span className="mx-1 h-4 w-px bg-theme-2" />
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2">
+          <PriceComparisonFilterDropdown value={filters.retailer} options={filterOptions.retailers} onChange={(v) => onFilter("retailer", v)} multi label="Supplier" />
+          <PriceComparisonFilterDropdown value={filters.category} options={filterOptions.categories} onChange={(v) => onFilter("category", v)} multi label="Category" />
+          <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => onFilter("product", v)} multi label="Product" />
+          <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi label="Flavour" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-4">Sort by:</span>
         <div className="flex items-center gap-1">
           <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
@@ -190,42 +228,7 @@ export default function PriceComparisonToolbar({
             </button>
           );
         })}
-        <span className="mx-1 h-4 w-px bg-theme-2" />
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-4">Show:</span>
-        {VISIBILITY_BUTTONS.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => {
-              setVisibility((current) => {
-                const next = { ...current, [key]: !current[key] };
-                if (!next.showServing && activeColumn === "pricePerServing") {
-                  setActiveColumn("pricePer100g");
-                  setSortKey(servingMetric === "price" ? "pricePer100g" : "caloriesPer100g");
-                  setSortDir("asc");
-                }
-                if (!next.show100g && activeColumn === "pricePer100g") {
-                  setActiveColumn("pricePerServing");
-                  setSortKey(servingMetric === "price" ? "pricePerServing" : "caloriesPerServing");
-                  setSortDir("asc");
-                }
-                if (!next.show1gProtein && activeColumn === "pricePerGramProtein") {
-                  setActiveColumn("pricePer100g");
-                  setSortKey(servingMetric === "price" ? "pricePer100g" : "caloriesPer100g");
-                  setSortDir("asc");
-                }
-                return next;
-              });
-            }}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              visibility[key]
-                ? "bg-green-700/60 text-green-200 hover:bg-green-700/80"
-                : "bg-surface-2 text-theme-4 line-through hover:text-theme-3"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        </div>
       </div>
     </div>
   );
