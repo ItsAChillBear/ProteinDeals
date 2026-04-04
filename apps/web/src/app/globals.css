@@ -4,8 +4,38 @@
 
 @layer base {
   :root {
-    --background: #030712;
-    --foreground: #f9fafb;
+    /* Light mode */
+    --bg:          #f9fafb;   /* gray-50 */
+    --bg-alt:      #f3f4f6;   /* gray-100 */
+    --surface:     #ffffff;
+    --surface-2:   #f3f4f6;   /* gray-100 */
+    --surface-3:   #e5e7eb;   /* gray-200 */
+    --border:      #e5e7eb;   /* gray-200 */
+    --border-2:    #d1d5db;   /* gray-300 */
+    --text:        #111827;   /* gray-900 */
+    --text-2:      #374151;   /* gray-700 */
+    --text-3:      #6b7280;   /* gray-500 */
+    --text-4:      #9ca3af;   /* gray-400 */
+    --text-muted:  #d1d5db;   /* gray-300 */
+    --hover-bg:    #f3f4f6;   /* gray-100 */
+    --hover-bg-2:  #e5e7eb;   /* gray-200 */
+  }
+
+  .dark {
+    --bg:          #030712;   /* gray-950 */
+    --bg-alt:      #030712;
+    --surface:     #111827;   /* gray-900 */
+    --surface-2:   #1f2937;   /* gray-800 */
+    --surface-3:   #374151;   /* gray-700 */
+    --border:      #1f2937;   /* gray-800 */
+    --border-2:    #374151;   /* gray-700 */
+    --text:        #f9fafb;   /* gray-50 */
+    --text-2:      #e5e7eb;   /* gray-200 */
+    --text-3:      #9ca3af;   /* gray-400 */
+    --text-4:      #6b7280;   /* gray-500 */
+    --text-muted:  #4b5563;   /* gray-600 */
+    --hover-bg:    rgba(31,41,55,0.6);
+    --hover-bg-2:  rgba(55,65,81,0.6);
   }
 
   * {
@@ -17,8 +47,8 @@
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    background-color: var(--bg);
+    color: var(--text);
   }
 }
 
@@ -30,4 +60,21 @@
   .gradient-text {
     @apply bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent;
   }
+
+  /* Semantic theme utilities */
+  .bg-theme         { background-color: var(--bg); }
+  .bg-theme-alt     { background-color: var(--bg-alt); }
+  .bg-surface       { background-color: var(--surface); }
+  .bg-surface-2     { background-color: var(--surface-2); }
+  .bg-surface-3     { background-color: var(--surface-3); }
+  .border-theme     { border-color: var(--border); }
+  .border-theme-2   { border-color: var(--border-2); }
+  .text-theme       { color: var(--text); }
+  .text-theme-2     { color: var(--text-2); }
+  .text-theme-3     { color: var(--text-3); }
+  .text-theme-4     { color: var(--text-4); }
+  .text-theme-muted { color: var(--text-muted); }
+  .hover-bg:hover   { background-color: var(--hover-bg); }
+  .hover-bg-2:hover { background-color: var(--hover-bg-2); }
+  .divide-theme > * + * { border-color: var(--border) !important; }
 }

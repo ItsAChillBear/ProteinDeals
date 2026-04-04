@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { useState } from "react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
 import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
 import type { SortKey } from "./price-comparison-table.types";
@@ -13,6 +15,7 @@ interface Props {
   visibility: ColumnVisibility;
   setVisibility: React.Dispatch<React.SetStateAction<ColumnVisibility>>;
   sortKey: SortKey;
+  sortDir: "asc" | "desc";
   setSortKey: React.Dispatch<React.SetStateAction<SortKey>>;
   setSortDir: React.Dispatch<React.SetStateAction<"asc" | "desc">>;
   handleSort: (key: SortKey) => void;
@@ -28,7 +31,6 @@ interface Props {
 }
 
 const SORT_BUTTONS: { key: SortKey; label: string; visKey: keyof ColumnVisibility }[] = [
-  { key: "pricePerServing", label: "/Serving", visKey: "showServing" },
   { key: "pricePer100g", label: "/100g", visKey: "show100g" },
   { key: "pricePerGramProtein", label: "/1g Protein", visKey: "show1gProtein" },
 ];
@@ -47,6 +49,7 @@ export default function PriceComparisonToolbar({
   visibility,
   setVisibility,
   sortKey,
+  sortDir,
   setSortKey,
   setSortDir,
   handleSort,
@@ -60,20 +63,68 @@ export default function PriceComparisonToolbar({
   filteredVariantCount,
   resetAll,
 }: Props) {
+  const [servingMetric, setServingMetric] = useState<"price" | "calories">("price");
+  const servingSortKey: SortKey = servingMetric === "price" ? "pricePerServing" : "caloriesPerServing";
+  const servingEnabled = visibility.showServing;
+
+  function handleServingMetricToggle(metric: "price" | "calories") {
+    if (metric === servingMetric) return;
+    setServingMetric(metric);
+    if (sortKey === "pricePerServing" || sortKey === "caloriesPerServing") {
+      handleSort(metric === "price" ? "pricePerServing" : "caloriesPerServing");
+    }
+  }
+
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 px-6 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-theme px-6 py-3">
       <div className="flex flex-wrap items-center gap-2">
         <PriceComparisonFilterDropdown value={filters.retailer} options={filterOptions.retailers} onChange={(v) => onFilter("retailer", v)} multi label="Supplier" />
         <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => onFilter("product", v)} multi label="Product" />
         <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi label="Flavour" />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-md border border-gray-700 overflow-hidden text-xs font-medium">
-          <button type="button" onClick={() => setPriceMode("single")} className={`px-2.5 py-1 transition ${priceMode === "single" ? "bg-sky-700/60 text-sky-200" : "text-gray-500 hover:text-gray-300"}`}>Single</button>
-          <button type="button" onClick={() => setPriceMode("subscription")} className={`px-2.5 py-1 transition border-l border-gray-700 ${priceMode === "subscription" ? "bg-sky-700/60 text-sky-200" : "text-gray-500 hover:text-gray-300"}`}>Subscribe</button>
+        <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
+          <button type="button" onClick={() => setPriceMode("single")} className={`px-2.5 py-1 transition ${priceMode === "single" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Single</button>
+          <button type="button" onClick={() => setPriceMode("subscription")} className={`px-2.5 py-1 transition border-l border-theme-2 ${priceMode === "subscription" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Subscribe</button>
         </div>
-        <span className="mx-1 h-4 w-px bg-gray-700" />
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">Sort by:</span>
+        <span className="mx-1 h-4 w-px bg-theme-2" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-4">Sort by:</span>
+        <div className="flex items-center gap-1">
+          <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
+            <button type="button" onClick={() => handleServingMetricToggle("price")} className={`px-2.5 py-1 transition ${servingMetric === "price" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>£</button>
+            <button type="button" onClick={() => { setServingMetric("calories"); setSortKey("caloriesPerServing"); setSortDir("desc"); }} className={`px-2.5 py-1 transition border-l border-theme-2 ${servingMetric === "calories" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>kcal</button>
+            <button
+              type="button"
+              onClick={() => { setServingMetric("calories"); setSortKey("caloriesPerServing"); setSortDir("asc"); }}
+              disabled={!servingEnabled}
+              className={`px-1.5 py-1 transition border-l border-theme-2 ${sortKey === "caloriesPerServing" && sortDir === "asc" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}
+            >
+              <ArrowUp className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setServingMetric("calories"); setSortKey("caloriesPerServing"); setSortDir("desc"); }}
+              disabled={!servingEnabled}
+              className={`px-1.5 py-1 transition border-l border-theme-2 ${sortKey === "caloriesPerServing" && sortDir === "desc" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}
+            >
+              <ArrowDown className="h-3 w-3" />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => { if (servingEnabled) handleSort(servingSortKey); }}
+            disabled={!servingEnabled}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+              !servingEnabled
+                ? "cursor-not-allowed bg-surface-2 text-theme-muted"
+                : (sortKey === "pricePerServing" || sortKey === "caloriesPerServing")
+                  ? "bg-green-700/60 text-green-200"
+                  : "bg-surface-2 text-theme-3 hover:text-theme"
+            }`}
+          >
+            /Serving
+          </button>
+        </div>
         {SORT_BUTTONS.map(({ key, label, visKey }) => {
           const enabled = visibility[visKey];
           return (
@@ -86,18 +137,18 @@ export default function PriceComparisonToolbar({
               disabled={!enabled}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                 !enabled
-                  ? "cursor-not-allowed bg-gray-800/30 text-gray-700"
+                  ? "cursor-not-allowed bg-surface-2 text-theme-muted"
                   : sortKey === key
-                    ? "bg-sky-700/60 text-sky-200"
-                    : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
+                    ? "bg-green-700/60 text-green-200"
+                    : "bg-surface-2 text-theme-3 hover:text-theme"
               }`}
             >
               {label}
             </button>
           );
         })}
-        <span className="mx-1 h-4 w-px bg-gray-700" />
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">Show:</span>
+        <span className="mx-1 h-4 w-px bg-theme-2" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-4">Show:</span>
         {VISIBILITY_BUTTONS.map(({ key, label }) => (
           <button
             key={key}
@@ -105,7 +156,7 @@ export default function PriceComparisonToolbar({
             onClick={() => {
               setVisibility((current) => {
                 const next = { ...current, [key]: !current[key] };
-                if (!next.showServing && sortKey === "pricePerServing") {
+                if (!next.showServing && (sortKey === "pricePerServing" || sortKey === "caloriesPerServing")) {
                   setSortKey("pricePer100g");
                   setSortDir("asc");
                 }
@@ -122,30 +173,30 @@ export default function PriceComparisonToolbar({
             }}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
               visibility[key]
-                ? "bg-sky-700/60 text-sky-200 hover:bg-sky-700/80"
-                : "bg-gray-800/50 text-gray-600 line-through hover:text-gray-400"
+                ? "bg-green-700/60 text-green-200 hover:bg-green-700/80"
+                : "bg-surface-2 text-theme-4 line-through hover:text-theme-3"
             }`}
           >
             {label}
           </button>
         ))}
-        <span className="mx-1 h-4 w-px bg-gray-700" />
-        <div className="flex rounded-md border border-gray-700 overflow-hidden text-xs font-medium">
-          <button type="button" onClick={() => setViewMode("card")} className={`px-2.5 py-1 transition ${viewMode === "card" ? "bg-sky-700/60 text-sky-200" : "text-gray-500 hover:text-gray-300"}`}>Cards</button>
-          <button type="button" onClick={() => setViewMode("table")} className={`px-2.5 py-1 transition border-l border-gray-700 ${viewMode === "table" ? "bg-sky-700/60 text-sky-200" : "text-gray-500 hover:text-gray-300"}`}>Table</button>
+        <span className="mx-1 h-4 w-px bg-theme-2" />
+        <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
+          <button type="button" onClick={() => setViewMode("card")} className={`px-2.5 py-1 transition ${viewMode === "card" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Cards</button>
+          <button type="button" onClick={() => setViewMode("table")} className={`px-2.5 py-1 transition border-l border-theme-2 ${viewMode === "table" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Table</button>
         </div>
         {viewMode === "table" ? (
-          <div className="flex rounded-md border border-gray-700 overflow-hidden text-xs font-medium">
-            <button type="button" onClick={() => setColumnGroupMode("nutrient")} className={`px-2.5 py-1 transition ${columnGroupMode === "nutrient" ? "bg-sky-700/60 text-sky-200" : "text-gray-500 hover:text-gray-300"}`}>Protein / Calories / Price</button>
-            <button type="button" onClick={() => setColumnGroupMode("measure")} className={`px-2.5 py-1 transition border-l border-gray-700 ${columnGroupMode === "measure" ? "bg-sky-700/60 text-sky-200" : "text-gray-500 hover:text-gray-300"}`}>/Serving / /100g / /1g Protein</button>
+          <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
+            <button type="button" onClick={() => setColumnGroupMode("nutrient")} className={`px-2.5 py-1 transition ${columnGroupMode === "nutrient" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Protein / Calories / Price</button>
+            <button type="button" onClick={() => setColumnGroupMode("measure")} className={`px-2.5 py-1 transition border-l border-theme-2 ${columnGroupMode === "measure" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>/Serving / /100g / /1g Protein</button>
           </div>
         ) : null}
-        <p className="text-sm text-gray-400">
-          <span className="font-semibold text-white">{filteredGroupsLength}</span> products,{" "}
-          <span className="font-semibold text-white">{filteredVariantCount}</span> variants
+        <p className="text-sm text-theme-3">
+          <span className="font-semibold text-theme">{filteredGroupsLength}</span> products,{" "}
+          <span className="font-semibold text-theme">{filteredVariantCount}</span> variants
         </p>
-        <span className="mx-1 h-4 w-px bg-gray-700" />
-        <button type="button" onClick={resetAll} className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-400 transition hover:text-gray-200">Reset All</button>
+        <span className="mx-1 h-4 w-px bg-theme-2" />
+        <button type="button" onClick={resetAll} className="rounded-md px-2.5 py-1 text-xs font-medium text-theme-3 transition hover:text-theme">Reset All</button>
       </div>
     </div>
   );

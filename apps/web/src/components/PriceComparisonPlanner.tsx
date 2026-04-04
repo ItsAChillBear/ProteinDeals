@@ -29,9 +29,9 @@ function PlannerInput({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">{label}</span>
-      <div className="flex items-center gap-0 rounded-lg border border-gray-700 bg-gray-950 px-3 transition focus-within:border-gray-500">
-        {prefix ? <span className="text-sm text-gray-500 pr-1">{prefix}</span> : null}
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-3">{label}</span>
+      <div className="flex items-center gap-0 rounded-lg border border-theme-2 bg-theme px-3 transition focus-within:border-theme">
+        {prefix ? <span className="text-sm text-theme-3 pr-1">{prefix}</span> : null}
         <input
           type="number"
           min="0"
@@ -39,9 +39,9 @@ function PlannerInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-transparent py-2 text-sm text-white outline-none placeholder:text-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className="w-full bg-transparent py-2 text-sm text-theme outline-none placeholder:text-theme-4 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
-        {suffix ? <span className="text-xs text-gray-500 pl-1 whitespace-nowrap">{suffix}</span> : null}
+        {suffix ? <span className="text-xs text-theme-3 pl-1 whitespace-nowrap">{suffix}</span> : null}
       </div>
     </div>
   );
@@ -52,7 +52,7 @@ function AddOptionButton({ label, onClick }: { label: string; onClick: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 rounded-lg border border-dashed border-gray-700 px-3 py-2 text-xs font-medium text-gray-400 transition hover:border-gray-500 hover:text-gray-200 self-end"
+      className="flex items-center gap-1.5 rounded-lg border border-dashed border-theme-2 px-3 py-2 text-xs font-medium text-theme-3 transition hover:border-theme hover:text-theme self-end"
     >
       <Plus className="h-3.5 w-3.5" />
       {label}
@@ -65,7 +65,7 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-600 transition hover:bg-gray-800 hover:text-gray-300 self-end mb-0.5"
+      className="flex h-7 w-7 items-center justify-center rounded-lg text-theme-4 transition hover:bg-surface-2 hover:text-theme-2 self-end mb-0.5"
       aria-label="Remove"
     >
       <X className="h-3.5 w-3.5" />
@@ -88,14 +88,14 @@ export default function PriceComparisonPlanner({
     (value.budgetEnabled && value.budgetAmount !== "");
 
   return (
-    <div className="border-b border-gray-800 px-6 py-4">
+    <div className="border-b border-theme px-6 py-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Planner</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-theme-3">Planner</span>
         {hasPlannerValue ? (
           <button
             type="button"
             onClick={onReset}
-            className="text-xs text-gray-500 transition hover:text-gray-300"
+            className="text-xs text-theme-3 transition hover:text-theme"
           >
             Reset
           </button>
@@ -146,7 +146,7 @@ export default function PriceComparisonPlanner({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Period</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-3">Period</span>
               <div className="flex gap-1">
                 {PERIOD_OPTIONS.map((opt) => (
                   <button
@@ -155,8 +155,8 @@ export default function PriceComparisonPlanner({
                     onClick={() => onChange({ budgetPeriod: opt.value, committed: false })}
                     className={`rounded-lg px-2.5 py-2 text-xs font-medium transition ${
                       value.budgetPeriod === opt.value
-                        ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/40"
-                        : "bg-gray-800 text-gray-400 hover:text-gray-200"
+                        ? "bg-green-500/20 text-green-500 ring-1 ring-green-500/40"
+                        : "bg-surface-2 text-theme-3 hover:text-theme"
                     }`}
                   >
                     {opt.label}
@@ -178,7 +178,7 @@ export default function PriceComparisonPlanner({
             className={`flex items-center gap-2 self-end rounded-lg px-4 py-2 text-sm font-semibold transition ${
               value.committed
                 ? "bg-green-600 text-white hover:bg-green-500"
-                : "bg-green-500 text-gray-950 hover:bg-green-400"
+                : "bg-green-500 text-white hover:bg-green-400"
             }`}
           >
             <Search className="h-4 w-4" />

@@ -38,7 +38,7 @@ export default function PriceComparisonMobileList({
   priceMode: PriceMode;
 }) {
   return (
-    <div className="divide-y divide-gray-800 sm:hidden">
+    <div className="divide-y divide-theme sm:hidden">
       {groups.map((group) => {
         const product = group.selected;
         const isExpanded = Boolean(expandedRows[group.id]);
@@ -54,7 +54,7 @@ export default function PriceComparisonMobileList({
         return (
           <div
             key={group.id}
-            className={clsx("p-4", isBestValue ? "bg-green-950/20" : "hover:bg-gray-800/40")}
+            className={clsx("p-4", isBestValue ? "bg-green-500/5" : "hover-bg")}
           >
             <div className="mb-3 flex items-start gap-3">
               <div className="flex flex-col items-start gap-3">
@@ -66,25 +66,25 @@ export default function PriceComparisonMobileList({
                   <button
                     type="button"
                     onClick={() => onToggleExpanded(group.id)}
-                    className="text-left text-sm font-semibold leading-snug text-white transition-colors hover:text-green-300"
+                    className="text-left text-sm font-semibold leading-snug text-theme transition-colors hover:text-green-500"
                   >
                     {group.baseName}
                   </button>
                   {isBestValue ? (
-                    <Tag className="h-4 w-4 flex-shrink-0 text-green-400" aria-label="Best value" />
+                    <Tag className="h-4 w-4 flex-shrink-0 text-green-500" aria-label="Best value" />
                   ) : null}
                 </div>
 
-                <div className="mb-3 text-xs text-gray-500">
+                <div className="mb-3 text-xs text-theme-3">
                   {group.brand} • {group.retailer} • {group.type}
                 </div>
 
-                <div className="text-xs text-gray-400">
-                  Flavour: <span className="text-white">{activeFlavour || "Default"}</span>
+                <div className="text-xs text-theme-3">
+                  Flavour: <span className="text-theme">{activeFlavour || "Default"}</span>
                 </div>
 
                 <div className="mt-3 space-y-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-3">
                     Sizes
                   </span>
                   {flavourVariants.map((variant) => {
@@ -94,17 +94,17 @@ export default function PriceComparisonMobileList({
                     return (
                     <div
                       key={variant.id}
-                      className="rounded-xl border border-gray-800 bg-gray-950 px-3 py-2"
+                      className="rounded-xl border border-theme bg-surface px-3 py-2"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">{variant.size}</span>
+                        <span className="text-sm font-medium text-theme">{variant.size}</span>
                         {hasSubscription ? (
-                          <span className={clsx("text-[9px] font-semibold px-1 py-0.5 rounded", effectiveMode === "subscription" ? "bg-violet-700/50 text-violet-200" : "bg-gray-700/60 text-gray-400")}>
+                          <span className={clsx("text-[9px] font-semibold px-1 py-0.5 rounded", effectiveMode === "subscription" ? "bg-sky-700/50 text-sky-200" : "bg-sky-700/50 text-sky-200")}>
                             {effectiveMode === "subscription" ? "sub" : "1×"}
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-400">
+                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-theme-3">
                         <span>{getServingsPerPack(v) ? `${getServingsPerPack(v)} servings` : "-"}</span>
                         <span>{formatCurrency(v.price)}</span>
                         <span>{formatCurrency(v.pricePer100g)}/100g</span>
@@ -138,14 +138,14 @@ export default function PriceComparisonMobileList({
 
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-lg font-bold text-white">{formatCurrency(applyPriceMode(product, product.subscriptionPrice != null ? priceMode : "single").price)}</span>
-                <span className="ml-2 text-xs text-gray-500">
+                <span className="text-lg font-bold text-theme">{formatCurrency(applyPriceMode(product, product.subscriptionPrice != null ? priceMode : "single").price)}</span>
+                <span className="ml-2 text-xs text-theme-3">
                   {formatCurrency(applyPriceMode(product, product.subscriptionPrice != null ? priceMode : "single").pricePer100g)}/100g
                 </span>
               </div>
             </div>
 
-              <div className="mt-3 text-xs text-gray-500">
+              <div className="mt-3 text-xs text-theme-3">
               {product.flavour ?? "No flavour"} • {product.size} •{" "}
               {getServingsPerPack(product) ? `${getServingsPerPack(product)} servings` : "No servings"} •{" "}
               {product.inStock ? "In stock" : "Out of stock"}
@@ -155,12 +155,12 @@ export default function PriceComparisonMobileList({
               <div className="mt-4 space-y-3">
                 <div className="mt-2">
                   {product.inStock ? (
-                    <span className="flex items-center gap-1 whitespace-nowrap text-green-400">
+                    <span className="flex items-center gap-1 whitespace-nowrap text-green-500">
                       <CheckCircle className="h-4 w-4 flex-shrink-0" />
                       <span className="text-xs">In Stock</span>
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 whitespace-nowrap text-red-400">
+                    <span className="flex items-center gap-1 whitespace-nowrap text-red-500">
                       <XCircle className="h-4 w-4 flex-shrink-0" />
                       <span className="text-xs">Out of Stock</span>
                     </span>

@@ -32,14 +32,14 @@ export function Stat({
 }) {
   const valueColor =
     bestValue && color === "sky"
-      ? "text-green-300"
+      ? "text-green-500"
       : color === "violet"
-        ? "text-violet-300"
+        ? "text-violet-500"
         : color === "amber"
-          ? "text-amber-300"
+          ? "text-amber-500"
           : color === "sky"
-            ? "text-sky-300"
-            : "text-gray-300";
+            ? "text-sky-500"
+            : "text-theme-2";
 
   return (
     <span
@@ -52,7 +52,7 @@ export function Stat({
       {children}
       {bestValue ? (
         <Tag
-          className="absolute -right-1 -top-1.5 h-3.5 w-3.5 text-green-400"
+          className="absolute -right-1 -top-1.5 h-3.5 w-3.5 text-green-500"
           aria-label="Best value"
         />
       ) : null}

@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 import { buildMultiFilter, MULTI_PREFIX, parseMultiFilter, RANGE_PREFIX } from "./price-comparison-filters";
 
 const triggerClass =
-  "flex w-full items-center justify-between gap-1 rounded-lg border border-gray-700 bg-gray-900 px-1.5 py-0.5 text-[10px] text-gray-300 outline-none transition hover:border-gray-500 min-w-0";
+  "flex w-full items-center justify-between gap-1 rounded-lg border border-theme-2 bg-surface px-1.5 py-0.5 text-[10px] text-theme-2 outline-none transition hover:border-theme min-w-0";
 
 function RangeSlider({
   min,
@@ -30,16 +30,16 @@ function RangeSlider({
   return (
     <div className="px-1 pb-1 pt-2">
       <div className="mb-3 flex items-center justify-between gap-1">
-        <span className="w-16 truncate rounded bg-gray-800 px-1.5 py-0.5 text-center text-[10px] font-medium text-green-400">
+        <span className="w-16 truncate rounded bg-surface-2 px-1.5 py-0.5 text-center text-[10px] font-medium text-green-500">
           {fmt(valueMin)}
         </span>
-        <span className="w-16 truncate rounded bg-gray-800 px-1.5 py-0.5 text-center text-[10px] font-medium text-green-400">
+        <span className="w-16 truncate rounded bg-surface-2 px-1.5 py-0.5 text-center text-[10px] font-medium text-green-500">
           {fmt(valueMax)}
         </span>
       </div>
 
       <div className="relative h-5">
-        <div className="absolute top-1/2 h-1 w-full -translate-y-1/2 rounded-full bg-gray-700" />
+        <div className="absolute top-1/2 h-1 w-full -translate-y-1/2 rounded-full bg-surface-3" />
         <div
           className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-green-500"
           style={{ left: `${pct(valueMin)}%`, width: `${pct(valueMax) - pct(valueMin)}%` }}
@@ -53,7 +53,7 @@ function RangeSlider({
           onMouseUp={onCommit}
           onTouchEnd={onCommit}
           onKeyUp={onCommit}
-          className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-green-400 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:bg-green-950 [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-green-400 [&::-moz-range-thumb]:bg-gray-900"
+          className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-green-500 [&::-webkit-slider-thumb]:bg-surface [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:bg-green-500/20 [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-green-500 [&::-moz-range-thumb]:bg-surface"
           style={{ zIndex: valueMin > max - 2 ? 5 : 3 }}
         />
         <input
@@ -65,7 +65,7 @@ function RangeSlider({
           onMouseUp={onCommit}
           onTouchEnd={onCommit}
           onKeyUp={onCommit}
-          className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-green-400 [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:bg-green-950 [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-green-400 [&::-moz-range-thumb]:bg-gray-900"
+          className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-green-500 [&::-webkit-slider-thumb]:bg-surface [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:bg-green-500/20 [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-green-500 [&::-moz-range-thumb]:bg-surface"
           style={{ zIndex: 4 }}
         />
       </div>
@@ -190,7 +190,7 @@ export function PriceComparisonFilterDropdown({
         <ChevronDown className={clsx("h-2.5 w-2.5 flex-shrink-0 transition-transform", open && "rotate-180")} />
       </button>
       {open ? (
-        <div className="fixed z-50 w-52 rounded-xl border border-gray-700 bg-gray-900 shadow-2xl" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
+        <div className="fixed z-50 w-52 rounded-xl border border-theme-2 bg-surface shadow-2xl" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
           <div className="py-1">
             <div className="px-3 pb-2 pt-1">
               <input
@@ -198,15 +198,15 @@ export function PriceComparisonFilterDropdown({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search options..."
-                className="w-full rounded-lg border border-gray-700 bg-gray-950 px-2.5 py-2 text-[11px] text-white outline-none transition placeholder:text-gray-500 focus:border-green-500"
+                className="w-full rounded-lg border border-theme-2 bg-theme px-2.5 py-2 text-[11px] text-theme outline-none transition placeholder:text-theme-4 focus:border-green-500"
               />
             </div>
-            <button type="button" onClick={() => { onChange("all"); if (!multi) setOpen(false); }} className={clsx("w-full px-3 py-1.5 text-left text-[11px] transition hover:bg-gray-800", value === "all" || (value.startsWith(MULTI_PREFIX) && selectedValues.length === 0) ? "text-green-400" : "text-gray-300")}>
+            <button type="button" onClick={() => { onChange("all"); if (!multi) setOpen(false); }} className={clsx("w-full px-3 py-1.5 text-left text-[11px] transition hover:bg-surface-2", value === "all" || (value.startsWith(MULTI_PREFIX) && selectedValues.length === 0) ? "text-green-500" : "text-theme-2")}>
               All
             </button>
             {numeric && allNumericValues.length > 1 ? (
               <>
-                <div className="mt-1 border-t border-gray-800 px-3 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-widest text-gray-600">Range</div>
+                <div className="mt-1 border-t border-theme px-3 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-widest text-theme-4">Range</div>
                 <div className="px-3 pb-2 pt-1">
                   <RangeSlider
                     min={sliderMin}
@@ -225,7 +225,7 @@ export function PriceComparisonFilterDropdown({
             ) : null}
             {filteredOptions.length ? (
               <>
-                <div className="mt-1 border-t border-gray-800 px-3 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-widest text-gray-600">
+                <div className="mt-1 border-t border-theme px-3 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-widest text-theme-4">
                   {multi ? "Select" : "Exact"}
                 </div>
                 <div style={{ height: "200px", overflowY: "auto", overflowX: "hidden", display: "block" }}>
@@ -239,15 +239,15 @@ export function PriceComparisonFilterDropdown({
                       return (
                         <label
                           key={option}
-                          className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-gray-800"
+                          className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-surface-2"
                         >
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleMultiOption(option)}
-                            className="h-3.5 w-3.5 rounded border-gray-600 bg-gray-800 accent-green-500"
+                            className="h-3.5 w-3.5 rounded border-theme-2 bg-surface-2 accent-green-500"
                           />
-                          <span className={checked ? "text-green-400" : "text-gray-300"} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span className={checked ? "text-green-500" : "text-theme-2"} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {label || "Default"}
                           </span>
                         </label>
@@ -258,7 +258,7 @@ export function PriceComparisonFilterDropdown({
                         key={option}
                         role="button"
                         onClick={() => { onChange(option); setOpen(false); }}
-                        className={clsx("w-full cursor-pointer overflow-hidden px-3 py-1.5 text-left text-[11px] transition hover:bg-gray-800", value === option ? "text-green-400" : "text-gray-300")}
+                        className={clsx("w-full cursor-pointer overflow-hidden px-3 py-1.5 text-left text-[11px] transition hover:bg-surface-2", value === option ? "text-green-500" : "text-theme-2")}
                         style={{ display: "block", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
                       >
                         {label}
@@ -268,7 +268,7 @@ export function PriceComparisonFilterDropdown({
                 </div>
               </>
             ) : (
-              <div className="border-t border-gray-800 px-3 py-3 text-[11px] text-gray-500">No matching options.</div>
+              <div className="border-t border-theme px-3 py-3 text-[11px] text-theme-3">No matching options.</div>
             )}
           </div>
         </div>

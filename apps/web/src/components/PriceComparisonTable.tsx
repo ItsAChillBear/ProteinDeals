@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import PriceComparisonDesktopTable from "./PriceComparisonDesktopTable";
@@ -147,14 +147,14 @@ export default function PriceComparisonTable({
 
   if (products.length === 0) {
     return (
-      <div className="rounded-2xl border border-gray-800 bg-gray-900 p-12 text-center">
-        <p className="text-gray-400">No products match the current filters.</p>
+      <div className="rounded-2xl border border-theme bg-surface p-12 text-center">
+        <p className="text-theme-3">No products match the current filters.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-900">
+    <div className="rounded-2xl border border-theme bg-surface">
       <PriceComparisonPlanner value={planner} onChange={updatePlanner} onReset={() => setPlanner(DEFAULT_PROTEIN_PLANNER)} />
       <PriceComparisonToolbar
         filters={filters}
@@ -163,6 +163,7 @@ export default function PriceComparisonTable({
         visibility={visibility}
         setVisibility={setVisibility}
         sortKey={sortKey}
+        sortDir={sortDir}
         setSortKey={setSortKey}
         setSortDir={setSortDir}
         handleSort={handleSort}

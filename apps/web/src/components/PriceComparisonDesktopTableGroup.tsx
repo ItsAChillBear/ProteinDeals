@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Fragment, useEffect, useState } from "react";
 import { CheckCircle, Tag, XCircle } from "lucide-react";
@@ -87,14 +87,14 @@ export default function PriceComparisonDesktopTableGroup({
         />
       ))}
       {isExpanded ? (
-        <tr className={isBestValue ? "bg-green-950/10" : "bg-gray-900/70"}>
+        <tr className={isBestValue ? "bg-green-500/5" : "bg-surface"}>
           <td colSpan={totalColumns} className="px-4 pb-5 pt-1">
             <div className="space-y-4">
               <div>
                 {product.inStock ? (
-                  <span className="flex items-center gap-1 text-green-400"><CheckCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">In Stock</span></span>
+                  <span className="flex items-center gap-1 text-green-500"><CheckCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">In Stock</span></span>
                 ) : (
-                  <span className="flex items-center gap-1 text-red-400"><XCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">Out of Stock</span></span>
+                  <span className="flex items-center gap-1 text-red-500"><XCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">Out of Stock</span></span>
                 )}
               </div>
               <PriceComparisonExpandedDetails group={group} />
@@ -138,11 +138,11 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
   const dailyCalories = showPlanner && planner.calorieEnabled ? getDailyCaloriesForTarget(v, proteinTarget) : null;
 
   return (
-    <tr className={clsx("transition-colors", isOverridden ? "bg-sky-950/30 hover:bg-sky-950/40" : isBestValue ? "bg-green-950/20 hover:bg-green-950/30" : "hover:bg-gray-800/60")}>
+    <tr className={clsx("transition-colors", isOverridden ? "bg-sky-500/10 hover:bg-sky-500/15" : isBestValue ? "bg-green-500/5 hover:bg-green-500/10" : "hover-bg")}>
       {showPlanner ? (
         <td className="border-x border-green-500/10 bg-green-500/5 px-3 py-2 text-center text-sm font-semibold">
-          {dailyCost !== null ? <span className="text-green-400">{formatCurrency(dailyCost)}</span> : <span className="text-gray-600">—</span>}
-          {dailyCalories !== null ? <div className="mt-0.5 text-[11px] font-normal text-amber-400/80">{Math.round(dailyCalories)} kcal</div> : null}
+          {dailyCost !== null ? <span className="text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">—</span>}
+          {dailyCalories !== null ? <div className="mt-0.5 text-[11px] font-normal text-amber-500/80">{Math.round(dailyCalories)} kcal</div> : null}
         </td>
       ) : null}
       {isFirstRow ? (
@@ -154,17 +154,17 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
                 <BuyButton product={product} />
               </div>
               <button type="button" onClick={() => onToggleExpanded(group.id)} className="flex flex-col items-start gap-0.5 text-left pt-0.5">
-                <div className="text-xs text-gray-500">{group.retailer}</div>
-                <div className="text-sm font-medium leading-snug text-white transition-colors hover:text-green-300">{group.baseName}</div>
+                <div className="text-xs text-theme-3">{group.retailer}</div>
+                <div className="text-sm font-medium leading-snug text-theme transition-colors hover:text-green-500">{group.baseName}</div>
               </button>
             </div>
           </td>
           <td className="px-2 py-2 text-center align-top" rowSpan={rowSpan}>
-            <div className="break-words text-sm font-medium text-white">{product.flavour || "Default"}</div>
+            <div className="break-words text-sm font-medium text-theme">{product.flavour || "Default"}</div>
           </td>
         </>
       ) : null}
-      <td className="px-2 py-2 text-center text-sm font-medium text-white">
+      <td className="px-2 py-2 text-center text-sm font-medium text-theme">
         <div className="flex flex-col items-center gap-0.5">
           <span>{formatSize(variant.size)}</span>
           {hasSubscription ? (
@@ -175,7 +175,7 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
         </div>
       </td>
       {columnGroupMode === "nutrient" ? (
-        <td className="px-2 py-2 text-center text-sm text-gray-400">{getServingsPerPack(v) ?? "-"}</td>
+        <td className="px-2 py-2 text-center text-sm text-theme-3">{getServingsPerPack(v) ?? "-"}</td>
       ) : null}
       {columnGroupMode === "nutrient" ? (
         <>
@@ -184,15 +184,15 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
           {visibility.show100g && isFirstRow ? <CaloriesGroupedCell rowSpan={rowSpan}>{getCaloriesPer100g(product) !== null ? `${getCaloriesPer100g(product)}` : "-"}</CaloriesGroupedCell> : null}
           {visibility.showServing ? <CaloriesGroupedCell>{formatCaloriesPerServing(v)}</CaloriesGroupedCell> : null}
           {visibility.show1gProtein && isFirstRow ? <CaloriesGroupedCell rowSpan={rowSpan}>{getCaloriesPerGramProtein(product) !== null ? getCaloriesPerGramProtein(product)!.toFixed(2) : "-"}</CaloriesGroupedCell> : null}
-          {visibility.showTotal ? <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm font-semibold text-white">{formatCurrency(v.price)}</td> : null}
+          {visibility.showTotal ? <td className="border-x border-sky-400/10 bg-sky-400/5 px-2 py-2 text-center text-sm font-semibold text-theme">{formatCurrency(v.price)}</td> : null}
           {visibility.show100g ? <PriceCell bestValue={best100g} value={formatCurrency(v.pricePer100g)} dimmed /> : null}
           {visibility.showServing ? <PriceCell bestValue={bestServing} value={getPricePerServing(v) !== null ? formatCurrencyPrecise(getPricePerServing(v)!) : null} dimmed /> : null}
           {visibility.show1gProtein ? <PriceCell bestValue={best1gProtein} value={getPricePerGramProtein(v) !== null ? formatCurrencyPrecise(getPricePerGramProtein(v)!) : null} dimmed /> : null}
         </>
       ) : (
         <>
-          {visibility.showTotal ? <td className="border-x border-gray-700/50 bg-gray-800/60 px-2 py-2 text-center text-sm font-semibold text-white">{formatCurrency(v.price)}</td> : null}
-          {visibility.showServing ? <td className="whitespace-nowrap border-x border-gray-700/50 bg-gray-800/60 px-2 py-2 text-center text-sm text-gray-300">{getServingsPerPack(v) ?? "-"}</td> : null}
+          {visibility.showTotal ? <td className="border-x border-theme bg-surface-2 px-2 py-2 text-center text-sm font-semibold text-theme">{formatCurrency(v.price)}</td> : null}
+          {visibility.showServing ? <td className="whitespace-nowrap border-x border-theme bg-surface-2 px-2 py-2 text-center text-sm text-theme-2">{getServingsPerPack(v) ?? "-"}</td> : null}
           {visibility.showServing && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="violet">{formatProteinPerServing(v)}</MeasureCell> : null}
           {visibility.showServing && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="amber">{formatCaloriesPerServing(v)}</MeasureCell> : null}
           {visibility.showServing ? <PriceCell bestValue={bestServing} value={getPricePerServing(v) !== null ? formatCurrencyPrecise(getPricePerServing(v)!) : null} /> : null}
@@ -208,23 +208,23 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
 }
 
 function GroupedCell({ children, rowSpan }: { children: React.ReactNode; rowSpan?: number }) {
-  return <td className="whitespace-nowrap border-x border-violet-400/10 bg-violet-400/5 px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>{children}</td>;
+  return <td className="whitespace-nowrap border-x border-violet-400/10 bg-violet-400/5 px-2 py-2 text-center text-sm text-theme-2" rowSpan={rowSpan}>{children}</td>;
 }
 
 function CaloriesGroupedCell({ children, rowSpan }: { children: React.ReactNode; rowSpan?: number }) {
-  return <td className="whitespace-nowrap border-x border-amber-500/10 bg-amber-500/5 px-2 py-2 text-center text-sm text-gray-300" rowSpan={rowSpan}>{children}</td>;
+  return <td className="whitespace-nowrap border-x border-amber-500/10 bg-amber-500/5 px-2 py-2 text-center text-sm text-theme-2" rowSpan={rowSpan}>{children}</td>;
 }
 
 function MeasureCell({ children, rowSpan, tone }: { children: React.ReactNode; rowSpan?: number; tone: "violet" | "amber"; }) {
-  return <td className={clsx("whitespace-nowrap border-x border-gray-700/50 bg-gray-800/60 px-2 py-2 text-center text-sm", tone === "violet" ? "text-violet-300" : "text-amber-300")} rowSpan={rowSpan}>{children}</td>;
+  return <td className={clsx("whitespace-nowrap border-x border-theme bg-surface-2 px-2 py-2 text-center text-sm", tone === "violet" ? "text-violet-500" : "text-amber-500")} rowSpan={rowSpan}>{children}</td>;
 }
 
 function PriceCell({ bestValue, value, dimmed = false }: { bestValue: boolean; value: string | null; dimmed?: boolean; }) {
-  const color = bestValue ? "text-green-400" : dimmed ? "text-gray-300" : "text-sky-300";
-  const emptyColor = dimmed ? "text-gray-300" : "text-gray-500";
+  const color = bestValue ? "text-green-500" : dimmed ? "text-theme-2" : "text-sky-500";
+  const emptyColor = dimmed ? "text-theme-2" : "text-theme-3";
   return (
-    <td className={clsx("px-2 py-2 text-center text-sm", dimmed ? "border-x border-sky-400/10 bg-sky-400/5" : "border-x border-gray-700/50 bg-gray-800/60")}>
-      {value ? <span className="relative inline-block"><span className={clsx("font-semibold", color)}>{value}</span>{bestValue ? <Tag className="absolute -right-3.5 -top-1.5 h-3.5 w-3.5 text-green-400" aria-label="Best value" /> : null}</span> : <span className={emptyColor}>-</span>}
+    <td className={clsx("px-2 py-2 text-center text-sm", dimmed ? "border-x border-sky-400/10 bg-sky-400/5" : "border-x border-theme bg-surface-2")}>
+      {value ? <span className="relative inline-block"><span className={clsx("font-semibold", color)}>{value}</span>{bestValue ? <Tag className="absolute -right-3.5 -top-1.5 h-3.5 w-3.5 text-green-500" aria-label="Best value" /> : null}</span> : <span className={emptyColor}>-</span>}
     </td>
   );
 }

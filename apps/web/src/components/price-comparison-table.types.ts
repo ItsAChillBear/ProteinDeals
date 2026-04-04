@@ -48,6 +48,7 @@ export type SortKey =
   | "price"
   | "pricePer100g"
   | "pricePerServing"
+  | "caloriesPerServing"
   | "pricePerGramProtein"
   | "dailyCost"
   | "dailyCalories";

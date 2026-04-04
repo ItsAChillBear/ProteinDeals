@@ -9,7 +9,7 @@ import {
   type ProteinPlannerState,
 } from "./price-comparison-planner";
 import type { ColumnVisibility } from "./price-comparison-visibility";
-import { applyPriceMode, getPricePerGramProtein, getPricePerServing, type PriceMode } from "./price-comparison-metrics";
+import { applyPriceMode, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, type PriceMode } from "./price-comparison-metrics";
 import { getDisplayProteinPer100g } from "./price-comparison-table.utils";
 import { matchesVariantFilters } from "./price-comparison-card.shared";
 
@@ -55,7 +55,7 @@ export function PriceComparisonDesktopRowGroup({
     .filter((variant) => matchesVariantFilters(variant, filters) && plannerMatchesVariant(variant, planner))
     .sort((a, b) => {
       const metric =
-        sortKey === "pricePerServing" || sortKey === "pricePerGramProtein"
+        sortKey === "pricePerServing" || sortKey === "pricePerGramProtein" || sortKey === "caloriesPerServing"
           ? sortKey
           : "pricePer100g";
       const pa = applyPriceMode(a, priceMode);
@@ -63,15 +63,19 @@ export function PriceComparisonDesktopRowGroup({
       const aVal =
         metric === "pricePerServing"
           ? getPricePerServing(pa)
-          : metric === "pricePerGramProtein"
-            ? getPricePerGramProtein(pa)
-            : pa.pricePer100g;
+          : metric === "caloriesPerServing"
+            ? getCaloriesPerServing(pa)
+            : metric === "pricePerGramProtein"
+              ? getPricePerGramProtein(pa)
+              : pa.pricePer100g;
       const bVal =
         metric === "pricePerServing"
           ? getPricePerServing(pb)
-          : metric === "pricePerGramProtein"
-            ? getPricePerGramProtein(pb)
-            : pb.pricePer100g;
+          : metric === "caloriesPerServing"
+            ? getCaloriesPerServing(pb)
+            : metric === "pricePerGramProtein"
+              ? getPricePerGramProtein(pb)
+              : pb.pricePer100g;
       if (aVal === null) return 1;
       if (bVal === null) return -1;
       return aVal - bVal;

@@ -35,13 +35,13 @@ export default async function ComparePage() {
   const products = await getCompareProducts();
 
   return (
-    <div className="min-h-screen bg-gray-950 py-10">
+    <div className="min-h-screen bg-theme py-10">
       <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-6">
         <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold text-white">
+          <h1 className="mb-2 text-3xl font-bold text-theme">
             Compare Protein Powder Prices
           </h1>
-          <p className="text-gray-400">
+          <p className="text-theme-3">
             {products.length} products from imported retailer data and sorted by
             best value per 100g
           </p>

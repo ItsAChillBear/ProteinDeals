@@ -24,24 +24,24 @@ export default function PriceComparisonExpandedDetails({
   );
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
-      <div className="mb-3 flex flex-wrap gap-4 text-xs text-gray-400">
-        <span>Flavour: <span className="text-white">{product.flavour ?? "-"}</span></span>
-        <span>Size: <span className="text-white">{product.size}</span></span>
-        <span>Servings: <span className="text-white">{servings ?? "-"}</span></span>
+    <div className="rounded-xl border border-theme bg-theme p-4">
+      <div className="mb-3 flex flex-wrap gap-4 text-xs text-theme-3">
+        <span>Flavour: <span className="text-theme">{product.flavour ?? "-"}</span></span>
+        <span>Size: <span className="text-theme">{product.size}</span></span>
+        <span>Servings: <span className="text-theme">{servings ?? "-"}</span></span>
       </div>
 
       {product.description ? (
         <div className="mb-4">
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Description</h4>
-          <p className="whitespace-pre-line text-sm leading-6 text-gray-300">{product.description}</p>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-theme-3">Description</h4>
+          <p className="whitespace-pre-line text-sm leading-6 text-theme-2">{product.description}</p>
         </div>
       ) : null}
 
       {ingredients ? (
         <div className="mb-4">
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Ingredients</h4>
-          <div className="whitespace-pre-line text-sm leading-6 text-gray-300">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-theme-3">Ingredients</h4>
+          <div className="whitespace-pre-line text-sm leading-6 text-theme-2">
             {renderMarkedText(ingredients)}
           </div>
         </div>
@@ -49,22 +49,22 @@ export default function PriceComparisonExpandedDetails({
 
       {nutritionRows.length ? (
         <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Nutritional Information</h4>
-          <div className="overflow-x-auto rounded-lg border border-gray-800">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-theme-3">Nutritional Information</h4>
+          <div className="overflow-x-auto rounded-lg border border-theme">
             <table className="w-full text-left text-xs">
-              <thead className="bg-gray-900/80 text-gray-400">
+              <thead className="bg-surface-2 text-theme-3">
                 <tr>
                   <th className="px-3 py-2 font-semibold">Nutrient</th>
                   <th className="px-3 py-2 font-semibold">Per 100g</th>
                   <th className="px-3 py-2 font-semibold">Per Serving</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-theme">
                 {nutritionRows.map((row) => (
                   <tr key={row.label}>
-                    <td className="px-3 py-2 text-gray-300">{row.label}</td>
-                    <td className="px-3 py-2 text-gray-300">{row.per100g ?? "-"}</td>
-                    <td className="px-3 py-2 text-gray-300">{row.perServing ?? "-"}</td>
+                    <td className="px-3 py-2 text-theme-2">{row.label}</td>
+                    <td className="px-3 py-2 text-theme-2">{row.per100g ?? "-"}</td>
+                    <td className="px-3 py-2 text-theme-2">{row.perServing ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -83,7 +83,7 @@ function renderMarkedText(value: string) {
       {line.split(/(\*\*.*?\*\*)/g).map((part, partIndex) => {
         const match = part.match(/^\*\*(.*?)\*\*$/);
         if (!match) return <span key={partIndex}>{part}</span>;
-        return <strong key={partIndex} className="font-semibold text-white">{match[1]}</strong>;
+        return <strong key={partIndex} className="font-semibold text-theme">{match[1]}</strong>;
       })}
       {lineIndex < value.split("\n").length - 1 ? "\n" : null}
     </span>

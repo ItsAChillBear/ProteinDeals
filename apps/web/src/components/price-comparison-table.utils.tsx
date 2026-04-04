@@ -9,7 +9,7 @@ import type {
   SortKey,
 } from "./price-comparison-table.types";
 import { getDailyCaloriesForTarget, getDailyCostForTarget } from "./price-comparison-planner";
-import { getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
+import { getCaloriesPerServing, getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
 import { getProteinPer100g } from "./price-comparison-nutrition";
 import type { ProteinPlannerState } from "./price-comparison-planner";
 
@@ -23,11 +23,11 @@ export function ProductThumbnail({
   size?: "sm" | "lg";
 }) {
   const cls = size === "lg"
-    ? "h-24 w-24 rounded-xl border border-gray-800 bg-gray-950 object-cover"
-    : "h-14 w-14 rounded-xl border border-gray-800 bg-gray-950 object-cover";
+    ? "h-24 w-24 rounded-xl border border-theme bg-surface object-cover"
+    : "h-14 w-14 rounded-xl border border-theme bg-surface object-cover";
   if (!imageUrl) {
     return (
-      <div className={`flex items-center justify-center rounded-xl border border-dashed border-gray-800 bg-gray-950 px-1 text-center text-[10px] uppercase tracking-wide text-gray-600 ${size === "lg" ? "h-24 w-24" : "h-14 w-14"}`}>
+      <div className={`flex items-center justify-center rounded-xl border border-dashed border-theme bg-surface px-1 text-center text-[10px] uppercase tracking-wide text-theme-4 ${size === "lg" ? "h-24 w-24" : "h-14 w-14"}`}>
         No image
       </div>
     );
@@ -52,8 +52,8 @@ export function BuyButton({ product }: { product: Product }) {
       className={clsx(
         "inline-flex w-14 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold transition-all duration-150",
         product.inStock
-          ? "bg-green-500 text-gray-950 hover:bg-green-400"
-          : "cursor-not-allowed bg-gray-700 text-gray-500"
+          ? "bg-green-500 text-white hover:bg-green-400"
+          : "cursor-not-allowed bg-surface-3 text-theme-3"
       )}
     >
       Buy <ExternalLink className="h-3 w-3" />
@@ -65,7 +65,7 @@ export function ProductPageLink({ slug }: { slug: string }) {
   return (
     <Link
       href={`/product/${slug}`}
-      className="text-sm font-medium text-green-300 transition-colors hover:text-green-200"
+      className="text-sm font-medium text-green-500 transition-colors hover:text-green-400"
     >
       Open product page
     </Link>
@@ -209,6 +209,7 @@ function getSortValue(group: ProductGroupWithSelection, sortKey: SortKey, planne
   if (sortKey === "name") return group.baseName;
   if (sortKey === "size") return group.selected.sizeG;
   if (sortKey === "pricePerServing") return getPricePerServing(group.selected) ?? Number.POSITIVE_INFINITY;
+  if (sortKey === "caloriesPerServing") return getCaloriesPerServing(group.selected) ?? Number.POSITIVE_INFINITY;
   if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(group.selected) ?? Number.POSITIVE_INFINITY;
   if (sortKey === "dailyCost") {
     const target = Number(planner?.proteinTarget);
