@@ -208,15 +208,15 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
       ) : (
         <>
           {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500">{formatCurrency(v.price)}</td> : null}
-          {visibility.showServing ? <td className="whitespace-nowrap border-x border-theme bg-surface-2 px-2 py-2 text-center text-sm text-theme-2">{getServingsPerPack(v) ?? "-"}</td> : null}
+          {visibility.showServing ? <td className="whitespace-nowrap border-l border-theme px-2 py-2 text-center text-sm text-theme-2">{getServingsPerPack(v) ?? "-"}</td> : null}
           {visibility.showServing && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="violet">{formatProteinPerServing(v)}</MeasureCell> : null}
           {visibility.showServing && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="amber" isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{formatCaloriesPerServing(v)}</MeasureCell> : null}
-          {visibility.showServing ? <PriceCell bestValue={!calorieMode && bestServing} value={getPricePerServing(v) !== null ? formatCurrencyPrecise(getPricePerServing(v)!) : null} /> : null}
-          {visibility.show100g && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="violet">{displayProteinPer100g !== null ? `${displayProteinPer100g}g` : "-"}</MeasureCell> : null}
+          {visibility.showServing ? <PriceCell bestValue={!calorieMode && bestServing} value={getPricePerServing(v) !== null ? formatCurrencyPrecise(getPricePerServing(v)!) : null} sectionEnd /> : null}
+          {visibility.show100g && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="violet" sectionStart>{displayProteinPer100g !== null ? `${displayProteinPer100g}g` : "-"}</MeasureCell> : null}
           {visibility.show100g && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="amber" isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{getCaloriesPer100g(product) !== null ? `${getCaloriesPer100g(product)}` : "-"}</MeasureCell> : null}
-          {visibility.show100g ? <PriceCell bestValue={!calorieMode && best100g} value={formatCurrency(v.pricePer100g)} /> : null}
-          {visibility.show1gProtein && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="amber" isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{getCaloriesPerGramProtein(product) !== null ? getCaloriesPerGramProtein(product)!.toFixed(2) : "-"}</MeasureCell> : null}
-          {visibility.show1gProtein ? <PriceCell bestValue={!calorieMode && best1gProtein} value={getPricePerGramProtein(v) !== null ? formatCurrencyPrecise(getPricePerGramProtein(v)!) : null} /> : null}
+          {visibility.show100g ? <PriceCell bestValue={!calorieMode && best100g} value={formatCurrency(v.pricePer100g)} sectionEnd /> : null}
+          {visibility.show1gProtein && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="amber" isLowest={isLowestCalorie} isHighest={isHighestCalorie} sectionStart>{getCaloriesPerGramProtein(product) !== null ? getCaloriesPerGramProtein(product)!.toFixed(2) : "-"}</MeasureCell> : null}
+          {visibility.show1gProtein ? <PriceCell bestValue={!calorieMode && best1gProtein} value={getPricePerGramProtein(v) !== null ? formatCurrencyPrecise(getPricePerGramProtein(v)!) : null} sectionEnd /> : null}
         </>
       )}
     </tr>
@@ -240,12 +240,12 @@ function CaloriesGroupedCell({ children, rowSpan, isLowest, isHighest }: { child
   );
 }
 
-function MeasureCell({ children, rowSpan, tone, isLowest, isHighest }: { children: React.ReactNode; rowSpan?: number; tone: "violet" | "amber"; isLowest?: boolean; isHighest?: boolean; }) {
+function MeasureCell({ children, rowSpan, tone, isLowest, isHighest, sectionStart }: { children: React.ReactNode; rowSpan?: number; tone: "violet" | "amber"; isLowest?: boolean; isHighest?: boolean; sectionStart?: boolean; }) {
   const color = tone === "violet"
     ? "text-violet-500"
     : isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-amber-500";
   return (
-    <td className={clsx("whitespace-nowrap border-x border-theme bg-surface-2 px-2 py-2 text-center text-sm", color)} rowSpan={rowSpan}>
+    <td className={clsx("whitespace-nowrap px-2 py-2 text-center text-sm", sectionStart ? "border-l border-theme" : "", color)} rowSpan={rowSpan}>
       {tone === "amber" && (isLowest || isHighest) ? (
         <span className="relative inline-block">
           {children}
@@ -257,11 +257,11 @@ function MeasureCell({ children, rowSpan, tone, isLowest, isHighest }: { childre
   );
 }
 
-function PriceCell({ bestValue, value, dimmed = false }: { bestValue: boolean; value: string | null; dimmed?: boolean; }) {
+function PriceCell({ bestValue, value, dimmed = false, sectionEnd = false }: { bestValue: boolean; value: string | null; dimmed?: boolean; sectionEnd?: boolean; }) {
   const color = bestValue ? "text-green-500" : "text-green-500";
   const emptyColor = dimmed ? "text-theme-2" : "text-theme-3";
   return (
-    <td className={clsx("px-2 py-2 text-center text-sm", dimmed ? "border-x border-green-500/10 bg-green-500/5" : "border-x border-theme bg-surface-2")}>
+    <td className={clsx("px-2 py-2 text-center text-sm", dimmed ? "border-x border-green-500/10 bg-green-500/5" : sectionEnd ? "border-r border-theme" : "")}>
       {value ? (
         <span className="relative inline-block">
           <span className={clsx("font-semibold", color)}>{value}</span>
