@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 import { buildMultiFilter, MULTI_PREFIX, parseMultiFilter, RANGE_PREFIX } from "./price-comparison-filters";
 
 const triggerClass =
-  "flex w-full items-center justify-between gap-1 rounded-lg border border-theme-2 bg-surface px-1.5 py-0.5 text-[10px] text-theme-2 outline-none transition hover:border-theme min-w-0";
+  "flex w-full items-center justify-between gap-1 rounded-lg border border-theme-2 bg-surface px-1.5 py-0.5 text-[10px] text-theme-2 outline-none transition hover:border-theme min-w-[4rem]";
 
 function RangeSlider({
   min,

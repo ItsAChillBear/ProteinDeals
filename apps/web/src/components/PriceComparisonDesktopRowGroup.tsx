@@ -9,7 +9,7 @@ import {
   type ProteinPlannerState,
 } from "./price-comparison-planner";
 import type { ColumnVisibility } from "./price-comparison-visibility";
-import { applyPriceMode, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, type PriceMode } from "./price-comparison-metrics";
+import { applyPriceMode, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, getProteinPerServing, type PriceMode } from "./price-comparison-metrics";
 import { getDisplayProteinPer100g } from "./price-comparison-table.utils";
 import { matchesVariantFilters } from "./price-comparison-card.shared";
 
@@ -53,6 +53,8 @@ export function PriceComparisonDesktopRowGroup({
   filterOptions,
   onFilter,
   sortKey,
+  sortDir,
+  onSort,
 }: Props) {
   const product = group.selected;
   const flavourVariants = group.variants
@@ -64,7 +66,8 @@ export function PriceComparisonDesktopRowGroup({
         if (sortKey === "pricePerServing") return getPricePerServing(v);
         if (sortKey === "caloriesPerServing") return getCaloriesPerServing(v);
         if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(v);
-        if (sortKey === "caloriesPer100g" || sortKey === "caloriesPerGramProtein") return null; // group-level, not variant
+        if (sortKey === "proteinPerServing") return getProteinPerServing(v);
+        if (sortKey === "caloriesPer100g" || sortKey === "caloriesPerGramProtein" || sortKey === "proteinPer100g") return null; // group-level, not variant
         return v.pricePer100g;
       };
       const aVal = getVal(pa);
@@ -107,6 +110,9 @@ export function PriceComparisonDesktopRowGroup({
         filters={filters}
         onFilter={onFilter}
         priceMode={priceMode}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={onSort}
       />
     );
   }

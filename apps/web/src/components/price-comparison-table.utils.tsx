@@ -9,7 +9,7 @@ import type {
   SortKey,
 } from "./price-comparison-table.types";
 import { getDailyCaloriesForTarget, getDailyCostForTarget } from "./price-comparison-planner";
-import { getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing } from "./price-comparison-metrics";
+import { getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, getProteinPerServing } from "./price-comparison-metrics";
 import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import { getProteinPer100g } from "./price-comparison-nutrition";
 import type { ProteinPlannerState } from "./price-comparison-planner";
@@ -215,6 +215,8 @@ function getSortValue(group: ProductGroupWithSelection, sortKey: SortKey, planne
   if (sortKey === "caloriesPer100g") return getCaloriesPer100g(group.selected) ?? Number.POSITIVE_INFINITY;
   if (sortKey === "caloriesPerGramProtein") return getCaloriesPerGramProtein(group.selected) ?? Number.POSITIVE_INFINITY;
   if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(group.selected) ?? Number.POSITIVE_INFINITY;
+  if (sortKey === "proteinPerServing") return getProteinPerServing(group.selected) ?? Number.POSITIVE_INFINITY;
+  if (sortKey === "proteinPer100g") return group.selected.proteinPer100g ?? Number.POSITIVE_INFINITY;
   if (sortKey === "dailyCost") {
     const target = Number(planner?.proteinTarget);
     if (!target) return Number.POSITIVE_INFINITY;
