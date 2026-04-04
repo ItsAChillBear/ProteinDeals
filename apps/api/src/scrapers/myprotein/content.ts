@@ -65,51 +65,23 @@ function extractFaqEntries($: cheerio.CheerioAPI, sectionText: string | null) {
 function extractNutritionRows($: cheerio.CheerioAPI, fallbackHtml: string | null) {
   if (fallbackHtml) {
     const fallbackRows = extractNutritionRowsFromScope(cheerio.load(fallbackHtml));
-    if (fallbackRows.length) return fallbackRows;
+    if (fallbackRows?.length) return fallbackRows;
   }
 
   const directRows = extractNutritionRowsFromScope($);
-  return directRows.length ? directRows : null;
+  return directRows?.length ? directRows : null;
 }
 
 function extractNutritionRowsFromScope(scope: cheerio.CheerioAPI) {
-  const rows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
   const allRows = scope("tr").toArray();
-  if (!allRows.length) return rows;
-
-  const headerIndex = allRows.findIndex((row) => {
-    const directCells = scope(row).children("th, td").toArray();
-    if (directCells.length < 3) return false;
-    const text = collapseWhitespace(scope(row).text()).toLowerCase();
-    return text.includes("per 100g") && /per\s+\d+g|per\s+serving/.test(text);
-  });
-  if (headerIndex === -1) return rows;
-
-  const headerCells = scope(allRows[headerIndex]).children("th, td").toArray();
-  const per100gIndex = headerCells.findIndex((cell) =>
-    /per\s*100g/i.test(collapseWhitespace(scope(cell).text()))
+  return extractNutritionRowsFromParsedRows(
+    allRows.map((row) =>
+      scope(row)
+        .children("th, td")
+        .toArray()
+        .map((cell) => collapseWhitespace(scope(cell).text()))
+    )
   );
-  const perServingIndex = headerCells.findIndex((cell) =>
-    /per\s*\d+g|per\s*serving/i.test(collapseWhitespace(scope(cell).text()))
-  );
-
-  if (per100gIndex <= 0 || perServingIndex <= 0 || per100gIndex === perServingIndex) {
-    return rows;
-  }
-
-  for (const row of allRows.slice(headerIndex + 1)) {
-    const cells = scope(row).children("th, td").toArray();
-    if (cells.length <= Math.max(per100gIndex, perServingIndex)) continue;
-
-    const label = collapseWhitespace(scope(cells[0]).text());
-    const per100g = collapseWhitespace(scope(cells[per100gIndex]).text()) || null;
-    const perServing = collapseWhitespace(scope(cells[perServingIndex]).text()) || null;
-    const candidate = { label, per100g, perServing };
-
-    if (isCleanNutritionRow(candidate)) rows.push(candidate);
-  }
-
-  return rows;
 }
 
 function extractRichContentHtml(html: string, key: string) {
@@ -123,32 +95,224 @@ function extractRichContentHtml(html: string, key: string) {
 function extractNutritionRowsFromCmsPayload(html: string) {
   const block = extractCmsBlock(html, "cm_nutritionalPanel");
   if (!block) return null;
-  const match = block.match(/"content":\s*("(?:\\.|[^"\\])*")/);
-  if (!match) return null;
+  const matches = [...block.matchAll(/"content":\s*("(?:\\.|[^"\\])*")/g)];
+  if (!matches.length) return null;
 
-  const decoded = decodeJsonStringLiteral(match[1]);
+  const decoded = matches
+    .map((match) => decodeJsonStringLiteral(match[1]))
+    .filter(Boolean)
+    .join("\n");
   if (!decoded) return null;
 
   const $ = cheerio.load(decoded);
+  return extractNutritionRowsFromParsedRows(
+    $("tr")
+      .toArray()
+      .map((row) =>
+        $(row)
+          .children("th, td")
+          .toArray()
+          .map((cell) => collapseWhitespace($(cell).text()))
+      )
+  );
+}
+
+function extractNutritionRowsFromParsedRows(
+  parsedRows: string[][]
+): Array<{ label: string; per100g: string | null; perServing: string | null }> | null {
+  if (!parsedRows.length) return null;
+
+  const normalizedRows = parsedRows
+    .map((cells) => cells.map((cell) => collapseWhitespace(cell)))
+    .filter((cells) => cells.some(Boolean));
+
+  if (!normalizedRows.length) return null;
+
+  const fastPath = extractNutritionRowsUsingExplicitHeader(normalizedRows);
+  if (fastPath.length) return fastPath;
+
+  const scored = extractNutritionRowsUsingHeuristics(normalizedRows);
+  return scored.length ? scored : null;
+}
+
+function extractNutritionRowsUsingExplicitHeader(parsedRows: string[][]) {
   const rows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
 
-  $("tr").each((_, row) => {
-    const cells = $(row)
-      .children("th, td")
-      .toArray()
-      .map((cell) => collapseWhitespace($(cell).text()));
+  const headerIndex = parsedRows.findIndex((headerCells) => hasNutritionHeaderColumns(headerCells));
+  if (headerIndex === -1) return rows;
 
-    if (cells.length < 3) return;
+  const headerCells = parsedRows[headerIndex];
+  const per100gIndex = findPer100gColumnIndex(headerCells);
+  const perServingIndex = findPerServingColumnIndex(headerCells);
+
+  if (per100gIndex <= 0 || perServingIndex <= 0 || per100gIndex === perServingIndex) {
+    return rows;
+  }
+
+  for (const cells of parsedRows.slice(headerIndex + 1)) {
+    if (cells.length <= Math.max(per100gIndex, perServingIndex)) continue;
+
     const candidate = {
       label: cells[0],
-      per100g: cells[1] || null,
-      perServing: cells[2] || null,
+      per100g: cells[per100gIndex] || null,
+      perServing: cells[perServingIndex] || null,
     };
 
     if (isCleanNutritionRow(candidate)) rows.push(candidate);
-  });
+  }
 
-  return rows.length ? rows : null;
+  return rows;
+}
+
+function extractNutritionRowsUsingHeuristics(parsedRows: string[][]) {
+  let bestRows: Array<{ label: string; per100g: string | null; perServing: string | null }> = [];
+  let bestScore = 0;
+
+  for (let start = 0; start < parsedRows.length; start += 1) {
+    const header = parsedRows[start];
+    if (header.length < 3) continue;
+    const labelIndex = 0;
+    const columnIndexes = header
+      .map((_, index) => index)
+      .filter((index) => index !== labelIndex);
+
+    for (const per100gIndex of columnIndexes) {
+      for (const perServingIndex of columnIndexes) {
+        if (per100gIndex === perServingIndex) continue;
+
+        const candidateRows: Array<{
+          label: string;
+          per100g: string | null;
+          perServing: string | null;
+        }> = [];
+
+        for (const cells of parsedRows.slice(start + 1)) {
+          if (cells.length <= Math.max(per100gIndex, perServingIndex)) continue;
+          const candidate = {
+            label: cells[labelIndex] || "",
+            per100g: cells[per100gIndex] || null,
+            perServing: cells[perServingIndex] || null,
+          };
+          if (isCleanNutritionRow(candidate)) candidateRows.push(candidate);
+        }
+
+        const score = scoreNutritionCandidate(header, candidateRows, per100gIndex, perServingIndex);
+        if (score > bestScore) {
+          bestScore = score;
+          bestRows = candidateRows;
+        }
+      }
+    }
+  }
+
+  return bestScore >= 18 ? bestRows : [];
+}
+
+function findPerServingColumnIndex(headerCells: string[]) {
+  return headerCells.findIndex((cell) => {
+    const normalized = cell.trim().toLowerCase();
+    if (!normalized) return false;
+    if (isPer100gHeader(normalized)) return false;
+    return isPerServingHeader(normalized);
+  });
+}
+
+function findPer100gColumnIndex(headerCells: string[]) {
+  return headerCells.findIndex((cell) => isPer100gHeader(cell.trim().toLowerCase()));
+}
+
+function hasNutritionHeaderColumns(headerCells: string[]) {
+  return (
+    findPer100gColumnIndex(headerCells) !== -1 &&
+    findPerServingColumnIndex(headerCells) !== -1
+  );
+}
+
+function isPer100gHeader(value: string) {
+  return /(?:^|\b)(?:per\s*)?100g(?:\s+contains)?(?:\b|$)/i.test(value);
+}
+
+function isPerServingHeader(value: string) {
+  return /(?:^|\b)(?:per\s*\d+(?:\.\d+)?g|per\s*serving|a\s+serving\s+contains|serving\s+contains)(?:\b|$)/i.test(
+    value
+  );
+}
+
+function scoreNutritionCandidate(
+  headerCells: string[],
+  rows: Array<{ label: string; per100g: string | null; perServing: string | null }>,
+  per100gIndex: number,
+  perServingIndex: number
+) {
+  if (rows.length < 4) return 0;
+
+  let score = rows.length * 2;
+  const normalizedHeaders = headerCells.map((cell) => cell.trim().toLowerCase());
+  const per100gHeader = normalizedHeaders[per100gIndex] ?? "";
+  const perServingHeader = normalizedHeaders[perServingIndex] ?? "";
+
+  if (isPer100gHeader(per100gHeader)) score += 6;
+  if (isPerServingHeader(perServingHeader)) score += 6;
+
+  const nutrientMatches = rows.filter((row) => isKnownNutritionLabel(row.label)).length;
+  score += nutrientMatches * 2;
+
+  const measurementMatches = rows.filter(
+    (row) => parseMeasurement(row.per100g) && parseMeasurement(row.perServing)
+  ).length;
+  score += measurementMatches * 2;
+
+  const sameUnitMatches = rows.filter((row) => {
+    const per100g = parseMeasurement(row.per100g);
+    const perServing = parseMeasurement(row.perServing);
+    return per100g && perServing && per100g.unit === perServing.unit;
+  }).length;
+  score += sameUnitMatches;
+
+  const distinctValueMatches = rows.filter((row) => {
+    const left = normalizeComparableNutritionValue(row.per100g);
+    const right = normalizeComparableNutritionValue(row.perServing);
+    return Boolean(left && right && left !== right);
+  }).length;
+  score += distinctValueMatches;
+
+  const suspiciousEquality = rows.every((row) => {
+    const left = normalizeComparableNutritionValue(row.per100g);
+    const right = normalizeComparableNutritionValue(row.perServing);
+    return Boolean(left && right && left === right);
+  });
+  if (suspiciousEquality) score -= 8;
+
+  return score;
+}
+
+function isKnownNutritionLabel(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return [
+    "energy",
+    "fat",
+    "of which saturates",
+    "carbohydrate",
+    "of which sugars",
+    "fibre",
+    "fiber",
+    "protein",
+    "salt",
+  ].includes(normalized);
+}
+
+function normalizeComparableNutritionValue(value: string | null) {
+  return value?.replace(/\s+/g, " ").trim().toLowerCase() ?? null;
+}
+
+function parseMeasurement(value: string | null) {
+  if (!value) return null;
+  const match = value.match(/<?\s*(\d+(?:\.\d+)?)\s*(kcal|kj|mg|g)\b/i);
+  if (!match) return null;
+  return {
+    value: Number(match[1]),
+    unit: match[2].toLowerCase(),
+  };
 }
 
 function extractNutritionRowsFromText(text: string) {
@@ -272,6 +436,7 @@ function isCleanNutritionRow(row: {
 }) {
   const label = row.label.trim();
   if (!label) return false;
+  if (label === ".") return false;
   if (/^(nutritional information|typical values|contains \d+ servings?)$/i.test(label)) {
     return false;
   }
