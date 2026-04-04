@@ -1,12 +1,14 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
-import type { ProductGroupWithSelection, SortDir, SortKey } from "./price-comparison-table.types";
+import type { Product, ProductGroupWithSelection, SortDir, SortKey } from "./price-comparison-table.types";
 import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
 import type { ProteinPlannerState } from "./price-comparison-planner";
 import { PriceComparisonDesktopRowGroup } from "./PriceComparisonDesktopRowGroup";
 import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
 import type { ColumnVisibility } from "./price-comparison-visibility";
+import { getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, getProteinPerServing } from "./price-comparison-metrics";
+import { getCaloriesPer100g } from "./price-comparison-nutrition";
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (sortKey !== col) return <ArrowUpDown className="h-3.5 w-3.5 opacity-50" strokeWidth={3} />;
@@ -32,6 +34,7 @@ export default function PriceComparisonDesktopTable({
   viewMode,
   columnGroupMode,
   priceMode,
+  flavourMode = "separate",
 }: {
   groups: ProductGroupWithSelection[];
   bestValueVariantIds: Record<string, string[]>;
@@ -51,6 +54,7 @@ export default function PriceComparisonDesktopTable({
   visibility: ColumnVisibility;
   viewMode: "card" | "table";
   priceMode: import("./price-comparison-metrics").PriceMode;
+  flavourMode?: "separate" | "consolidate";
 }) {
   const headerClass =
     "px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-theme-3 whitespace-nowrap align-bottom";
@@ -73,12 +77,49 @@ export default function PriceComparisonDesktopTable({
     ? 4 + proteinColSpan + caloriesColSpan + priceColSpan + (planner.committed && Number(planner.proteinTarget) > 0 ? 1 : 0)
     : 3 + (visibility.showTotal ? 1 : 0) + servingColSpan + per100gColSpan + per1gProteinColSpan + (planner.committed && Number(planner.proteinTarget) > 0 ? 1 : 0);
 
+  // In consolidate mode, merge groups with the same baseName+retailer then re-sort by best variant
+  const cardGroups = flavourMode === "consolidate"
+    ? (() => {
+        const merged = new Map<string, ProductGroupWithSelection>();
+        for (const group of groups) {
+          const key = `${group.retailer}||${group.baseName}`;
+          const existing = merged.get(key);
+          if (existing) {
+            const ids = new Set(existing.variants.map((v) => v.id));
+            const newVariants = group.variants.filter((v) => !ids.has(v.id));
+            merged.set(key, { ...existing, variants: [...existing.variants, ...newVariants] });
+          } else {
+            merged.set(key, { ...group });
+          }
+        }
+        // Re-sort merged groups by the best variant value for the active sort key
+        const getVariantVal = (v: Product): number => {
+          if (sortKey === "pricePer100g") return v.pricePer100g;
+          if (sortKey === "pricePerServing") return getPricePerServing(v) ?? Infinity;
+          if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(v) ?? Infinity;
+          if (sortKey === "caloriesPerServing") return getCaloriesPerServing(v) ?? Infinity;
+          if (sortKey === "caloriesPer100g") return getCaloriesPer100g(v) ?? Infinity;
+          if (sortKey === "caloriesPerGramProtein") return getCaloriesPerGramProtein(v) ?? Infinity;
+          if (sortKey === "proteinPerServing") return getProteinPerServing(v) ?? Infinity;
+          if (sortKey === "proteinPer100g") return v.proteinPer100g ?? Infinity;
+          return v.pricePer100g;
+        };
+        return Array.from(merged.values()).sort((a, b) => {
+          const aVals = a.variants.map(getVariantVal).filter((x) => x !== Infinity);
+          const bVals = b.variants.map(getVariantVal).filter((x) => x !== Infinity);
+          const aVal = aVals.length ? (sortDir === "desc" ? Math.max(...aVals) : Math.min(...aVals)) : Infinity;
+          const bVal = bVals.length ? (sortDir === "desc" ? Math.max(...bVals) : Math.min(...bVals)) : Infinity;
+          return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+        });
+      })()
+    : groups;
+
   if (viewMode === "card") {
     return (
       <div className="hidden sm:block">
         <table className="w-full text-sm">
           <tbody className="divide-y divide-theme">
-            {groups.map((group, i) => (
+            {cardGroups.map((group, i) => (
               <PriceComparisonDesktopRowGroup
                 key={group.id}
                 group={group}
@@ -99,6 +140,7 @@ export default function PriceComparisonDesktopTable({
                 sortKey={sortKey}
                 sortDir={sortDir}
                 priceMode={priceMode}
+                flavourMode={flavourMode}
               />
             ))}
           </tbody>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, TrendingDown, TrendingUp } from "lucide-react";
 import { clsx } from "clsx";
 import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
@@ -48,6 +48,7 @@ interface Props {
   sortKey?: SortKey;
   sortDir?: SortDir;
   onSort?: (key: SortKey) => void;
+  flavourMode?: "separate" | "consolidate";
 }
 
 export default function PriceComparisonDesktopCardGroup({
@@ -72,6 +73,7 @@ export default function PriceComparisonDesktopCardGroup({
   sortKey,
   sortDir,
   onSort,
+  flavourMode = "separate",
 }: Props) {
   const product = group.selected;
   const activeFlavour = product.flavour ?? "";
@@ -81,6 +83,18 @@ export default function PriceComparisonDesktopCardGroup({
   useEffect(() => { setLocalMode(priceMode); }, [priceMode]);
   const effectiveMode: PriceMode = hasAnySubscription ? localMode : "single";
   const isOverridden = hasAnySubscription && localMode !== priceMode;
+
+  // In consolidate mode, group variants by size
+  const variantsBySize = useMemo(() => {
+    if (flavourMode !== "consolidate") return null;
+    const map = new Map<string, ProductGroupWithSelection["variants"]>();
+    for (const v of flavourVariants) {
+      const existing = map.get(v.size) ?? [];
+      existing.push(v);
+      map.set(v.size, existing);
+    }
+    return map;
+  }, [flavourMode, flavourVariants]);
 
   return (
     <tr className="transition-colors hover-bg">
@@ -94,16 +108,22 @@ export default function PriceComparisonDesktopCardGroup({
                 <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-sm font-semibold text-theme hover:text-green-500 transition-colors leading-tight line-clamp-2 text-center">{group.baseName}</button>
                 <div className="flex w-full items-center justify-between gap-1">
                   <button type="button" onClick={() => onToggleExpanded(group.id)} className="flex-shrink-0 p-1">{isExpanded ? <ChevronUp className="h-4 w-4 text-theme-4" /> : <ChevronDown className="h-4 w-4 text-theme-4" />}</button>
-                  {activeFlavour ? <span className="flex-1 rounded bg-surface-3 px-1 py-0.5 text-[10px] text-theme-2 text-center">{activeFlavour}</span> : <span className="flex-1" />}
+                  {flavourMode === "separate" && activeFlavour ? <span className="flex-1 rounded bg-surface-3 px-1 py-0.5 text-[10px] text-theme-2 text-center">{activeFlavour}</span> : <span className="flex-1" />}
                   <button type="button" onClick={() => onToggleExpanded(group.id)} className="flex-shrink-0 p-1">{isExpanded ? <ChevronUp className="h-4 w-4 text-theme-4" /> : <ChevronDown className="h-4 w-4 text-theme-4" />}</button>
                 </div>
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <CardHeader visibility={visibility} showPlanner={showPlanner} proteinTarget={proteinTarget} showFilterBar={showFilterBar} filterOptions={filterOptions} filters={filters} onFilter={onFilter} hasAnySubscription={hasAnySubscription} effectiveMode={effectiveMode} onToggleMode={() => setLocalMode(m => m === "single" ? "subscription" : "single")} sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              {flavourVariants.map((variant, i) => (
-                <CardVariantRow key={variant.id} variant={variant} effectiveMode={effectiveMode} isOverridden={isOverridden} calorieMode={calorieMode} calorieVariantIds={calorieVariantIds} visibility={visibility} bestValueVariantIds={bestValueVariantIds} displayProteinPer100g={displayProteinPer100g} showPlanner={showPlanner} proteinTarget={proteinTarget} planner={planner} bordered={i > 0} />
-              ))}
+              <CardHeader visibility={visibility} showPlanner={showPlanner} proteinTarget={proteinTarget} showFilterBar={showFilterBar} filterOptions={filterOptions} filters={filters} onFilter={onFilter} hasAnySubscription={hasAnySubscription} effectiveMode={effectiveMode} onToggleMode={() => setLocalMode(m => m === "single" ? "subscription" : "single")} sortKey={sortKey} sortDir={sortDir} onSort={onSort} flavourMode={flavourMode} />
+              {flavourMode === "consolidate" && variantsBySize ? (
+                Array.from(variantsBySize.entries()).map(([size, sizeVariants], i) => (
+                  <ConsolidatedSizeRow key={size} sizeVariants={sizeVariants} effectiveMode={effectiveMode} isOverridden={isOverridden} calorieMode={calorieMode} calorieVariantIds={calorieVariantIds} visibility={visibility} bestValueVariantIds={bestValueVariantIds} displayProteinPer100g={displayProteinPer100g} showPlanner={showPlanner} proteinTarget={proteinTarget} planner={planner} bordered={i > 0} sortKey={sortKey} />
+                ))
+              ) : (
+                flavourVariants.map((variant, i) => (
+                  <CardVariantRow key={variant.id} variant={variant} effectiveMode={effectiveMode} isOverridden={isOverridden} calorieMode={calorieMode} calorieVariantIds={calorieVariantIds} visibility={visibility} bestValueVariantIds={bestValueVariantIds} displayProteinPer100g={displayProteinPer100g} showPlanner={showPlanner} proteinTarget={proteinTarget} planner={planner} bordered={i > 0} />
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -119,12 +139,14 @@ export default function PriceComparisonDesktopCardGroup({
   );
 }
 
-function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, filterOptions, filters, onFilter, hasAnySubscription, effectiveMode, onToggleMode, sortKey, sortDir, onSort }: Omit<Props, "group" | "flavourVariants" | "bestValueVariantIds" | "isBestValue" | "isExpanded" | "onToggleExpanded" | "totalColumns" | "planner"> & { hasAnySubscription: boolean; effectiveMode: PriceMode; onToggleMode: () => void; }) {
+function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, filterOptions, filters, onFilter, hasAnySubscription, effectiveMode, onToggleMode, sortKey, sortDir, onSort, flavourMode }: Omit<Props, "group" | "flavourVariants" | "bestValueVariantIds" | "isBestValue" | "isExpanded" | "onToggleExpanded" | "totalColumns" | "planner"> & { hasAnySubscription: boolean; effectiveMode: PriceMode; onToggleMode: () => void; }) {
+  const consolidated = flavourMode === "consolidate";
   return (
     <div className="flex border-b border-theme bg-surface-2">
-      <div className="w-44 flex-shrink-0 flex flex-col justify-end">
+      <div className={clsx("flex-shrink-0 flex flex-col justify-end", consolidated ? "w-64" : "w-44")}>
         {hasAnySubscription && visibility.showTotal ? (
           <div className="flex mb-0.5 pl-4">
+            {consolidated ? <span className="w-20 flex-shrink-0" /> : null}
             <span className="w-16 flex-shrink-0" />
             <div className="w-20 flex-shrink-0 flex justify-center">
               <div className="flex rounded overflow-hidden border border-theme-2 text-[10px] font-semibold">
@@ -135,11 +157,13 @@ function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, fil
           </div>
         ) : null}
         <div className="flex mb-1 pl-4">
+          {consolidated ? <span className="w-20 flex-shrink-0 text-center text-[10px] font-bold uppercase tracking-widest text-theme-3">Flavour</span> : null}
           <span className="w-16 flex-shrink-0 text-center text-[10px] font-bold uppercase tracking-widest text-theme-3">Size</span>
           {visibility.showTotal ? <span className="w-20 flex-shrink-0 text-center text-[10px] font-bold uppercase tracking-widest text-green-500/80">Total</span> : null}
         </div>
         <div className="flex">
           <span className="w-4 flex-shrink-0" />
+          {consolidated ? <div className="w-20 flex-shrink-0 px-1 pb-1.5">{showFilterBar && filterOptions && onFilter ? <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi /> : null}</div> : null}
           <div className="w-16 flex-shrink-0 px-1 pb-1.5">{showFilterBar && filterOptions && onFilter ? <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} numericValues={filterOptions.sizeGs} formatFn={(n) => { const match = filterOptions.sizes[filterOptions.sizeGs.indexOf(n)]; return match ? match.replace(/^(\d+\.\d+?)0+(kg|g)$/, "$1$2") : `${n}g`; }} numeric onChange={(v) => onFilter("size", v)} /> : null}</div>
           {visibility.showTotal ? <div className="w-20 flex-shrink-0 px-1 pb-1.5">{showFilterBar && filterOptions && onFilter ? <PriceComparisonFilterDropdown value={filters.price} options={filterOptions.prices} onChange={(v) => onFilter("price", v)} formatFn={(n) => `£${n.toFixed(2)}`} numeric /> : null}</div> : null}
         </div>
@@ -201,6 +225,114 @@ function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, cal
     <div className={clsx("flex items-start relative", bordered && "border-t border-theme", rowBg)}>
       <div className="w-44 flex-shrink-0 flex items-start py-2.5">
         <div className="w-4 flex-shrink-0" />
+        <span className="w-16 flex-shrink-0 px-1 text-center text-sm font-bold text-theme leading-[1.2rem]">{formatSize(variant.size)}</span>
+        {visibility.showTotal ? (
+          <div className="w-20 flex-shrink-0 flex flex-col items-center">
+            <span className="text-xs font-semibold leading-[1.2rem] text-green-500">{formatCurrency(v.price)}</span>
+            {effectiveMode === "subscription" && hasSubscription && variant.subscriptionPrice != null ? <span className="text-[10px] leading-tight text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
+          </div>
+        ) : null}
+      </div>
+      <div className="flex divide-x divide-theme">
+        {visibility.showServing ? (
+          <div className="flex-shrink-0 px-3 py-2.5 border-l border-theme">
+            <div className="flex">
+              <Stat className="w-16">{getServingsPerPack(variant) ?? "-"}</Stat>
+              <Stat className="w-16" color="violet">{proteinPerServing !== null ? `${proteinPerServing.toFixed(1)}g` : "-"}</Stat>
+              <Stat className="w-16" color="amber" calorieTag={calorieMode ? isLowest ? "lowest" : isHighest ? "highest" : undefined : undefined}>{caloriesPerServing !== null ? Math.round(caloriesPerServing) : "-"}</Stat>
+              <Stat className="w-16" color="sky" bestValue={!calorieMode && bestServing}>{pricePerServing !== null ? formatCurrencyPrecise(pricePerServing) : "-"}</Stat>
+            </div>
+          </div>
+        ) : null}
+        {visibility.show100g ? (
+          <div className="flex-shrink-0 px-3 py-2.5 border-l border-theme">
+            <div className="flex">
+              <Stat className="w-16" color="violet">{displayProteinPer100g !== null ? `${displayProteinPer100g}g` : "-"}</Stat>
+              <Stat className="w-16" color="amber" calorieTag={calorieMode ? isLowest ? "lowest" : isHighest ? "highest" : undefined : undefined}>{calPer100g !== null ? calPer100g : "-"}</Stat>
+              <Stat className="w-16" color="sky" bestValue={!calorieMode && best100g}>{formatCurrency(variant.pricePer100g)}</Stat>
+            </div>
+          </div>
+        ) : null}
+        {visibility.show1gProtein ? (
+          <div className="flex-shrink-0 px-3 py-2.5 border-l border-theme">
+            <div className="flex">
+              <Stat className="w-16" color="amber" calorieTag={calorieMode ? isLowest ? "lowest" : isHighest ? "highest" : undefined : undefined}>{calPerGramProtein !== null ? calPerGramProtein.toFixed(2) : "-"}</Stat>
+              <Stat className="w-16" color="sky" bestValue={!calorieMode && best1gProtein}>{pricePerGramProtein !== null ? formatCurrencyPrecise(pricePerGramProtein) : "-"}</Stat>
+            </div>
+          </div>
+        ) : null}
+        {showPlanner ? <div className="w-24 flex-shrink-0 px-3 py-2.5 text-right">{dailyCost !== null ? <span className="text-sm font-bold text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">—</span>}{dailyCalories !== null ? <div className="text-[10px] text-amber-500/80">{Math.round(dailyCalories)} kcal</div> : null}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function ConsolidatedSizeRow({ sizeVariants, effectiveMode, isOverridden, calorieMode, calorieVariantIds, visibility, bestValueVariantIds, displayProteinPer100g, showPlanner, proteinTarget, planner, bordered, sortKey }: { sizeVariants: ProductGroupWithSelection["variants"]; effectiveMode: PriceMode; isOverridden: boolean; calorieMode: boolean; calorieVariantIds: { lowest: string[]; highest: string[] }; visibility: ColumnVisibility; bestValueVariantIds: Record<string, string[]>; displayProteinPer100g: number | null; showPlanner: boolean; proteinTarget: number; planner: ProteinPlannerState; bordered: boolean; sortKey?: SortKey; }) {
+  const hasFlavours = sizeVariants.some((v) => v.flavour);
+
+  // Pick the best flavour for the current sort key
+  const bestVariant = useMemo(() => {
+    if (sizeVariants.length <= 1) return sizeVariants[0];
+    const getVal = (v: ProductGroupWithSelection["variants"][0]): number => {
+      const applied = applyPriceMode(v, effectiveMode);
+      if (sortKey === "pricePerServing") return getPricePerServing(applied) ?? Infinity;
+      if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(applied) ?? Infinity;
+      if (sortKey === "caloriesPerServing") return getCaloriesPerServing(applied) ?? Infinity;
+      if (sortKey === "caloriesPer100g") return getCaloriesPer100g(applied) ?? Infinity;
+      if (sortKey === "caloriesPerGramProtein") return getCaloriesPerGramProtein(applied) ?? Infinity;
+      // For protein, higher is better — negate so sort ascending finds highest
+      if (sortKey === "proteinPerServing") return -(getProteinPerServing(applied) ?? 0);
+      if (sortKey === "proteinPer100g") return -(applied.proteinPer100g ?? 0);
+      return applied.pricePer100g;
+    };
+    // Always pick the "best" (lowest getVal = best value) regardless of sortDir
+    return [...sizeVariants].sort((a, b) => getVal(a) - getVal(b))[0];
+  }, [sizeVariants, sortKey, effectiveMode]);
+
+  const [selectedFlavour, setSelectedFlavour] = useState<string>(bestVariant?.flavour ?? "");
+
+  // When sort changes, update selected to best flavour
+  useEffect(() => {
+    if (bestVariant) setSelectedFlavour(bestVariant.flavour ?? "");
+  }, [bestVariant]);
+
+  const variant = sizeVariants.find((v) => (v.flavour ?? "") === selectedFlavour) ?? sizeVariants[0];
+  if (!variant) return null;
+
+  const v = applyPriceMode(variant, effectiveMode);
+  const best100g = bestValueVariantIds.pricePer100g?.includes(variant.id) ?? false;
+  const bestServing = bestValueVariantIds.pricePerServing?.includes(variant.id) ?? false;
+  const best1gProtein = bestValueVariantIds.pricePerGramProtein?.includes(variant.id) ?? false;
+  const hasSubscription = variant.subscriptionPrice != null;
+  const isLowest = calorieMode && calorieVariantIds.lowest.includes(variant.id);
+  const isHighest = calorieMode && calorieVariantIds.highest.includes(variant.id);
+  const dailyCost = showPlanner ? getDailyCostForTarget(v, proteinTarget) : null;
+  const dailyCalories = showPlanner && planner.calorieEnabled ? getDailyCaloriesForTarget(v, proteinTarget) : null;
+  const proteinPerServing = getProteinPerServing(v);
+  const caloriesPerServing = getCaloriesPerServing(v);
+  const pricePerServing = getPricePerServing(v);
+  const pricePerGramProtein = getPricePerGramProtein(v);
+  const calPer100g = getCaloriesPer100g(v);
+  const calPerGramProtein = getCaloriesPerGramProtein(v);
+  const rowBg = isOverridden && hasSubscription ? "bg-sky-500/10" : "bg-transparent";
+
+  return (
+    <div className={clsx("flex items-start relative", bordered && "border-t border-theme", rowBg)}>
+      <div className="w-64 flex-shrink-0 flex items-start py-2.5">
+        <div className="w-4 flex-shrink-0" />
+        <div className="w-20 flex-shrink-0 px-1">
+          {hasFlavours ? (
+            <select
+              value={selectedFlavour}
+              onChange={(e) => setSelectedFlavour(e.target.value)}
+              className="w-full rounded border border-theme-2 bg-surface px-1 py-0.5 text-[10px] text-theme-2 outline-none"
+            >
+              {sizeVariants.map((sv) => (
+                <option key={sv.id} value={sv.flavour ?? ""}>{sv.flavour || "Default"}</option>
+              ))}
+            </select>
+          ) : <span className="text-[10px] text-theme-4">—</span>}
+        </div>
         <span className="w-16 flex-shrink-0 px-1 text-center text-sm font-bold text-theme leading-[1.2rem]">{formatSize(variant.size)}</span>
         {visibility.showTotal ? (
           <div className="w-20 flex-shrink-0 flex flex-col items-center">

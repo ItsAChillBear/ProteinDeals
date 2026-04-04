@@ -33,6 +33,7 @@ interface Props {
   onSort?: (key: SortKey) => void;
   sortKey?: SortKey;
   sortDir?: SortDir;
+  flavourMode?: "separate" | "consolidate";
 }
 
 export function PriceComparisonDesktopRowGroup({
@@ -55,6 +56,7 @@ export function PriceComparisonDesktopRowGroup({
   sortKey,
   sortDir,
   onSort,
+  flavourMode = "separate",
 }: Props) {
   const product = group.selected;
   const flavourVariants = group.variants
@@ -113,6 +115,7 @@ export function PriceComparisonDesktopRowGroup({
         sortKey={sortKey}
         sortDir={sortDir}
         onSort={onSort}
+        flavourMode={flavourMode}
       />
     );
   }

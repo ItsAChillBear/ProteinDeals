@@ -54,6 +54,7 @@ export default function PriceComparisonTable({
   const [visibility, setVisibility] = useState<ColumnVisibility>(DEFAULT_VISIBILITY);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [columnGroupMode, setColumnGroupMode] = useState<"nutrient" | "measure">("nutrient");
+  const [flavourMode, setFlavourMode] = useState<"separate" | "consolidate">("separate");
   const [priceMode, setPriceMode] = useState<PriceMode>(controlledPriceMode ?? "single");
   const [servingMetric, setServingMetric] = useState<"price" | "calories">("price");
   const [activeColumn, setActiveColumn] = useState<"pricePerServing" | "pricePer100g" | "pricePerGramProtein">("pricePer100g");
@@ -208,11 +209,8 @@ export default function PriceComparisonTable({
         onFilter={setFilter}
         visibility={visibility}
         setVisibility={setVisibility}
-        sortKey={sortKey}
-        sortDir={sortDir}
         setSortKey={setSortKey}
         setSortDir={setSortDir}
-        handleSort={handleSort}
         viewMode={viewMode}
         setViewMode={setViewMode}
         columnGroupMode={columnGroupMode}
@@ -222,10 +220,8 @@ export default function PriceComparisonTable({
         filteredGroupsLength={filteredGroups.length}
         filteredVariantCount={filteredVariantCount}
         resetAll={resetAll}
-        servingMetric={servingMetric}
-        setServingMetric={setServingMetric}
-        activeColumn={activeColumn}
-        setActiveColumn={setActiveColumn}
+        flavourMode={flavourMode}
+        setFlavourMode={setFlavourMode}
       />
       <PriceComparisonDesktopTable
         groups={filteredGroups}
@@ -246,6 +242,7 @@ export default function PriceComparisonTable({
         viewMode={viewMode}
         columnGroupMode={columnGroupMode}
         priceMode={priceMode}
+        flavourMode={flavourMode}
       />
       <PriceComparisonMobileList groups={filteredGroups} expandedRows={expandedRows} bestValueVariantIds={bestValueVariantIds} calorieMode={servingMetric === "calories"} calorieVariantIds={calorieVariantIds} planner={planner} onToggleExpanded={toggleExpanded} priceMode={priceMode} />
     </div>
