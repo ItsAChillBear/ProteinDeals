@@ -180,14 +180,14 @@ function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, cal
   const rowBg = isOverridden && hasSubscription ? "bg-sky-500/10" : "bg-transparent";
 
   return (
-    <div className={clsx("flex items-center relative", bordered && "border-t border-theme", rowBg)}>
-      <div className="w-44 flex-shrink-0 flex items-center py-2.5">
+    <div className={clsx("flex items-start relative", bordered && "border-t border-theme", rowBg)}>
+      <div className="w-44 flex-shrink-0 flex items-start py-2.5">
         <div className="w-5 flex-shrink-0" />
-        <span className="w-14 flex-shrink-0 px-1 text-center text-sm font-bold text-theme">{formatSize(variant.size)}</span>
+        <span className="w-14 flex-shrink-0 px-1 text-center text-sm font-bold text-theme leading-[1.2rem]">{formatSize(variant.size)}</span>
         {visibility.showTotal ? (
-          <div className="w-20 flex-shrink-0 flex flex-col items-center gap-0.5">
-            <span className={clsx("text-xs font-semibold", calorieMode ? isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-green-500" : "text-green-500")}>{formatCurrency(v.price)}</span>
-            {effectiveMode === "subscription" && hasSubscription && variant.subscriptionPrice != null ? <span className="text-xs text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
+          <div className="w-20 flex-shrink-0 flex flex-col items-center">
+            <span className={clsx("text-xs font-semibold leading-[1.2rem]", calorieMode ? isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-green-500" : "text-green-500")}>{formatCurrency(v.price)}</span>
+            {effectiveMode === "subscription" && hasSubscription && variant.subscriptionPrice != null ? <span className="text-[10px] leading-tight text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
           </div>
         ) : null}
       </div>

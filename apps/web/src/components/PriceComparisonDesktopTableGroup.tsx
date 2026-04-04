@@ -161,21 +161,21 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
       ) : null}
       {isFirstRow ? (
         <>
-          <td className="px-2 py-2 align-top" rowSpan={rowSpan}>
-            <div className="flex items-start gap-2">
+          <td className="px-2 py-2 align-middle" rowSpan={rowSpan}>
+            <div className="flex items-center gap-2">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
                 <ProductThumbnail name={group.baseName} imageUrl={group.imageUrl} />
                 <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-theme-4 hover:text-theme-2 transition-colors">
                   {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
               </div>
-              <div className="flex flex-col items-start gap-0.5 pt-0.5 min-w-0">
+              <div className="flex flex-col items-center gap-0.5 min-w-0 text-center">
                 <div className="text-xs text-theme-3">{group.retailer}</div>
                 <a href={product.url} target="_blank" rel="noopener noreferrer sponsored" className="text-sm font-medium leading-snug text-theme transition-colors hover:text-green-500">{group.baseName}</a>
               </div>
             </div>
           </td>
-          <td className="px-2 py-2 text-center align-top w-24 max-w-[96px]" rowSpan={rowSpan}>
+          <td className="px-2 py-2 text-center align-middle w-24 max-w-[96px]" rowSpan={rowSpan}>
             <div className="break-words text-sm font-medium text-theme">{product.flavour || "Default"}</div>
           </td>
         </>
@@ -193,14 +193,14 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
           {visibility.show100g && isFirstRow ? <CaloriesGroupedCell rowSpan={rowSpan} isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{getCaloriesPer100g(product) !== null ? `${getCaloriesPer100g(product)}` : "-"}</CaloriesGroupedCell> : null}
           {visibility.showServing ? <CaloriesGroupedCell isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{formatCaloriesPerServing(v)}</CaloriesGroupedCell> : null}
           {visibility.show1gProtein && isFirstRow ? <CaloriesGroupedCell rowSpan={rowSpan} isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{getCaloriesPerGramProtein(product) !== null ? getCaloriesPerGramProtein(product)!.toFixed(2) : "-"}</CaloriesGroupedCell> : null}
-          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? { amount: formatCurrency(variant.singlePrice - variant.subscriptionPrice), pct: Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100) } : null} /></td> : null}
+          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? { amount: formatCurrency(variant.singlePrice - variant.subscriptionPrice), pct: Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100) } : null} /></td> : null}
           {visibility.show100g ? <PriceCell bestValue={!calorieMode && best100g} value={formatCurrency(v.pricePer100g)} dimmed /> : null}
           {visibility.showServing ? <PriceCell bestValue={!calorieMode && bestServing} value={getPricePerServing(v) !== null ? formatCurrencyPrecise(getPricePerServing(v)!) : null} dimmed /> : null}
           {visibility.show1gProtein ? <PriceCell bestValue={!calorieMode && best1gProtein} value={getPricePerGramProtein(v) !== null ? formatCurrencyPrecise(getPricePerGramProtein(v)!) : null} dimmed /> : null}
         </>
       ) : (
         <>
-          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? { amount: formatCurrency(variant.singlePrice - variant.subscriptionPrice), pct: Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100) } : null} /></td> : null}
+          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? { amount: formatCurrency(variant.singlePrice - variant.subscriptionPrice), pct: Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100) } : null} /></td> : null}
           {visibility.showServing ? <td className="whitespace-nowrap border-l border-theme px-2 py-2 text-center text-sm text-theme-2">{getServingsPerPack(v) ?? "-"}</td> : null}
           {visibility.showServing && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="violet">{formatProteinPerServing(v)}</MeasureCell> : null}
           {visibility.showServing && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="amber" isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{formatCaloriesPerServing(v)}</MeasureCell> : null}
