@@ -54,28 +54,17 @@ export function PriceComparisonDesktopRowGroup({
   const flavourVariants = group.variants
     .filter((variant) => matchesVariantFilters(variant, filters) && plannerMatchesVariant(variant, planner))
     .sort((a, b) => {
-      const metric =
-        sortKey === "pricePerServing" || sortKey === "pricePerGramProtein" || sortKey === "caloriesPerServing"
-          ? sortKey
-          : "pricePer100g";
       const pa = applyPriceMode(a, priceMode);
       const pb = applyPriceMode(b, priceMode);
-      const aVal =
-        metric === "pricePerServing"
-          ? getPricePerServing(pa)
-          : metric === "caloriesPerServing"
-            ? getCaloriesPerServing(pa)
-            : metric === "pricePerGramProtein"
-              ? getPricePerGramProtein(pa)
-              : pa.pricePer100g;
-      const bVal =
-        metric === "pricePerServing"
-          ? getPricePerServing(pb)
-          : metric === "caloriesPerServing"
-            ? getCaloriesPerServing(pb)
-            : metric === "pricePerGramProtein"
-              ? getPricePerGramProtein(pb)
-              : pb.pricePer100g;
+      const getVal = (v: typeof pa) => {
+        if (sortKey === "pricePerServing") return getPricePerServing(v);
+        if (sortKey === "caloriesPerServing") return getCaloriesPerServing(v);
+        if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(v);
+        if (sortKey === "caloriesPer100g" || sortKey === "caloriesPerGramProtein") return null; // group-level, not variant
+        return v.pricePer100g;
+      };
+      const aVal = getVal(pa);
+      const bVal = getVal(pb);
       if (aVal === null) return 1;
       if (bVal === null) return -1;
       return aVal - bVal;

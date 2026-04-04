@@ -64,14 +64,37 @@ export default function PriceComparisonToolbar({
   resetAll,
 }: Props) {
   const [servingMetric, setServingMetric] = useState<"price" | "calories">("price");
-  const servingSortKey: SortKey = servingMetric === "price" ? "pricePerServing" : "caloriesPerServing";
+  const [activeColumn, setActiveColumn] = useState<"pricePerServing" | "pricePer100g" | "pricePerGramProtein">("pricePer100g");
+
+  const caloriesKeyForColumn: Record<typeof activeColumn, SortKey> = {
+    pricePerServing: "caloriesPerServing",
+    pricePer100g: "caloriesPer100g",
+    pricePerGramProtein: "caloriesPerGramProtein",
+  };
+  const activeCaloriesSortKey = caloriesKeyForColumn[activeColumn];
+  const activeColumnEnabled =
+    activeColumn === "pricePerServing" ? visibility.showServing :
+    activeColumn === "pricePer100g" ? visibility.show100g :
+    visibility.show1gProtein;
   const servingEnabled = visibility.showServing;
+
+  function handleColumnSort(col: typeof activeColumn) {
+    setActiveColumn(col);
+    if (servingMetric === "price") {
+      handleSort(col);
+    } else {
+      setSortKey(caloriesKeyForColumn[col]);
+    }
+  }
 
   function handleServingMetricToggle(metric: "price" | "calories") {
     if (metric === servingMetric) return;
     setServingMetric(metric);
-    if (sortKey === "pricePerServing" || sortKey === "caloriesPerServing") {
-      handleSort(metric === "price" ? "pricePerServing" : "caloriesPerServing");
+    if (metric === "price") {
+      handleSort(activeColumn);
+    } else {
+      setSortKey(activeCaloriesSortKey);
+      setSortDir("asc");
     }
   }
 
@@ -92,32 +115,32 @@ export default function PriceComparisonToolbar({
         <div className="flex items-center gap-1">
           <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
             <button type="button" onClick={() => handleServingMetricToggle("price")} className={`px-2.5 py-1 transition ${servingMetric === "price" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>£</button>
-            <button type="button" onClick={() => { setServingMetric("calories"); setSortKey("caloriesPerServing"); setSortDir("desc"); }} className={`px-2.5 py-1 transition border-l border-theme-2 ${servingMetric === "calories" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>kcal</button>
+            <button type="button" onClick={() => handleServingMetricToggle("calories")} className={`px-2.5 py-1 transition border-l border-theme-2 ${servingMetric === "calories" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>kcal</button>
             <button
               type="button"
-              onClick={() => { setServingMetric("calories"); setSortKey("caloriesPerServing"); setSortDir("asc"); }}
-              disabled={!servingEnabled}
-              className={`px-1.5 py-1 transition border-l border-theme-2 ${sortKey === "caloriesPerServing" && sortDir === "asc" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}
+              onClick={() => { setServingMetric("calories"); setSortKey(activeCaloriesSortKey); setSortDir("asc"); }}
+              disabled={!activeColumnEnabled}
+              className={`px-1.5 py-1 transition border-l border-theme-2 ${servingMetric === "calories" && sortDir === "asc" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}
             >
               <ArrowUp className="h-3 w-3" />
             </button>
             <button
               type="button"
-              onClick={() => { setServingMetric("calories"); setSortKey("caloriesPerServing"); setSortDir("desc"); }}
-              disabled={!servingEnabled}
-              className={`px-1.5 py-1 transition border-l border-theme-2 ${sortKey === "caloriesPerServing" && sortDir === "desc" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}
+              onClick={() => { setServingMetric("calories"); setSortKey(activeCaloriesSortKey); setSortDir("desc"); }}
+              disabled={!activeColumnEnabled}
+              className={`px-1.5 py-1 transition border-l border-theme-2 ${servingMetric === "calories" && sortDir === "desc" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}
             >
               <ArrowDown className="h-3 w-3" />
             </button>
           </div>
           <button
             type="button"
-            onClick={() => { if (servingEnabled) handleSort(servingSortKey); }}
+            onClick={() => { if (servingEnabled) handleColumnSort("pricePerServing"); }}
             disabled={!servingEnabled}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
               !servingEnabled
                 ? "cursor-not-allowed bg-surface-2 text-theme-muted"
-                : (sortKey === "pricePerServing" || sortKey === "caloriesPerServing")
+                : activeColumn === "pricePerServing"
                   ? "bg-green-700/60 text-green-200"
                   : "bg-surface-2 text-theme-3 hover:text-theme"
             }`}
@@ -131,14 +154,12 @@ export default function PriceComparisonToolbar({
             <button
               key={key}
               type="button"
-              onClick={() => {
-                if (enabled) handleSort(key);
-              }}
+              onClick={() => { if (enabled) handleColumnSort(key as typeof activeColumn); }}
               disabled={!enabled}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                 !enabled
                   ? "cursor-not-allowed bg-surface-2 text-theme-muted"
-                  : sortKey === key
+                  : activeColumn === key
                     ? "bg-green-700/60 text-green-200"
                     : "bg-surface-2 text-theme-3 hover:text-theme"
               }`}
@@ -156,16 +177,19 @@ export default function PriceComparisonToolbar({
             onClick={() => {
               setVisibility((current) => {
                 const next = { ...current, [key]: !current[key] };
-                if (!next.showServing && (sortKey === "pricePerServing" || sortKey === "caloriesPerServing")) {
-                  setSortKey("pricePer100g");
+                if (!next.showServing && activeColumn === "pricePerServing") {
+                  setActiveColumn("pricePer100g");
+                  setSortKey(servingMetric === "price" ? "pricePer100g" : "caloriesPer100g");
                   setSortDir("asc");
                 }
-                if (!next.show100g && sortKey === "pricePer100g") {
-                  setSortKey("pricePerServing");
+                if (!next.show100g && activeColumn === "pricePer100g") {
+                  setActiveColumn("pricePerServing");
+                  setSortKey(servingMetric === "price" ? "pricePerServing" : "caloriesPerServing");
                   setSortDir("asc");
                 }
-                if (!next.show1gProtein && sortKey === "pricePerGramProtein") {
-                  setSortKey("pricePer100g");
+                if (!next.show1gProtein && activeColumn === "pricePerGramProtein") {
+                  setActiveColumn("pricePer100g");
+                  setSortKey(servingMetric === "price" ? "pricePer100g" : "caloriesPer100g");
                   setSortDir("asc");
                 }
                 return next;

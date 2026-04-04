@@ -49,7 +49,9 @@ export type SortKey =
   | "pricePer100g"
   | "pricePerServing"
   | "caloriesPerServing"
+  | "caloriesPer100g"
   | "pricePerGramProtein"
+  | "caloriesPerGramProtein"
   | "dailyCost"
   | "dailyCalories";
 export type SortDir = "asc" | "desc";
