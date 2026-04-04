@@ -106,21 +106,31 @@ export default function PriceComparisonToolbar({
   return (
     <div className="border-b border-theme px-6 py-3 space-y-2">
       <div className="flex items-center justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <PriceComparisonFilterDropdown value={filters.retailer} options={filterOptions.retailers} onChange={(v) => onFilter("retailer", v)} multi label="Supplier" />
-          <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => onFilter("product", v)} multi label="Product" />
-          <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi label="Flavour" />
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
+            <button type="button" onClick={() => setPriceMode("single")} className={`px-2.5 py-1 transition ${priceMode === "single" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Single</button>
+            <button type="button" onClick={() => setPriceMode("subscription")} className={`px-2.5 py-1 transition border-l border-theme-2 ${priceMode === "subscription" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Subscribe</button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-theme-3"><span className="font-semibold text-theme">{filteredGroupsLength}</span> products, <span className="font-semibold text-theme">{filteredVariantCount}</span> variants</span>
+          <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
+            <button type="button" onClick={() => setViewMode("card")} className={`px-2.5 py-1 transition ${viewMode === "card" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Cards</button>
+            <button type="button" onClick={() => setViewMode("table")} className={`px-2.5 py-1 transition border-l border-theme-2 ${viewMode === "table" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Table</button>
+          </div>
+          {viewMode === "table" ? (
+            <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
+              <button type="button" onClick={() => setColumnGroupMode("nutrient")} className={`px-2.5 py-1 transition ${columnGroupMode === "nutrient" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Protein / Calories / Price</button>
+              <button type="button" onClick={() => setColumnGroupMode("measure")} className={`px-2.5 py-1 transition border-l border-theme-2 ${columnGroupMode === "measure" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>/Serving / /100g / /1g Protein</button>
+            </div>
+          ) : null}
           <button type="button" onClick={resetAll} className="rounded-md px-2.5 py-1 text-xs font-medium text-theme-3 transition hover:text-theme">Reset All</button>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
-          <button type="button" onClick={() => setPriceMode("single")} className={`px-2.5 py-1 transition ${priceMode === "single" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Single</button>
-          <button type="button" onClick={() => setPriceMode("subscription")} className={`px-2.5 py-1 transition border-l border-theme-2 ${priceMode === "subscription" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Subscribe</button>
-        </div>
+        <PriceComparisonFilterDropdown value={filters.retailer} options={filterOptions.retailers} onChange={(v) => onFilter("retailer", v)} multi label="Supplier" />
+        <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => onFilter("product", v)} multi label="Product" />
+        <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi label="Flavour" />
         <span className="mx-1 h-4 w-px bg-theme-2" />
         <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-4">Sort by:</span>
         <div className="flex items-center gap-1">
@@ -215,17 +225,6 @@ export default function PriceComparisonToolbar({
             {label}
           </button>
         ))}
-        <span className="mx-1 h-4 w-px bg-theme-2" />
-        <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
-          <button type="button" onClick={() => setViewMode("card")} className={`px-2.5 py-1 transition ${viewMode === "card" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Cards</button>
-          <button type="button" onClick={() => setViewMode("table")} className={`px-2.5 py-1 transition border-l border-theme-2 ${viewMode === "table" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Table</button>
-        </div>
-        {viewMode === "table" ? (
-          <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
-            <button type="button" onClick={() => setColumnGroupMode("nutrient")} className={`px-2.5 py-1 transition ${columnGroupMode === "nutrient" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Protein / Calories / Price</button>
-            <button type="button" onClick={() => setColumnGroupMode("measure")} className={`px-2.5 py-1 transition border-l border-theme-2 ${columnGroupMode === "measure" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>/Serving / /100g / /1g Protein</button>
-          </div>
-        ) : null}
       </div>
     </div>
   );
