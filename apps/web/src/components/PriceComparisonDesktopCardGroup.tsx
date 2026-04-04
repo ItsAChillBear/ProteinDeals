@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle, ChevronDown, ChevronUp, TrendingDown, TrendingUp, XCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, TrendingDown, TrendingUp } from "lucide-react";
 import { clsx } from "clsx";
 import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
 import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
@@ -104,7 +104,6 @@ export default function PriceComparisonDesktopCardGroup({
         {isExpanded ? (
           <div className={clsx("mt-3 rounded-xl px-4 py-3", calorieMode ? "bg-surface" : isBestValue ? "bg-green-500/5" : "bg-surface")}>
             <div className="space-y-3">
-              {product.inStock ? <span className="flex items-center gap-1 text-green-500"><CheckCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">In Stock</span></span> : <span className="flex items-center gap-1 text-red-500"><XCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">Out of Stock</span></span>}
               <PriceComparisonExpandedDetails group={group} />
             </div>
           </div>

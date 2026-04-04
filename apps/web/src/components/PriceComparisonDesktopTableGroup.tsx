@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { CheckCircle, ChevronDown, ChevronUp, Tag, TrendingDown, TrendingUp, XCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Tag, TrendingDown, TrendingUp } from "lucide-react";
 import { clsx } from "clsx";
 import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
@@ -96,13 +96,6 @@ export default function PriceComparisonDesktopTableGroup({
         <tr className={calorieMode ? "bg-surface" : isBestValue ? "bg-green-500/5" : "bg-surface"}>
           <td colSpan={totalColumns} className="px-4 pb-5 pt-1">
             <div className="space-y-4">
-              <div>
-                {product.inStock ? (
-                  <span className="flex items-center gap-1 text-green-500"><CheckCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">In Stock</span></span>
-                ) : (
-                  <span className="flex items-center gap-1 text-red-500"><XCircle className="h-4 w-4 flex-shrink-0" /><span className="text-xs">Out of Stock</span></span>
-                )}
-              </div>
               <PriceComparisonExpandedDetails group={group} />
               <ProductPageLink slug={product.slug} />
             </div>

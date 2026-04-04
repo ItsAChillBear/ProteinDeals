@@ -170,7 +170,9 @@ export function PriceComparisonFilterDropdown({
     if (value === "all") return label ?? "All";
     if (value.startsWith(MULTI_PREFIX)) {
       const count = selectedValues.length;
-      return count === 0 ? "All" : `${count} selected`;
+      if (count === 0) return label ?? "All";
+      if (count === options.length) return label ?? "All";
+      return `${count} selected`;
     }
     if (value.startsWith(RANGE_PREFIX)) {
       const [lo, hi] = value.replace(RANGE_PREFIX, "").split(":");
@@ -201,9 +203,16 @@ export function PriceComparisonFilterDropdown({
                 className="w-full rounded-lg border border-theme-2 bg-theme px-2.5 py-2 text-[11px] text-theme outline-none transition placeholder:text-theme-4 focus:border-green-500"
               />
             </div>
-            <button type="button" onClick={() => { onChange("all"); if (!multi) setOpen(false); }} className={clsx("w-full px-3 py-1.5 text-left text-[11px] transition hover:bg-surface-2", value === "all" || (value.startsWith(MULTI_PREFIX) && selectedValues.length === 0) ? "text-green-500" : "text-theme-2")}>
-              All
-            </button>
+            {multi ? (
+              <div className="flex gap-1 px-3 pb-1.5">
+                <button type="button" onClick={() => onChange(buildMultiFilter(options))} className="flex-1 rounded border border-theme-2 py-1 text-[10px] text-theme-2 transition hover:border-theme hover:text-theme">Select All</button>
+                <button type="button" onClick={() => onChange("all")} className="flex-1 rounded border border-theme-2 py-1 text-[10px] text-theme-2 transition hover:border-theme hover:text-theme">Deselect All</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => { onChange("all"); setOpen(false); }} className={clsx("w-full px-3 py-1.5 text-left text-[11px] transition hover:bg-surface-2", value === "all" ? "text-green-500" : "text-theme-2")}>
+                All
+              </button>
+            )}
             {numeric && allNumericValues.length > 1 ? (
               <>
                 <div className="mt-1 border-t border-theme px-3 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-widest text-theme-4">Range</div>
