@@ -194,7 +194,12 @@ function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, cal
       <div className="w-44 flex-shrink-0 flex items-center py-2.5">
         <div className="w-5 flex-shrink-0" />
         <span className={clsx("w-14 flex-shrink-0 px-1 text-center text-sm font-bold", calorieMode ? isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-theme" : anyBest ? "text-green-500" : "text-theme")}>{formatSize(variant.size)}</span>
-        {visibility.showTotal ? <span className={clsx("w-20 flex-shrink-0 text-center text-xs font-semibold", calorieMode ? isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-green-500" : "text-green-500")}>{formatCurrency(v.price)}</span> : null}
+        {visibility.showTotal ? (
+          <div className="w-20 flex-shrink-0 flex flex-col items-center gap-0.5">
+            <span className={clsx("text-xs font-semibold", calorieMode ? isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-green-500" : "text-green-500")}>{formatCurrency(v.price)}</span>
+            {effectiveMode === "subscription" && hasSubscription && variant.subscriptionPrice != null ? <span className="text-xs text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
+          </div>
+        ) : null}
       </div>
       <div className="flex divide-x divide-theme">
         {visibility.showServing ? (

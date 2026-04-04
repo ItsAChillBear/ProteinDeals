@@ -120,7 +120,10 @@ export default function PriceComparisonMobileList({
                       </div>
                       <div className="mt-1 flex flex-wrap gap-3 text-xs text-theme-3">
                         <span>{getServingsPerPack(v) ? `${getServingsPerPack(v)} servings` : "-"}</span>
-                        <span>{formatCurrency(v.price)}</span>
+                        <span className="flex items-baseline gap-1">
+                          {formatCurrency(v.price)}
+                          {effectiveMode === "subscription" && variant.subscriptionPrice != null ? <span className="text-xs text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
+                        </span>
                         <span>{formatCurrency(v.pricePer100g)}/100g</span>
                         <span>
                           {getCaloriesPer100g(v) !== null
