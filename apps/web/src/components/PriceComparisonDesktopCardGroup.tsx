@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, TrendingDown, TrendingUp } from "lucide-react";
 import { clsx } from "clsx";
 import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
@@ -47,7 +47,7 @@ interface Props {
   priceMode?: PriceMode;
   sortKey?: SortKey;
   sortDir?: SortDir;
-  onSort?: (key: SortKey) => void;
+  onSort?: (key: SortKey, groupId?: string, viewportTop?: number) => void;
   flavourMode?: "separate" | "consolidate";
 }
 
@@ -84,6 +84,15 @@ export default function PriceComparisonDesktopCardGroup({
   const effectiveMode: PriceMode = hasAnySubscription ? localMode : "single";
   const isOverridden = hasAnySubscription && localMode !== priceMode;
 
+  const scrollAnchorGroupId =
+    flavourMode === "consolidate"
+      ? `${group.retailer}||${group.baseName}`
+      : group.id;
+
+  function handleSortWithAnchor(key: SortKey, viewportTop?: number) {
+    onSort?.(key, scrollAnchorGroupId, viewportTop);
+  }
+
   // In consolidate mode, group variants by size
   const variantsBySize = useMemo(() => {
     if (flavourMode !== "consolidate") return null;
@@ -96,8 +105,10 @@ export default function PriceComparisonDesktopCardGroup({
     return map;
   }, [flavourMode, flavourVariants]);
 
+  const rowElementId = `compare-group-${encodeURIComponent(group.id)}`;
+
   return (
-    <tr className="transition-colors hover-bg">
+    <tr id={rowElementId} data-group-id={group.id} className="transition-colors hover-bg">
       <td colSpan={totalColumns} className="px-4 py-3">
         <div className="rounded-xl border border-theme overflow-hidden">
           <div className="flex">
@@ -114,7 +125,7 @@ export default function PriceComparisonDesktopCardGroup({
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <CardHeader visibility={visibility} showPlanner={showPlanner} proteinTarget={proteinTarget} showFilterBar={showFilterBar} filterOptions={filterOptions} filters={filters} onFilter={onFilter} hasAnySubscription={hasAnySubscription} effectiveMode={effectiveMode} onToggleMode={() => setLocalMode(m => m === "single" ? "subscription" : "single")} sortKey={sortKey} sortDir={sortDir} onSort={onSort} flavourMode={flavourMode} />
+              <CardHeader visibility={visibility} showPlanner={showPlanner} proteinTarget={proteinTarget} showFilterBar={showFilterBar} filterOptions={filterOptions} filters={filters} onFilter={onFilter} hasAnySubscription={hasAnySubscription} effectiveMode={effectiveMode} onToggleMode={() => setLocalMode(m => m === "single" ? "subscription" : "single")} sortKey={sortKey} sortDir={sortDir} onSort={handleSortWithAnchor} flavourMode={flavourMode} />
               {flavourMode === "consolidate" && variantsBySize ? (
                 Array.from(variantsBySize.entries()).map(([size, sizeVariants], i) => (
                   <ConsolidatedSizeRow key={size} sizeVariants={sizeVariants} effectiveMode={effectiveMode} isOverridden={isOverridden} calorieMode={calorieMode} calorieVariantIds={calorieVariantIds} visibility={visibility} bestValueVariantIds={bestValueVariantIds} displayProteinPer100g={displayProteinPer100g} showPlanner={showPlanner} proteinTarget={proteinTarget} planner={planner} bordered={i > 0} sortKey={sortKey} />
@@ -139,7 +150,7 @@ export default function PriceComparisonDesktopCardGroup({
   );
 }
 
-function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, filterOptions, filters, onFilter, hasAnySubscription, effectiveMode, onToggleMode, sortKey, sortDir, onSort, flavourMode }: Omit<Props, "group" | "flavourVariants" | "bestValueVariantIds" | "isBestValue" | "isExpanded" | "onToggleExpanded" | "totalColumns" | "planner"> & { hasAnySubscription: boolean; effectiveMode: PriceMode; onToggleMode: () => void; }) {
+function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, filterOptions, filters, onFilter, hasAnySubscription, effectiveMode, onToggleMode, sortKey, sortDir, onSort, flavourMode }: Omit<Props, "group" | "flavourVariants" | "bestValueVariantIds" | "isBestValue" | "isExpanded" | "onToggleExpanded" | "totalColumns" | "planner" | "onSort"> & { hasAnySubscription: boolean; effectiveMode: PriceMode; onToggleMode: () => void; onSort?: (key: SortKey, viewportTop?: number) => void; }) {
   const consolidated = flavourMode === "consolidate";
   return (
     <div className="flex border-b border-theme bg-surface-2">
@@ -178,7 +189,7 @@ function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, fil
   );
 }
 
-function MetricHeader({ title, widths, labels, colors, sortKeys, sortKey, sortDir, onSort, filters }: { title: string; widths: string[]; labels: string[]; colors: string[]; sortKeys?: (SortKey | undefined)[]; sortKey?: SortKey; sortDir?: SortDir; onSort?: (key: SortKey) => void; filters?: React.ReactNode[]; }) {
+function MetricHeader({ title, widths, labels, colors, sortKeys, sortKey, sortDir, onSort, filters }: { title: string; widths: string[]; labels: string[]; colors: string[]; sortKeys?: (SortKey | undefined)[]; sortKey?: SortKey; sortDir?: SortDir; onSort?: (key: SortKey, viewportTop?: number) => void; filters?: React.ReactNode[]; }) {
   return (
     <div className="flex-shrink-0 px-3 pt-2 pb-1.5 border-l border-theme">
       <div className="text-center text-[11px] font-bold uppercase tracking-widest text-theme-3 mb-1">{title}</div>
@@ -188,7 +199,7 @@ function MetricHeader({ title, widths, labels, colors, sortKeys, sortKey, sortDi
           const isActive = sk !== undefined && sortKey === sk;
           if (sk && onSort) {
             return (
-              <button key={label} type="button" onClick={() => onSort(sk)} className={`${widths[index]} text-center font-medium ${colors[index]} flex items-center justify-center gap-0.5 hover:opacity-100 transition-opacity ${isActive ? "opacity-100" : "opacity-70"}`}>
+              <button key={label} type="button" onClick={(event) => onSort(sk, event.currentTarget.getBoundingClientRect().top)} className={`${widths[index]} text-center font-medium ${colors[index]} flex items-center justify-center gap-0.5 hover:opacity-100 transition-opacity ${isActive ? "opacity-100" : "opacity-70"}`}>
                 <span>{label}</span>
                 {isActive ? (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-50" strokeWidth={3} />}
               </button>

@@ -1,5 +1,5 @@
 "use client";
-
+import { useLayoutEffect, useRef } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { Product, ProductGroupWithSelection, SortDir, SortKey } from "./price-comparison-table.types";
 import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
@@ -42,7 +42,7 @@ export default function PriceComparisonDesktopTable({
   calorieVariantIds: { lowest: string[]; highest: string[] };
   columnGroupMode: "nutrient" | "measure";
   expandedRows: Record<string, boolean>;
-  onSort: (key: SortKey) => void;
+  onSort: (key: SortKey, groupId?: string, viewportTop?: number) => void;
   onToggleExpanded: (groupId: string) => void;
   sortDir: SortDir;
   sortKey: SortKey;
@@ -56,6 +56,13 @@ export default function PriceComparisonDesktopTable({
   priceMode: import("./price-comparison-metrics").PriceMode;
   flavourMode?: "separate" | "consolidate";
 }) {
+  const pendingScrollGroupRef = useRef<string | null>(null);
+
+  function handleCardSort(key: SortKey, groupId?: string, viewportTop?: number) {
+    pendingScrollGroupRef.current = groupId ?? null;
+    onSort(key, groupId, viewportTop);
+  }
+
   const headerClass =
     "px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-theme-3 whitespace-nowrap align-bottom";
 
@@ -89,7 +96,7 @@ export default function PriceComparisonDesktopTable({
             const newVariants = group.variants.filter((v) => !ids.has(v.id));
             merged.set(key, { ...existing, variants: [...existing.variants, ...newVariants] });
           } else {
-            merged.set(key, { ...group });
+            merged.set(key, { ...group, id: key });
           }
         }
         // Re-sort merged groups by the best variant value for the active sort key
@@ -114,6 +121,33 @@ export default function PriceComparisonDesktopTable({
       })()
     : groups;
 
+  useLayoutEffect(() => {
+    if (viewMode !== "card" || !pendingScrollGroupRef.current) return;
+
+    const groupId = pendingScrollGroupRef.current;
+    let frame1 = 0;
+    let frame2 = 0;
+
+    frame1 = requestAnimationFrame(() => {
+      frame2 = requestAnimationFrame(() => {
+        const element = document.getElementById(`compare-group-${encodeURIComponent(groupId)}`);
+        if (element) {
+          const targetTop = window.scrollY + element.getBoundingClientRect().top - 88;
+          window.scrollTo({
+            top: Math.max(0, targetTop),
+            behavior: "smooth",
+          });
+        }
+        pendingScrollGroupRef.current = null;
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(frame1);
+      cancelAnimationFrame(frame2);
+    };
+  }, [cardGroups, sortDir, sortKey, viewMode]);
+
   if (viewMode === "card") {
     return (
       <div className="hidden sm:block">
@@ -136,7 +170,7 @@ export default function PriceComparisonDesktopTable({
                 showFilterBar={i === 0}
                 filterOptions={filterOptions}
                 onFilter={onFilter}
-                onSort={onSort}
+                onSort={handleCardSort}
                 sortKey={sortKey}
                 sortDir={sortDir}
                 priceMode={priceMode}
