@@ -157,6 +157,15 @@ export const priceRecords = pgTable(
       precision: 10,
       scale: 4,
     }).notNull(),
+    subscriptionPrice: decimal("subscription_price", { precision: 10, scale: 2 }),
+    subscriptionPricePer100g: decimal("subscription_price_per_100g", {
+      precision: 10,
+      scale: 4,
+    }),
+    subscriptionSavings: decimal("subscription_savings", {
+      precision: 10,
+      scale: 2,
+    }),
     wasOnSale: boolean("was_on_sale").notNull().default(false),
     scrapedAt: timestamp("scraped_at", { withTimezone: true })
       .notNull()

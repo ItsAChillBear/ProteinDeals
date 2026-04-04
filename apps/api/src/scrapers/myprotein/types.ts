@@ -1,4 +1,5 @@
 export type JsonLdNode = Record<string, unknown>;
+
 export interface NutritionRow {
   label: string;
   per100g: string | null;

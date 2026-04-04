@@ -7,9 +7,11 @@ import type { ProductGroupWithSelection } from "./price-comparison-table.types";
 import { formatCurrencyPrecise } from "./price-comparison-format";
 import { plannerMatchesVariant, type ProteinPlannerState } from "./price-comparison-planner";
 import {
+  applyPriceMode,
   getCaloriesPerGramProtein,
   getPricePerGramProtein,
   getPricePerServing,
+  type PriceMode,
 } from "./price-comparison-metrics";
 import { getCaloriesPer100g, getServingsPerPack } from "./price-comparison-nutrition";
 import {
@@ -26,12 +28,14 @@ export default function PriceComparisonMobileList({
   bestValueVariantIds,
   planner,
   onToggleExpanded,
+  priceMode,
 }: {
   groups: ProductGroupWithSelection[];
   expandedRows: Record<string, boolean>;
   bestValueVariantIds: Record<string, string | null>;
   planner: ProteinPlannerState;
   onToggleExpanded: (groupId: string) => void;
+  priceMode: PriceMode;
 }) {
   return (
     <div className="divide-y divide-gray-800 sm:hidden">
@@ -83,48 +87,60 @@ export default function PriceComparisonMobileList({
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                     Sizes
                   </span>
-                  {flavourVariants.map((variant) => (
+                  {flavourVariants.map((variant) => {
+                    const hasSubscription = variant.subscriptionPrice != null;
+                    const effectiveMode: PriceMode = hasSubscription ? priceMode : "single";
+                    const v = applyPriceMode(variant, effectiveMode);
+                    return (
                     <div
                       key={variant.id}
                       className="rounded-xl border border-gray-800 bg-gray-950 px-3 py-2"
                     >
-                      <div className="text-sm font-medium text-white">{variant.size}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">{variant.size}</span>
+                        {hasSubscription ? (
+                          <span className={clsx("text-[9px] font-semibold px-1 py-0.5 rounded", effectiveMode === "subscription" ? "bg-violet-700/50 text-violet-200" : "bg-gray-700/60 text-gray-400")}>
+                            {effectiveMode === "subscription" ? "sub" : "1×"}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-400">
-                        <span>{getServingsPerPack(variant) ? `${getServingsPerPack(variant)} servings` : "-"}</span>
-                        <span>{formatCurrency(variant.price)}</span>
-                        <span>{formatCurrency(variant.pricePer100g)}/100g</span>
+                        <span>{getServingsPerPack(v) ? `${getServingsPerPack(v)} servings` : "-"}</span>
+                        <span>{formatCurrency(v.price)}</span>
+                        <span>{formatCurrency(v.pricePer100g)}/100g</span>
                         <span>
-                          {getCaloriesPer100g(variant) !== null
-                            ? `${getCaloriesPer100g(variant)} cal/100g`
+                          {getCaloriesPer100g(v) !== null
+                            ? `${getCaloriesPer100g(v)} cal/100g`
                             : "-"}
                         </span>
                         <span>
-                          {getPricePerServing(variant) !== null
-                            ? `${formatCurrencyPrecise(getPricePerServing(variant)!)} / serving`
+                          {getPricePerServing(v) !== null
+                            ? `${formatCurrencyPrecise(getPricePerServing(v)!)} / serving`
                             : "-"}
                         </span>
                         <span>
-                          {getPricePerGramProtein(variant) !== null
-                            ? `${formatCurrencyPrecise(getPricePerGramProtein(variant)!)} / g protein`
+                          {getPricePerGramProtein(v) !== null
+                            ? `${formatCurrencyPrecise(getPricePerGramProtein(v)!)} / g protein`
                             : "-"}
                         </span>
                         <span>
-                          {getCaloriesPerGramProtein(variant) !== null
-                            ? `${getCaloriesPerGramProtein(variant)!.toFixed(2)} cal / g protein`
+                          {getCaloriesPerGramProtein(v) !== null
+                            ? `${getCaloriesPerGramProtein(v)!.toFixed(2)} cal / g protein`
                             : "-"}
                         </span>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-lg font-bold text-white">{formatCurrency(product.price)}</span>
+                <span className="text-lg font-bold text-white">{formatCurrency(applyPriceMode(product, product.subscriptionPrice != null ? priceMode : "single").price)}</span>
                 <span className="ml-2 text-xs text-gray-500">
-                  {formatCurrency(product.pricePer100g)}/100g
+                  {formatCurrency(applyPriceMode(product, product.subscriptionPrice != null ? priceMode : "single").pricePer100g)}/100g
                 </span>
               </div>
             </div>

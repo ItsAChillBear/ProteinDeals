@@ -29,6 +29,7 @@ export default function PriceComparisonDesktopTable({
   visibility,
   viewMode,
   columnGroupMode,
+  priceMode,
 }: {
   groups: ProductGroupWithSelection[];
   bestValueVariantIds: Record<string, string | null>;
@@ -45,6 +46,7 @@ export default function PriceComparisonDesktopTable({
   onFilter: (key: keyof ColumnFilters, value: string) => void;
   visibility: ColumnVisibility;
   viewMode: "card" | "table";
+  priceMode: import("./price-comparison-metrics").PriceMode;
 }) {
   const headerClass =
     "px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap align-bottom";
@@ -90,6 +92,7 @@ export default function PriceComparisonDesktopTable({
                 onSort={onSort}
                 sortKey={sortKey}
                 sortDir={sortDir}
+                priceMode={priceMode}
               />
             ))}
           </tbody>
@@ -208,6 +211,7 @@ export default function PriceComparisonDesktopTable({
               totalColumns={totalColumns}
               viewMode={viewMode}
               columnGroupMode={columnGroupMode}
+              priceMode={priceMode}
             />
           ))}
         </tbody>

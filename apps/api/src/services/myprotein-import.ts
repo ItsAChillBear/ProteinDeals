@@ -27,6 +27,11 @@ export interface CompareProductRow {
   servings: number | null;
   price: number;
   pricePer100g: number;
+  singlePrice: number;
+  singlePricePer100g: number;
+  subscriptionPrice: number | null;
+  subscriptionPricePer100g: number | null;
+  subscriptionSavings: number | null;
   proteinPer100g: number | null;
   ingredients: string | null;
   nutritionalInformation: Array<{
@@ -226,6 +231,15 @@ async function loadMyproteinDbVariants() {
       product: true,
       retailer: true,
       priceRecords: {
+        select: {
+          price: true,
+          pricePer100g: true,
+          subscriptionPrice: true,
+          subscriptionPricePer100g: true,
+          subscriptionSavings: true,
+          wasOnSale: true,
+          scrapedAt: true,
+        },
         orderBy: {
           scrapedAt: "desc",
         },
@@ -281,6 +295,13 @@ function getFieldDiffs(record: MyproteinVariantRecord, current: MyproteinDbVaria
       toNumber(currentPrice?.pricePer100g ?? null),
       record.pricePer100g
     ),
+    diff("subscriptionPrice", toNumber(currentPrice?.subscriptionPrice ?? null), record.subscriptionPrice),
+    diff(
+      "subscriptionPricePer100g",
+      toNumber(currentPrice?.subscriptionPricePer100g ?? null),
+      getSubscriptionPricePer100g(record)
+    ),
+    diff("subscriptionSavings", toNumber(currentPrice?.subscriptionSavings ?? null), record.subscriptionSavings),
     diff("wasOnSale", currentPrice?.wasOnSale ?? null, record.wasOnSale),
   ].filter((entry): entry is MyproteinFieldDiff => entry !== null);
 }
@@ -392,6 +413,15 @@ async function upsertScrapedVariant(
         product: true,
         retailer: true,
         priceRecords: {
+          select: {
+            price: true,
+            pricePer100g: true,
+            subscriptionPrice: true,
+            subscriptionPricePer100g: true,
+            subscriptionSavings: true,
+            wasOnSale: true,
+            scrapedAt: true,
+          },
           orderBy: { scrapedAt: "desc" },
           take: 1,
         },
@@ -433,6 +463,18 @@ async function upsertScrapedVariant(
       variantId: variant.id,
       price: new Prisma.Decimal(record.price!.toFixed(2)),
       pricePer100g: new Prisma.Decimal(record.pricePer100g!.toFixed(4)),
+      subscriptionPrice:
+        record.subscriptionPrice !== null
+          ? new Prisma.Decimal(record.subscriptionPrice.toFixed(2))
+          : null,
+      subscriptionPricePer100g:
+        getSubscriptionPricePer100g(record) !== null
+          ? new Prisma.Decimal(getSubscriptionPricePer100g(record)!.toFixed(4))
+          : null,
+      subscriptionSavings:
+        record.subscriptionSavings !== null
+          ? new Prisma.Decimal(record.subscriptionSavings.toFixed(2))
+          : null,
       wasOnSale: record.wasOnSale,
       scrapedAt: new Date(record.scrapedAt),
     },
@@ -496,6 +538,15 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
       },
       retailer: true,
       priceRecords: {
+        select: {
+          price: true,
+          pricePer100g: true,
+          subscriptionPrice: true,
+          subscriptionPricePer100g: true,
+          subscriptionSavings: true,
+          wasOnSale: true,
+          scrapedAt: true,
+        },
         orderBy: {
           scrapedAt: "desc",
         },
@@ -521,6 +572,16 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
         servings: row.product.servingsPerPack,
         price: Number(latest.price),
         pricePer100g: Number(latest.pricePer100g),
+        singlePrice: Number(latest.price),
+        singlePricePer100g: Number(latest.pricePer100g),
+        subscriptionPrice:
+          latest.subscriptionPrice !== null ? Number(latest.subscriptionPrice) : null,
+        subscriptionPricePer100g:
+          latest.subscriptionPricePer100g !== null
+            ? Number(latest.subscriptionPricePer100g)
+            : null,
+        subscriptionSavings:
+          latest.subscriptionSavings !== null ? Number(latest.subscriptionSavings) : null,
         proteinPer100g:
           row.product.proteinPer100g !== null
             ? Number(row.product.proteinPer100g)
@@ -567,6 +628,11 @@ function extractGramAmount(value: string | null) {
   if (!value) return null;
   const match = value.match(/(\d+(?:\.\d+)?)/);
   return match ? Number(match[1]) : null;
+}
+
+function getSubscriptionPricePer100g(record: MyproteinVariantRecord) {
+  if (record.subscriptionPrice === null || record.sizeG === null || record.sizeG <= 0) return null;
+  return roundNullable((record.subscriptionPrice / record.sizeG) * 100, 4);
 }
 
 async function ensureRetailer() {

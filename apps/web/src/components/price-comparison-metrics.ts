@@ -8,6 +8,16 @@ import {
   getServingsPerPack,
 } from "./price-comparison-nutrition";
 
+export type PriceMode = "single" | "subscription";
+
+/** Returns a shallow copy of the product with price fields set to the chosen mode. */
+export function applyPriceMode(product: Product, mode: PriceMode): Product {
+  if (mode === "subscription" && product.subscriptionPrice != null && product.subscriptionPricePer100g != null) {
+    return { ...product, price: product.subscriptionPrice, pricePer100g: product.subscriptionPricePer100g };
+  }
+  return { ...product, price: product.singlePrice, pricePer100g: product.singlePricePer100g };
+}
+
 export function getPricePerServing(product: Product) {
   const servingsPerPack = getServingsPerPack(product);
   if (!servingsPerPack || servingsPerPack <= 0) return null;

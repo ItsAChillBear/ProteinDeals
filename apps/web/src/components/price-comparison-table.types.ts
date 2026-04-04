@@ -1,3 +1,5 @@
+import type { NutritionInfoRow } from "./price-comparison-nutrition.types";
+
 export interface Product {
   id: string;
   slug: string;
@@ -11,13 +13,14 @@ export interface Product {
   servings: number | null;
   price: number;
   pricePer100g: number;
+  singlePrice: number;
+  singlePricePer100g: number;
+  subscriptionPrice: number | null;
+  subscriptionPricePer100g: number | null;
+  subscriptionSavings: number | null;
   proteinPer100g: number | null;
   ingredients: string | null;
-  nutritionalInformation: Array<{
-    label: string;
-    per100g: string | null;
-    perServing: string | null;
-  }>;
+  nutritionalInformation: NutritionInfoRow[];
   inStock: boolean;
   url: string;
   type: string;

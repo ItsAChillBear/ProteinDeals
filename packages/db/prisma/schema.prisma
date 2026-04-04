@@ -106,6 +106,9 @@ model PriceRecord {
   variantId    String         @map("variant_id") @db.Uuid
   price        Decimal        @db.Decimal(10, 2)
   pricePer100g Decimal        @map("price_per_100g") @db.Decimal(10, 4)
+  subscriptionPrice Decimal?  @map("subscription_price") @db.Decimal(10, 2)
+  subscriptionPricePer100g Decimal? @map("subscription_price_per_100g") @db.Decimal(10, 4)
+  subscriptionSavings Decimal? @map("subscription_savings") @db.Decimal(10, 2)
   wasOnSale    Boolean        @default(false) @map("was_on_sale")
   scrapedAt    DateTime       @default(now()) @map("scraped_at") @db.Timestamptz(6)
   variant      ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
