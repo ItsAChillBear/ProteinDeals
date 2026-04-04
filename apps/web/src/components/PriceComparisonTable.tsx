@@ -80,27 +80,21 @@ export default function PriceComparisonTable({
         .map((v) => applyPriceMode(v, priceMode))
     );
 
-    const result: Record<string, string | null> = {};
+    const result: Record<string, string[]> = {};
     for (const metric of metrics) {
       const min = inStockFilteredVariants.reduce<number | null>((best, variant) => {
         const value = getBestValueAmount(variant, metric);
         if (value === null) return best;
         return best === null || value < best ? value : best;
       }, null);
-      if (min === null) {
-        result[metric] = null;
-        continue;
-      }
+      if (min === null) { result[metric] = []; continue; }
 
-      let found: string | null = null;
-      outer: for (const group of filteredGroups) {
+      const found: string[] = [];
+      for (const group of filteredGroups) {
         for (const variant of group.variants) {
           if (!variant.inStock) continue;
           if (!variantMatchesFilters(variant, activeFilters) || !plannerMatchesVariant(variant, planner)) continue;
-          if (getBestValueAmount(applyPriceMode(variant, priceMode), metric) === min) {
-            found = variant.id;
-            break outer;
-          }
+          if (getBestValueAmount(applyPriceMode(variant, priceMode), metric) === min) found.push(variant.id);
         }
       }
       result[metric] = found;
@@ -109,7 +103,7 @@ export default function PriceComparisonTable({
   }, [activeFilters, filteredGroups, planner, priceMode]);
 
   const calorieVariantIds = useMemo(() => {
-    if (servingMetric !== "calories") return { lowest: null as string | null, highest: null as string | null };
+    if (servingMetric !== "calories") return { lowest: [] as string[], highest: [] as string[] };
     const getCalVal = (variant: Product): number | null => {
       if (activeColumn === "pricePerServing") return getCaloriesPerServing(variant);
       if (activeColumn === "pricePerGramProtein") return getCaloriesPerGramProtein(variant);
@@ -126,18 +120,14 @@ export default function PriceComparisonTable({
       if (minVal === null || val < minVal) minVal = val;
       if (maxVal === null || val > maxVal) maxVal = val;
     }
-    let lowest: string | null = null;
-    let highest: string | null = null;
-    outer1: for (const group of filteredGroups) {
+    const lowest: string[] = [];
+    const highest: string[] = [];
+    for (const group of filteredGroups) {
       for (const variant of group.variants) {
         if (!variant.inStock || !variantMatchesFilters(variant, activeFilters) || !plannerMatchesVariant(variant, planner)) continue;
-        if (minVal !== null && getCalVal(variant) === minVal) { lowest = variant.id; break outer1; }
-      }
-    }
-    outer2: for (const group of filteredGroups) {
-      for (const variant of group.variants) {
-        if (!variant.inStock || !variantMatchesFilters(variant, activeFilters) || !plannerMatchesVariant(variant, planner)) continue;
-        if (maxVal !== null && getCalVal(variant) === maxVal) { highest = variant.id; break outer2; }
+        const val = getCalVal(variant);
+        if (minVal !== null && val === minVal) lowest.push(variant.id);
+        if (maxVal !== null && val === maxVal) highest.push(variant.id);
       }
     }
     return { lowest, highest };

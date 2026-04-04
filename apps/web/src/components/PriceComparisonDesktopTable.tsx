@@ -34,9 +34,9 @@ export default function PriceComparisonDesktopTable({
   priceMode,
 }: {
   groups: ProductGroupWithSelection[];
-  bestValueVariantIds: Record<string, string | null>;
+  bestValueVariantIds: Record<string, string[]>;
   calorieMode: boolean;
-  calorieVariantIds: { lowest: string | null; highest: string | null };
+  calorieVariantIds: { lowest: string[]; highest: string[] };
   columnGroupMode: "nutrient" | "measure";
   expandedRows: Record<string, boolean>;
   onSort: (key: SortKey) => void;
@@ -127,8 +127,8 @@ export default function PriceComparisonDesktopTable({
 
   const fixedThs = (
     <>
-      <th className={`${headerClass} w-28`}>{sortableHeader("Product", "name")}</th>
-      <th className={`${headerClass} min-w-[80px]`}>
+      <th className={`${headerClass} w-36`}>{sortableHeader("Product", "name")}</th>
+      <th className={`${headerClass} w-24`}>
         <div className="flex flex-col items-center gap-1.5">
           <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi />
           <span>Flavour</span>

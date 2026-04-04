@@ -47,11 +47,21 @@ export function Stat({
                 ? "text-green-500"
                 : "text-theme-2";
 
+  const cellBg =
+    calorieTag === "lowest"
+      ? "bg-amber-500/15"
+      : calorieTag === "highest"
+        ? "bg-orange-500/15"
+        : bestValue
+          ? "bg-green-500/15"
+          : "";
+
   return (
     <span
       className={clsx(
-        "relative flex-shrink-0 text-center text-[12px] font-medium",
+        "relative flex-shrink-0 text-center text-[12px] font-medium rounded",
         valueColor,
+        cellBg,
         className
       )}
     >

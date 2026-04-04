@@ -34,9 +34,9 @@ export default function PriceComparisonMobileList({
 }: {
   groups: ProductGroupWithSelection[];
   expandedRows: Record<string, boolean>;
-  bestValueVariantIds: Record<string, string | null>;
+  bestValueVariantIds: Record<string, string[]>;
   calorieMode: boolean;
-  calorieVariantIds: { lowest: string | null; highest: string | null };
+  calorieVariantIds: { lowest: string[]; highest: string[] };
   planner: ProteinPlannerState;
   onToggleExpanded: (groupId: string) => void;
   priceMode: PriceMode;
@@ -50,10 +50,10 @@ export default function PriceComparisonMobileList({
         const flavourVariants = getVariantsForFlavour(group, activeFlavour).filter((variant) =>
           plannerMatchesVariant(variant, planner)
         );
-        const bestValueIds = Object.values(bestValueVariantIds).filter(Boolean) as string[];
+        const bestValueIds = Object.values(bestValueVariantIds).flat();
         const isBestValue = !calorieMode && product.inStock && flavourVariants.some((v) => bestValueIds.includes(v.id));
-        const hasLowest = calorieMode && flavourVariants.some((v) => v.id === calorieVariantIds.lowest);
-        const hasHighest = calorieMode && flavourVariants.some((v) => v.id === calorieVariantIds.highest);
+        const hasLowest = calorieMode && flavourVariants.some((v) => calorieVariantIds.lowest.includes(v.id));
+        const hasHighest = calorieMode && flavourVariants.some((v) => calorieVariantIds.highest.includes(v.id));
 
         if (!flavourVariants.length) return null;
 

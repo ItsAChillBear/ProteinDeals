@@ -15,9 +15,9 @@ import { matchesVariantFilters } from "./price-comparison-card.shared";
 
 interface Props {
   group: ProductGroupWithSelection;
-  bestValueVariantIds: Record<string, string | null>;
+  bestValueVariantIds: Record<string, string[]>;
   calorieMode?: boolean;
-  calorieVariantIds?: { lowest: string | null; highest: string | null };
+  calorieVariantIds?: { lowest: string[]; highest: string[] };
   filters: ColumnFilters;
   planner: ProteinPlannerState;
   visibility: ColumnVisibility;
@@ -39,7 +39,7 @@ export function PriceComparisonDesktopRowGroup({
   group,
   bestValueVariantIds,
   calorieMode = false,
-  calorieVariantIds = { lowest: null, highest: null },
+  calorieVariantIds = { lowest: [], highest: [] },
   filters,
   planner,
   visibility,
@@ -77,7 +77,7 @@ export function PriceComparisonDesktopRowGroup({
   if (!flavourVariants.length) return null;
 
   const displayProteinPer100g = getDisplayProteinPer100g(product, flavourVariants);
-  const bestValueIds = Object.values(bestValueVariantIds).filter(Boolean) as string[];
+  const bestValueIds = Object.values(bestValueVariantIds).flat();
   const isBestValue =
     product.inStock &&
     bestValueIds.length > 0 &&

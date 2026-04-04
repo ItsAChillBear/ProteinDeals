@@ -29,9 +29,9 @@ import { applyPriceMode, type PriceMode } from "./price-comparison-metrics";
 interface Props {
   group: ProductGroupWithSelection;
   flavourVariants: ProductGroupWithSelection["variants"];
-  bestValueVariantIds: Record<string, string | null>;
+  bestValueVariantIds: Record<string, string[]>;
   calorieMode?: boolean;
-  calorieVariantIds?: { lowest: string | null; highest: string | null };
+  calorieVariantIds?: { lowest: string[]; highest: string[] };
   visibility: ColumnVisibility;
   isBestValue: boolean;
   isExpanded: boolean;
@@ -52,7 +52,7 @@ export default function PriceComparisonDesktopCardGroup({
   flavourVariants,
   bestValueVariantIds,
   calorieMode = false,
-  calorieVariantIds = { lowest: null, highest: null },
+  calorieVariantIds = { lowest: [], highest: [] },
   visibility,
   isBestValue,
   isExpanded,
@@ -160,15 +160,14 @@ function MetricHeader({ title, widths, labels, colors, filters }: { title: strin
   );
 }
 
-function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, calorieVariantIds, visibility, bestValueVariantIds, displayProteinPer100g, showPlanner, proteinTarget, planner, bordered }: { variant: ProductGroupWithSelection["selected"]; effectiveMode: PriceMode; isOverridden: boolean; calorieMode: boolean; calorieVariantIds: { lowest: string | null; highest: string | null }; visibility: ColumnVisibility; bestValueVariantIds: Record<string, string | null>; displayProteinPer100g: number | null; showPlanner: boolean; proteinTarget: number; planner: ProteinPlannerState; bordered: boolean; }) {
+function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, calorieVariantIds, visibility, bestValueVariantIds, displayProteinPer100g, showPlanner, proteinTarget, planner, bordered }: { variant: ProductGroupWithSelection["selected"]; effectiveMode: PriceMode; isOverridden: boolean; calorieMode: boolean; calorieVariantIds: { lowest: string[]; highest: string[] }; visibility: ColumnVisibility; bestValueVariantIds: Record<string, string[]>; displayProteinPer100g: number | null; showPlanner: boolean; proteinTarget: number; planner: ProteinPlannerState; bordered: boolean; }) {
   const v = applyPriceMode(variant, effectiveMode);
-  const best100g = variant.id === bestValueVariantIds.pricePer100g;
-  const bestServing = variant.id === bestValueVariantIds.pricePerServing;
-  const best1gProtein = variant.id === bestValueVariantIds.pricePerGramProtein;
-  const anyBest = !calorieMode && (best100g || bestServing || best1gProtein);
+  const best100g = bestValueVariantIds.pricePer100g?.includes(variant.id) ?? false;
+  const bestServing = bestValueVariantIds.pricePerServing?.includes(variant.id) ?? false;
+  const best1gProtein = bestValueVariantIds.pricePerGramProtein?.includes(variant.id) ?? false;
   const hasSubscription = variant.subscriptionPrice != null;
-  const isLowest = calorieMode && variant.id === calorieVariantIds.lowest;
-  const isHighest = calorieMode && variant.id === calorieVariantIds.highest;
+  const isLowest = calorieMode && (calorieVariantIds.lowest.includes(variant.id));
+  const isHighest = calorieMode && (calorieVariantIds.highest.includes(variant.id));
   const dailyCost = showPlanner ? getDailyCostForTarget(v, proteinTarget) : null;
   const dailyCalories = showPlanner && planner.calorieEnabled ? getDailyCaloriesForTarget(v, proteinTarget) : null;
   const proteinPerServing = getProteinPerServing(v);
@@ -178,22 +177,13 @@ function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, cal
   const calPer100g = getCaloriesPer100g(v);
   const calPerGramProtein = getCaloriesPerGramProtein(v);
 
-  const rowBg = isOverridden && hasSubscription
-    ? "bg-sky-500/10"
-    : calorieMode
-      ? isLowest ? "bg-amber-500/10" : isHighest ? "bg-orange-500/10" : "bg-transparent"
-      : anyBest ? "bg-green-500/10" : "bg-transparent";
-
-  const leftBarColor = calorieMode
-    ? isLowest ? "bg-amber-500" : isHighest ? "bg-orange-500" : null
-    : anyBest ? "bg-green-500" : null;
+  const rowBg = isOverridden && hasSubscription ? "bg-sky-500/10" : "bg-transparent";
 
   return (
     <div className={clsx("flex items-center relative", bordered && "border-t border-theme", rowBg)}>
-      {leftBarColor ? <div className={clsx("absolute left-0 top-0 bottom-0 w-0.5", leftBarColor)} /> : null}
       <div className="w-44 flex-shrink-0 flex items-center py-2.5">
         <div className="w-5 flex-shrink-0" />
-        <span className={clsx("w-14 flex-shrink-0 px-1 text-center text-sm font-bold", calorieMode ? isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-theme" : anyBest ? "text-green-500" : "text-theme")}>{formatSize(variant.size)}</span>
+        <span className="w-14 flex-shrink-0 px-1 text-center text-sm font-bold text-theme">{formatSize(variant.size)}</span>
         {visibility.showTotal ? (
           <div className="w-20 flex-shrink-0 flex flex-col items-center gap-0.5">
             <span className={clsx("text-xs font-semibold", calorieMode ? isLowest ? "text-amber-500" : isHighest ? "text-orange-500" : "text-green-500" : "text-green-500")}>{formatCurrency(v.price)}</span>
