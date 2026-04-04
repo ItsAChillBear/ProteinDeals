@@ -54,7 +54,7 @@ export default function PriceComparisonTable({
   const [visibility, setVisibility] = useState<ColumnVisibility>(DEFAULT_VISIBILITY);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [columnGroupMode, setColumnGroupMode] = useState<"nutrient" | "measure">("nutrient");
-  const [flavourMode, setFlavourMode] = useState<"separate" | "consolidate">("separate");
+  const [flavourMode, setFlavourMode] = useState<"separate" | "consolidate">("consolidate");
   const [priceMode, setPriceMode] = useState<PriceMode>(controlledPriceMode ?? "single");
   const [servingMetric, setServingMetric] = useState<"price" | "calories">("price");
   const [activeColumn, setActiveColumn] = useState<"pricePerServing" | "pricePer100g" | "pricePerGramProtein">("pricePer100g");

@@ -78,7 +78,10 @@ export default function PriceComparisonToolbar({
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-theme-3"><span className="font-semibold text-theme">{filteredGroupsLength}</span> products, <span className="font-semibold text-theme">{filteredVariantCount}</span> variants</span>
+          <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
+            <button type="button" onClick={() => setFlavourMode("consolidate")} className={`px-2.5 py-1 transition ${flavourMode === "consolidate" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Consolidate</button>
+            <button type="button" onClick={() => setFlavourMode("separate")} className={`px-2.5 py-1 transition border-l border-theme-2 ${flavourMode === "separate" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Separate</button>
+          </div>
           <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
             <button type="button" onClick={() => setViewMode("card")} className={`px-2.5 py-1 transition ${viewMode === "card" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Cards</button>
             <button type="button" onClick={() => setViewMode("table")} className={`px-2.5 py-1 transition border-l border-theme-2 ${viewMode === "table" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Table</button>
@@ -89,12 +92,6 @@ export default function PriceComparisonToolbar({
               <button type="button" onClick={() => setColumnGroupMode("measure")} className={`px-2.5 py-1 transition border-l border-theme-2 ${columnGroupMode === "measure" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>/Serving / /100g / /1g Protein</button>
             </div>
           ) : null}
-          {viewMode === "card" ? (
-            <div className="flex rounded-md border border-theme-2 overflow-hidden text-xs font-medium">
-              <button type="button" onClick={() => setFlavourMode("separate")} className={`px-2.5 py-1 transition ${flavourMode === "separate" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Separate</button>
-              <button type="button" onClick={() => setFlavourMode("consolidate")} className={`px-2.5 py-1 transition border-l border-theme-2 ${flavourMode === "consolidate" ? "bg-green-700/60 text-green-200" : "text-theme-3 hover:text-theme"}`}>Consolidate</button>
-            </div>
-          ) : null}
           <button type="button" onClick={resetAll} className="rounded-md px-2.5 py-1 text-xs font-medium text-theme-3 transition hover:text-theme">Reset All</button>
         </div>
       </div>
@@ -103,6 +100,8 @@ export default function PriceComparisonToolbar({
         <PriceComparisonFilterDropdown value={filters.category} options={filterOptions.categories} onChange={(v) => onFilter("category", v)} multi label="Category" />
         <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => onFilter("product", v)} multi label="Product" />
         <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi label="Flavour" />
+        <span className="flex-1" />
+        <span className="text-xs text-theme-3"><span className="font-semibold text-theme">{filteredGroupsLength}</span> products, <span className="font-semibold text-theme">{filteredVariantCount}</span> variants</span>
       </div>
     </div>
   );

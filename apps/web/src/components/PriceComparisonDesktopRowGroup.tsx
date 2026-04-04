@@ -138,6 +138,8 @@ export function PriceComparisonDesktopRowGroup({
       columnGroupMode={columnGroupMode}
       displayProteinPer100g={displayProteinPer100g}
       priceMode={priceMode}
+      flavourMode={flavourMode}
+      sortKey={sortKey}
     />
   );
 }

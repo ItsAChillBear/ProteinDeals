@@ -280,7 +280,7 @@ export default function PriceComparisonDesktopTable({
           )}
         </thead>
         <tbody className="divide-y divide-theme">
-          {groups.map((group) => (
+          {cardGroups.map((group) => (
             <PriceComparisonDesktopRowGroup
               key={group.id}
               group={group}
@@ -296,6 +296,7 @@ export default function PriceComparisonDesktopTable({
               viewMode={viewMode}
               columnGroupMode={columnGroupMode}
               priceMode={priceMode}
+              flavourMode={flavourMode}
             />
           ))}
         </tbody>
