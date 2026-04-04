@@ -1,6 +1,6 @@
 "use client";
 
-import { Tag } from "lucide-react";
+import { Tag, TrendingDown, TrendingUp } from "lucide-react";
 import { clsx } from "clsx";
 import type { Product } from "./price-comparison-table.types";
 import {
@@ -24,22 +24,28 @@ export function Stat({
   className,
   children,
   bestValue,
+  calorieTag,
 }: {
   color?: "violet" | "amber" | "sky";
   className?: string;
   children: React.ReactNode;
   bestValue?: boolean;
+  calorieTag?: "lowest" | "highest";
 }) {
   const valueColor =
-    bestValue && color === "sky"
-      ? "text-green-500"
-      : color === "violet"
-        ? "text-violet-500"
-        : color === "amber"
-          ? "text-amber-500"
-          : color === "sky"
-            ? "text-sky-500"
-            : "text-theme-2";
+    calorieTag === "lowest"
+      ? "text-amber-500"
+      : calorieTag === "highest"
+        ? "text-orange-500"
+        : bestValue && color === "sky"
+          ? "text-green-500"
+          : color === "violet"
+            ? "text-violet-500"
+            : color === "amber"
+              ? "text-amber-500"
+              : color === "sky"
+                ? "text-green-500"
+                : "text-theme-2";
 
   return (
     <span
@@ -54,6 +60,18 @@ export function Stat({
         <Tag
           className="absolute -right-1 -top-1.5 h-3.5 w-3.5 text-green-500"
           aria-label="Best value"
+        />
+      ) : null}
+      {calorieTag === "lowest" ? (
+        <TrendingDown
+          className="absolute -right-1 -top-1.5 h-3.5 w-3.5 text-amber-500"
+          aria-label="Lowest calorie"
+        />
+      ) : null}
+      {calorieTag === "highest" ? (
+        <TrendingUp
+          className="absolute -right-1 -top-1.5 h-3.5 w-3.5 text-orange-500"
+          aria-label="Highest calorie"
         />
       ) : null}
     </span>

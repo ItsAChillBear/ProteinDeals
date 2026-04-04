@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
 import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
@@ -28,6 +27,10 @@ interface Props {
   filteredGroupsLength: number;
   filteredVariantCount: number;
   resetAll: () => void;
+  servingMetric: "price" | "calories";
+  setServingMetric: React.Dispatch<React.SetStateAction<"price" | "calories">>;
+  activeColumn: "pricePerServing" | "pricePer100g" | "pricePerGramProtein";
+  setActiveColumn: React.Dispatch<React.SetStateAction<"pricePerServing" | "pricePer100g" | "pricePerGramProtein">>;
 }
 
 const SORT_BUTTONS: { key: SortKey; label: string; visKey: keyof ColumnVisibility }[] = [
@@ -62,9 +65,11 @@ export default function PriceComparisonToolbar({
   filteredGroupsLength,
   filteredVariantCount,
   resetAll,
+  servingMetric,
+  setServingMetric,
+  activeColumn,
+  setActiveColumn,
 }: Props) {
-  const [servingMetric, setServingMetric] = useState<"price" | "calories">("price");
-  const [activeColumn, setActiveColumn] = useState<"pricePerServing" | "pricePer100g" | "pricePerGramProtein">("pricePer100g");
 
   const caloriesKeyForColumn: Record<typeof activeColumn, SortKey> = {
     pricePerServing: "caloriesPerServing",

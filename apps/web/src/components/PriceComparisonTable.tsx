@@ -21,7 +21,8 @@ import type {
   SortDir,
   SortKey,
 } from "./price-comparison-table.types";
-import { applyPriceMode, getPricePerGramProtein, getPricePerServing, type PriceMode } from "./price-comparison-metrics";
+import { applyPriceMode, getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, type PriceMode } from "./price-comparison-metrics";
+import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import {
   countMatchingVariantsForGroup,
   DEFAULT_PROTEIN_PLANNER,
@@ -53,6 +54,8 @@ export default function PriceComparisonTable({
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [columnGroupMode, setColumnGroupMode] = useState<"nutrient" | "measure">("nutrient");
   const [priceMode, setPriceMode] = useState<PriceMode>(controlledPriceMode ?? "single");
+  const [servingMetric, setServingMetric] = useState<"price" | "calories">("price");
+  const [activeColumn, setActiveColumn] = useState<"pricePerServing" | "pricePer100g" | "pricePerGramProtein">("pricePer100g");
   const activeFilters = useDeferredValue(filters);
 
   useEffect(() => {
@@ -104,6 +107,41 @@ export default function PriceComparisonTable({
     }
     return result;
   }, [activeFilters, filteredGroups, planner, priceMode]);
+
+  const calorieVariantIds = useMemo(() => {
+    if (servingMetric !== "calories") return { lowest: null as string | null, highest: null as string | null };
+    const getCalVal = (variant: Product): number | null => {
+      if (activeColumn === "pricePerServing") return getCaloriesPerServing(variant);
+      if (activeColumn === "pricePerGramProtein") return getCaloriesPerGramProtein(variant);
+      return getCaloriesPer100g(variant);
+    };
+    const inStockFilteredVariants = filteredGroups.flatMap((group) =>
+      group.variants.filter((variant) => variant.inStock && variantMatchesFilters(variant, activeFilters) && plannerMatchesVariant(variant, planner))
+    );
+    let minVal: number | null = null;
+    let maxVal: number | null = null;
+    for (const v of inStockFilteredVariants) {
+      const val = getCalVal(v);
+      if (val === null) continue;
+      if (minVal === null || val < minVal) minVal = val;
+      if (maxVal === null || val > maxVal) maxVal = val;
+    }
+    let lowest: string | null = null;
+    let highest: string | null = null;
+    outer1: for (const group of filteredGroups) {
+      for (const variant of group.variants) {
+        if (!variant.inStock || !variantMatchesFilters(variant, activeFilters) || !plannerMatchesVariant(variant, planner)) continue;
+        if (minVal !== null && getCalVal(variant) === minVal) { lowest = variant.id; break outer1; }
+      }
+    }
+    outer2: for (const group of filteredGroups) {
+      for (const variant of group.variants) {
+        if (!variant.inStock || !variantMatchesFilters(variant, activeFilters) || !plannerMatchesVariant(variant, planner)) continue;
+        if (maxVal !== null && getCalVal(variant) === maxVal) { highest = variant.id; break outer2; }
+      }
+    }
+    return { lowest, highest };
+  }, [servingMetric, activeColumn, filteredGroups, activeFilters, planner]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -176,11 +214,17 @@ export default function PriceComparisonTable({
         filteredGroupsLength={filteredGroups.length}
         filteredVariantCount={filteredVariantCount}
         resetAll={resetAll}
+        servingMetric={servingMetric}
+        setServingMetric={setServingMetric}
+        activeColumn={activeColumn}
+        setActiveColumn={setActiveColumn}
       />
       <PriceComparisonDesktopTable
         groups={filteredGroups}
         expandedRows={expandedRows}
         bestValueVariantIds={bestValueVariantIds}
+        calorieMode={servingMetric === "calories"}
+        calorieVariantIds={calorieVariantIds}
         onSort={handleSort}
         onToggleExpanded={toggleExpanded}
         sortDir={sortDir}
@@ -195,7 +239,7 @@ export default function PriceComparisonTable({
         columnGroupMode={columnGroupMode}
         priceMode={priceMode}
       />
-      <PriceComparisonMobileList groups={filteredGroups} expandedRows={expandedRows} bestValueVariantIds={bestValueVariantIds} planner={planner} onToggleExpanded={toggleExpanded} priceMode={priceMode} />
+      <PriceComparisonMobileList groups={filteredGroups} expandedRows={expandedRows} bestValueVariantIds={bestValueVariantIds} calorieMode={servingMetric === "calories"} calorieVariantIds={calorieVariantIds} planner={planner} onToggleExpanded={toggleExpanded} priceMode={priceMode} />
     </div>
   );
 }

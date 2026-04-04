@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, Tag, XCircle } from "lucide-react";
+import { CheckCircle, Tag, TrendingDown, TrendingUp, XCircle } from "lucide-react";
 import { clsx } from "clsx";
 import PriceComparisonExpandedDetails from "./PriceComparisonExpandedDetails";
 import type { ProductGroupWithSelection } from "./price-comparison-table.types";
@@ -26,6 +26,8 @@ export default function PriceComparisonMobileList({
   groups,
   expandedRows,
   bestValueVariantIds,
+  calorieMode,
+  calorieVariantIds,
   planner,
   onToggleExpanded,
   priceMode,
@@ -33,6 +35,8 @@ export default function PriceComparisonMobileList({
   groups: ProductGroupWithSelection[];
   expandedRows: Record<string, boolean>;
   bestValueVariantIds: Record<string, string | null>;
+  calorieMode: boolean;
+  calorieVariantIds: { lowest: string | null; highest: string | null };
   planner: ProteinPlannerState;
   onToggleExpanded: (groupId: string) => void;
   priceMode: PriceMode;
@@ -47,14 +51,20 @@ export default function PriceComparisonMobileList({
           plannerMatchesVariant(variant, planner)
         );
         const bestValueIds = Object.values(bestValueVariantIds).filter(Boolean) as string[];
-        const isBestValue = product.inStock && flavourVariants.some((v) => bestValueIds.includes(v.id));
+        const isBestValue = !calorieMode && product.inStock && flavourVariants.some((v) => bestValueIds.includes(v.id));
+        const hasLowest = calorieMode && flavourVariants.some((v) => v.id === calorieVariantIds.lowest);
+        const hasHighest = calorieMode && flavourVariants.some((v) => v.id === calorieVariantIds.highest);
 
         if (!flavourVariants.length) return null;
+
+        const groupBg = calorieMode
+          ? hasLowest ? "bg-amber-500/5" : hasHighest ? "bg-orange-500/5" : "hover-bg"
+          : isBestValue ? "bg-green-500/5" : "hover-bg";
 
         return (
           <div
             key={group.id}
-            className={clsx("p-4", isBestValue ? "bg-green-500/5" : "hover-bg")}
+            className={clsx("p-4", groupBg)}
           >
             <div className="mb-3 flex items-start gap-3">
               <div className="flex flex-col items-start gap-3">
@@ -72,6 +82,10 @@ export default function PriceComparisonMobileList({
                   </button>
                   {isBestValue ? (
                     <Tag className="h-4 w-4 flex-shrink-0 text-green-500" aria-label="Best value" />
+                  ) : hasLowest ? (
+                    <TrendingDown className="h-4 w-4 flex-shrink-0 text-amber-500" aria-label="Lowest calorie" />
+                  ) : hasHighest ? (
+                    <TrendingUp className="h-4 w-4 flex-shrink-0 text-orange-500" aria-label="Highest calorie" />
                   ) : null}
                 </div>
 
