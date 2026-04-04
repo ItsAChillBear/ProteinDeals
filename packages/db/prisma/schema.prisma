@@ -38,6 +38,8 @@ model Product {
   name            String           @db.VarChar(500)
   brand           String           @db.VarChar(100)
   category        ProductCategory
+  categoryLabels  Json?            @map("category_labels")
+  categoryUrls    Json?            @map("category_urls")
   description     String?
   ingredients     String?
   nutritionalInfo Json?            @map("nutritional_info")

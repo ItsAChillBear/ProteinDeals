@@ -50,6 +50,8 @@ export const products = pgTable(
     name: varchar("name", { length: 500 }).notNull(),
     brand: varchar("brand", { length: 100 }).notNull(),
     category: productCategoryEnum("category").notNull(),
+    categoryLabels: jsonb("category_labels"),
+    categoryUrls: jsonb("category_urls"),
     description: text("description"),
     ingredients: text("ingredients"),
     nutritionalInfo: jsonb("nutritional_info"),

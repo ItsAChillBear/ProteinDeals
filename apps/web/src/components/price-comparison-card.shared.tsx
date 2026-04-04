@@ -118,7 +118,7 @@ export function matchesVariantFilters(variant: Product, filters: ColumnFilters) 
   if (filters.flavour !== "all") {
     if (filters.flavour.startsWith(MULTI_PREFIX)) {
       const allowed = parseMultiFilter(filters.flavour);
-      if (!allowed.includes(variant.flavour ?? "")) return false;
+      if (!(variant.flavour == null ? allowed.includes("") : allowed.includes(variant.flavour))) return false;
     } else if ((variant.flavour ?? "") !== filters.flavour) {
       return false;
     }

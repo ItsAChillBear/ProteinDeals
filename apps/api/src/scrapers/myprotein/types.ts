@@ -11,6 +11,8 @@ export interface MyproteinVariantRecord {
   brand: string;
   productName: string;
   categoryUrl: string;
+  categoryUrls: string[];
+  categoryLabels: string[];
   productUrl: string;
   variantUrl: string;
   retailerProductId: string | null;
@@ -42,6 +44,7 @@ export interface MyproteinVariantRecord {
 
 export interface ScrapeMyproteinOptions {
   categoryUrl?: string;
+  categoryUrls?: string[];
   limitProducts?: number;
   fetchImpl?: typeof fetch;
   onProgress?: (message: string) => void | Promise<void>;

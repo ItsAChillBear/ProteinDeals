@@ -29,6 +29,26 @@ const server = Fastify({
   },
 });
 
+function getMyproteinScrapeOptions(query: unknown) {
+  const params = query as {
+    categoryUrl?: string | string[];
+  };
+
+  const rawCategoryUrls = Array.isArray(params?.categoryUrl)
+    ? params.categoryUrl
+    : typeof params?.categoryUrl === "string"
+      ? [params.categoryUrl]
+      : [];
+
+  const categoryUrls = rawCategoryUrls.filter(
+    (value): value is string => typeof value === "string" && value.length > 0
+  );
+
+  return {
+    categoryUrls: categoryUrls.length ? categoryUrls : undefined,
+  };
+}
+
 async function start() {
   await server.register(cors, {
     origin: [
@@ -66,14 +86,12 @@ async function start() {
   }));
 
   server.post("/internal/scrapers/myprotein/run", async (request, reply) => {
-    const query = request.query as { limit?: string };
-    const limit = query.limit ? Number(query.limit) : undefined;
+    const scrapeOptions = getMyproteinScrapeOptions(request.query);
     const startedAt = new Date().toISOString();
 
     try {
       const records = await scrapeMyproteinWheyProducts({
-        limitProducts:
-          typeof limit === "number" && Number.isFinite(limit) ? limit : undefined,
+        ...scrapeOptions,
       });
 
       return {
@@ -96,8 +114,7 @@ async function start() {
   });
 
   server.get("/internal/scrapers/myprotein/stream", async (request, reply) => {
-    const query = request.query as { limit?: string };
-    const limit = query.limit ? Number(query.limit) : undefined;
+    const scrapeOptions = getMyproteinScrapeOptions(request.query);
     const startedAt = new Date().toISOString();
 
     reply.raw.setHeader("Content-Type", "text/event-stream");
@@ -113,8 +130,7 @@ async function start() {
     try {
       send("progress", { message: "Starting Myprotein scrape" });
       const records = await scrapeMyproteinWheyProducts({
-        limitProducts:
-          typeof limit === "number" && Number.isFinite(limit) ? limit : undefined,
+        ...scrapeOptions,
         onProgress: async (message: string) => {
           send("progress", { message });
         },
@@ -271,14 +287,12 @@ async function start() {
   });
 
   server.post("/internal/scrapers/myprotein/import", async (request, reply) => {
-    const query = request.query as { limit?: string };
-    const limit = query.limit ? Number(query.limit) : undefined;
+    const scrapeOptions = getMyproteinScrapeOptions(request.query);
     const startedAt = new Date().toISOString();
 
     try {
       const records = await scrapeMyproteinWheyProducts({
-        limitProducts:
-          typeof limit === "number" && Number.isFinite(limit) ? limit : undefined,
+        ...scrapeOptions,
       });
       const importResult = await importMyproteinRecords(records);
 
@@ -301,39 +315,43 @@ async function start() {
     }
   });
 
-  server.post("/internal/scrapers/myprotein/import-records", async (request, reply) => {
-    const startedAt = new Date().toISOString();
-    const body = request.body as { records?: unknown; entryIds?: unknown };
+  server.post(
+    "/internal/scrapers/myprotein/import-records",
+    { bodyLimit: 10 * 1024 * 1024 },
+    async (request, reply) => {
+      const startedAt = new Date().toISOString();
+      const body = request.body as { records?: unknown; entryIds?: unknown };
 
-    try {
-      const records = Array.isArray(body?.records) ? body.records : [];
-      const preview = await previewMyproteinSync(
-        records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>
-      );
-      const rawEntryIds = Array.isArray(body?.entryIds) ? body.entryIds : null;
-      const entryIds =
-        rawEntryIds?.filter((value): value is string => typeof value === "string") ??
-        preview.entries.map((entry) => entry.id);
-      const importResult = await applyMyproteinSync(entryIds, preview);
+      try {
+        const records = Array.isArray(body?.records) ? body.records : [];
+        const preview = await previewMyproteinSync(
+          records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>
+        );
+        const rawEntryIds = Array.isArray(body?.entryIds) ? body.entryIds : null;
+        const entryIds =
+          rawEntryIds?.filter((value): value is string => typeof value === "string") ??
+          preview.entries.map((entry) => entry.id);
+        const importResult = await applyMyproteinSync(entryIds, preview);
 
-      return {
-        ok: true,
-        startedAt,
-        finishedAt: new Date().toISOString(),
-        count: records.length,
-        importResult,
-      };
-    } catch (error) {
-      request.log.error(error);
-      reply.code(500);
-      return {
-        ok: false,
-        startedAt,
-        finishedAt: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown import error",
-      };
+        return {
+          ok: true,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          count: records.length,
+          importResult,
+        };
+      } catch (error) {
+        request.log.error(error);
+        reply.code(500);
+        return {
+          ok: false,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          error: error instanceof Error ? error.message : "Unknown import error",
+        };
+      }
     }
-  });
+  );
 
   server.post("/internal/scrapers/myprotein/clear", async (request, reply) => {
     const startedAt = new Date().toISOString();
@@ -359,34 +377,38 @@ async function start() {
     }
   });
 
-  server.post("/internal/scrapers/myprotein/preview-records", async (request, reply) => {
-    const startedAt = new Date().toISOString();
-    const body = request.body as { records?: unknown };
+  server.post(
+    "/internal/scrapers/myprotein/preview-records",
+    { bodyLimit: 10 * 1024 * 1024 },
+    async (request, reply) => {
+      const startedAt = new Date().toISOString();
+      const body = request.body as { records?: unknown };
 
-    try {
-      const records = Array.isArray(body?.records) ? body.records : [];
-      const preview = await previewMyproteinSync(
-        records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>
-      );
+      try {
+        const records = Array.isArray(body?.records) ? body.records : [];
+        const preview = await previewMyproteinSync(
+          records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>
+        );
 
-      return {
-        ok: true,
-        startedAt,
-        finishedAt: new Date().toISOString(),
-        count: records.length,
-        preview,
-      };
-    } catch (error) {
-      request.log.error(error);
-      reply.code(500);
-      return {
-        ok: false,
-        startedAt,
-        finishedAt: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown preview error",
-      };
+        return {
+          ok: true,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          count: records.length,
+          preview,
+        };
+      } catch (error) {
+        request.log.error(error);
+        reply.code(500);
+        return {
+          ok: false,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          error: error instanceof Error ? error.message : "Unknown preview error",
+        };
+      }
     }
-  });
+  );
 
   server.get("/compare/products", async (request, reply) => {
     try {

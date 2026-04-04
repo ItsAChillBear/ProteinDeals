@@ -1,5 +1,9 @@
 import { db } from "@proteindeals/db";
-import { formatCategoryLabel, formatSizeLabel, parseNutritionalInformation } from "./helpers.js";
+import {
+  formatProductType,
+  formatSizeLabel,
+  parseNutritionalInformation,
+} from "./helpers.js";
 import type { CompareProductRow } from "./types.js";
 
 export async function getCompareProducts(): Promise<CompareProductRow[]> {
@@ -52,6 +56,7 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
           brand: true,
           imageUrl: true,
           category: true,
+          categoryLabels: true,
           proteinPer100g: true,
           servingsPerPack: true,
           ingredients: true,
@@ -111,7 +116,10 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
         nutritionalInformation: parseNutritionalInformation(row.product.nutritionalInfo),
         inStock: row.inStock,
         url: row.url,
-        type: formatCategoryLabel(row.product.category),
+        type: formatProductType(
+          row.product.category,
+          Array.isArray(row.product.categoryLabels) ? row.product.categoryLabels.filter((value): value is string => typeof value === "string") : []
+        ),
         description: row.product.description,
         discountCodes: discountCodesByRetailer.get(row.retailer.name) ?? [],
       };

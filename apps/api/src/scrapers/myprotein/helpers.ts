@@ -48,6 +48,30 @@ export function extractCategoryProductUrls(nodes: JsonLdNode[], categoryUrl: str
   return [...urls];
 }
 
+export function extractCategoryLinks(html: string, baseUrl: string): string[] {
+  const $ = cheerio.load(html);
+  const urls = new Set<string>();
+
+  $("a[href]").each((_, element) => {
+    const href = $(element).attr("href");
+    if (!href) return;
+
+    const resolved = resolveUrl(baseUrl, href.split("?")[0]);
+    if (!isMyproteinCategoryUrl(resolved)) return;
+    urls.add(resolved);
+  });
+
+  return [...urls];
+}
+
+function isMyproteinCategoryUrl(url: string) {
+  return (
+    url.startsWith("https://www.myprotein.com/c/") &&
+    !url.includes("/p/") &&
+    !url.includes("/search/")
+  );
+}
+
 export function extractVariantFlavour(variant: JsonLdNode): string | null {
   for (const property of asArray(variant.additionalProperty)) {
     const entry = asObject(property);

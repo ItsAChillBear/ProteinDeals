@@ -3,6 +3,7 @@ import {
   asObject,
   asString,
   extractBrandName,
+  extractCategoryLinks,
   extractCategoryProductUrls,
   extractJsonLdNodes,
   extractVariantFlavour,
@@ -25,6 +26,17 @@ import {
 
 const DEFAULT_CATEGORY_URL =
   "https://www.myprotein.com/c/nutrition/protein/whey-protein/";
+const PROTEIN_LANDING_URL = "https://www.myprotein.com/c/nutrition/protein/";
+const EXTRA_CATEGORY_URLS = [
+  "https://www.myprotein.com/c/nutrition/protein/diet/",
+  "https://www.myprotein.com/c/nutrition/weight-management/weight-gainers/",
+  "https://www.myprotein.com/c/nutrition/healthy-food-drinks/meal-replacement/",
+];
+
+type CategoryTarget = {
+  url: string;
+  label: string;
+};
 
 export type {
   MyproteinVariantRecord,
@@ -35,32 +47,48 @@ export async function scrapeMyproteinWheyProducts(
   options: ScrapeMyproteinOptions = {}
 ): Promise<MyproteinVariantRecord[]> {
   const fetchImpl = options.fetchImpl ?? fetch;
-  const categoryUrl = options.categoryUrl ?? DEFAULT_CATEGORY_URL;
-  await options.onProgress?.(`Fetching category ${categoryUrl}`);
+  const categoryTargets = await resolveCategoryTargets(options, fetchImpl);
+  await options.onProgress?.(`Resolved ${categoryTargets.length} Myprotein category sections`);
 
-  const listingHtml = await fetchText(categoryUrl, fetchImpl);
-  const listingNodes = extractJsonLdNodes(listingHtml);
-  const productUrls = extractCategoryProductUrls(listingNodes, categoryUrl);
+  const productCategoryMap = new Map<string, CategoryTarget[]>();
+  for (const category of categoryTargets) {
+    await options.onProgress?.(`Fetching category ${category.label}: ${category.url}`);
+
+    const listingHtml = await fetchText(category.url, fetchImpl);
+    const listingNodes = extractJsonLdNodes(listingHtml);
+    const productUrls = extractCategoryProductUrls(listingNodes, category.url);
+
+    for (const productUrl of productUrls) {
+      const existing = productCategoryMap.get(productUrl) ?? [];
+      if (!existing.some((entry) => entry.url === category.url)) {
+        existing.push(category);
+      }
+      productCategoryMap.set(productUrl, existing);
+    }
+  }
+
+  const dedupedProductUrls = [...productCategoryMap.keys()];
   const limitedProductUrls =
     typeof options.limitProducts === "number"
-      ? productUrls.slice(0, options.limitProducts)
-      : productUrls;
+      ? dedupedProductUrls.slice(0, options.limitProducts)
+      : dedupedProductUrls;
 
   await options.onProgress?.(
-    `Discovered ${productUrls.length} products, scraping ${limitedProductUrls.length}`
+    `Discovered ${dedupedProductUrls.length} unique products across ${categoryTargets.length} sections, scraping ${limitedProductUrls.length}`
   );
 
   const results: MyproteinVariantRecord[] = [];
   for (const [index, productUrl] of limitedProductUrls.entries()) {
+    const categoryTargetsForProduct = productCategoryMap.get(productUrl) ?? [];
     await options.onProgress?.(
-      `Loading product ${index + 1}/${limitedProductUrls.length}: ${productUrl}`
+      `Loading product ${index + 1}/${limitedProductUrls.length}: ${productUrl} (${categoryTargetsForProduct.length} categories)`
     );
 
     const productHtml = await fetchText(productUrl, fetchImpl);
     const productResults = await extractProductVariants({
       productHtml,
       productUrl,
-      categoryUrl,
+      categoryTargets: categoryTargetsForProduct,
       fetchImpl,
       onProgress: options.onProgress,
       onVariant: options.onVariant,
@@ -79,12 +107,12 @@ export async function scrapeMyproteinWheyProducts(
 async function extractProductVariants(args: {
   productHtml: string;
   productUrl: string;
-  categoryUrl: string;
+  categoryTargets: CategoryTarget[];
   fetchImpl: typeof fetch;
   onProgress?: (message: string) => void | Promise<void>;
   onVariant?: (record: MyproteinVariantRecord) => void | Promise<void>;
 }) {
-  const { productHtml, productUrl, categoryUrl, fetchImpl, onProgress, onVariant } = args;
+  const { productHtml, productUrl, categoryTargets, fetchImpl, onProgress, onVariant } = args;
   const nodes = extractJsonLdNodes(productHtml);
   const productGroup = nodes.find((node) => node["@type"] === "ProductGroup");
   if (!productGroup) {
@@ -116,7 +144,7 @@ async function extractProductVariants(args: {
       index,
       total: context.variants.length,
       productUrl,
-      categoryUrl,
+      categoryTargets,
       fetchImpl,
       onProgress,
       context,
@@ -135,7 +163,7 @@ async function scrapeVariant(args: {
   index: number;
   total: number;
   productUrl: string;
-  categoryUrl: string;
+  categoryTargets: CategoryTarget[];
   fetchImpl: typeof fetch;
   onProgress?: (message: string) => void | Promise<void>;
   context: {
@@ -147,7 +175,7 @@ async function scrapeVariant(args: {
     variantStateMap: Map<string, any>;
   };
 }) {
-  const { variant, index, total, productUrl, categoryUrl, fetchImpl, onProgress, context } =
+  const { variant, index, total, productUrl, categoryTargets, fetchImpl, onProgress, context } =
     args;
   const offer = asObject(variant.offers);
   const variantUrl = resolveUrl(productUrl, asString(offer?.url) ?? productUrl);
@@ -183,7 +211,9 @@ async function scrapeVariant(args: {
     retailer: "MyProtein",
     brand: context.brand,
     productName: context.productName,
-    categoryUrl,
+    categoryUrl: categoryTargets[0]?.url ?? DEFAULT_CATEGORY_URL,
+    categoryUrls: categoryTargets.map((target) => target.url),
+    categoryLabels: categoryTargets.map((target) => target.label),
     productUrl,
     variantUrl,
     retailerProductId,
@@ -214,7 +244,54 @@ async function scrapeVariant(args: {
     nutritionalInformation: context.productContent.nutritionalInformation,
     productDetails: context.productContent.productDetails,
     scrapedAt: new Date().toISOString(),
-  } satisfies MyproteinVariantRecord;
+} satisfies MyproteinVariantRecord;
+}
+
+async function resolveCategoryTargets(
+  options: ScrapeMyproteinOptions,
+  fetchImpl: typeof fetch
+): Promise<CategoryTarget[]> {
+  const explicitCategoryUrls = options.categoryUrls ?? (options.categoryUrl ? [options.categoryUrl] : null);
+  if (explicitCategoryUrls?.length) {
+    return dedupeCategoryTargets(explicitCategoryUrls.map((url) => ({ url, label: inferCategoryLabel(url) })));
+  }
+
+  const landingHtml = await fetchText(PROTEIN_LANDING_URL, fetchImpl);
+  const landingLinks = extractCategoryLinks(landingHtml, PROTEIN_LANDING_URL);
+  const discoveredProteinCategories = landingLinks.filter((url) => isProteinCategoryUrl(url));
+
+  return dedupeCategoryTargets(
+    [DEFAULT_CATEGORY_URL, ...discoveredProteinCategories, ...EXTRA_CATEGORY_URLS].map((url) => ({
+      url,
+      label: inferCategoryLabel(url),
+    }))
+  );
+}
+
+function dedupeCategoryTargets(targets: CategoryTarget[]) {
+  const byUrl = new Map<string, CategoryTarget>();
+  for (const target of targets) {
+    if (!byUrl.has(target.url)) {
+      byUrl.set(target.url, target);
+    }
+  }
+  return [...byUrl.values()];
+}
+
+function isProteinCategoryUrl(url: string) {
+  return (
+    url.startsWith("https://www.myprotein.com/c/nutrition/protein/") ||
+    url.startsWith("https://www.myprotein.com/c/clear-protein/")
+  );
+}
+
+function inferCategoryLabel(url: string) {
+  const pathname = new URL(url).pathname.replace(/\/+$/, "");
+  const slug = pathname.split("/").filter(Boolean).at(-1) ?? "other";
+  return slug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function pickBestImageUrl(...candidates: Array<string | null>) {

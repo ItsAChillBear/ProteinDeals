@@ -6,6 +6,7 @@ import PriceComparisonMobileList from "./PriceComparisonMobileList";
 import PriceComparisonPlanner from "./PriceComparisonPlanner";
 import PriceComparisonToolbar from "./PriceComparisonToolbar";
 import {
+  buildMultiFilter,
   DEFAULT_FILTERS,
   FILTER_KEYS,
   getFilterOptionsForFilters,
@@ -56,6 +57,7 @@ export default function PriceComparisonTable({
   const [priceMode, setPriceMode] = useState<PriceMode>(controlledPriceMode ?? "single");
   const [servingMetric, setServingMetric] = useState<"price" | "calories">("price");
   const [activeColumn, setActiveColumn] = useState<"pricePerServing" | "pricePer100g" | "pricePerGramProtein">("pricePer100g");
+  const [defaultsInitialized, setDefaultsInitialized] = useState(false);
   const activeFilters = useDeferredValue(filters);
 
   useEffect(() => {
@@ -70,6 +72,17 @@ export default function PriceComparisonTable({
   const sorted = useMemo(() => sortGroups(groupedWithSelection, sortKey, sortDir, planner), [groupedWithSelection, sortDir, sortKey, planner]);
   const visibleVariants = useMemo(() => getVisibleVariants(groupedWithSelection), [groupedWithSelection]);
   const filterOptions = useMemo<ColumnFilterOptions>(() => getFilterOptionsForFilters(visibleVariants, allVariants, activeFilters), [activeFilters, allVariants, visibleVariants]);
+
+  useEffect(() => {
+    if (defaultsInitialized || filterOptions.retailers.length === 0) return;
+    setFilters((f) => ({
+      ...f,
+      retailer: buildMultiFilter(filterOptions.retailers),
+      product: buildMultiFilter(filterOptions.products),
+      flavour: buildMultiFilter(filterOptions.flavours),
+    }));
+    setDefaultsInitialized(true);
+  }, [filterOptions, defaultsInitialized]);
   const filteredGroups = useMemo(() => sorted.filter((group) => countMatchingVariantsForGroup(group, activeFilters, planner) > 0), [activeFilters, planner, sorted]);
   const filteredVariantCount = useMemo(() => filteredGroups.reduce((count, group) => count + countMatchingVariantsForGroup(group, activeFilters, planner), 0), [activeFilters, filteredGroups, planner]);
 
@@ -165,7 +178,12 @@ export default function PriceComparisonTable({
   }
 
   function resetAll() {
-    setFilters(DEFAULT_FILTERS);
+    setFilters({
+      ...DEFAULT_FILTERS,
+      retailer: buildMultiFilter(filterOptions.retailers),
+      product: buildMultiFilter(filterOptions.products),
+      flavour: buildMultiFilter(filterOptions.flavours),
+    });
     setVisibility(DEFAULT_VISIBILITY);
     setSortKey("pricePer100g");
     setSortDir("asc");

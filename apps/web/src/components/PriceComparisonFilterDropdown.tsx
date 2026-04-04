@@ -170,7 +170,7 @@ export function PriceComparisonFilterDropdown({
     if (value === "all") return label ?? "All";
     if (value.startsWith(MULTI_PREFIX)) {
       const count = selectedValues.length;
-      if (count === 0) return label ?? "All";
+      if (count === 0) return "None";
       if (count === options.length) return label ?? "All";
       return `${count} selected`;
     }
@@ -206,7 +206,7 @@ export function PriceComparisonFilterDropdown({
             {multi ? (
               <div className="flex gap-1 px-3 pb-1.5">
                 <button type="button" onClick={() => onChange(buildMultiFilter(options))} className="flex-1 rounded border border-theme-2 py-1 text-[10px] text-theme-2 transition hover:border-theme hover:text-theme">Select All</button>
-                <button type="button" onClick={() => onChange("all")} className="flex-1 rounded border border-theme-2 py-1 text-[10px] text-theme-2 transition hover:border-theme hover:text-theme">Deselect All</button>
+                <button type="button" onClick={() => onChange(buildMultiFilter([]))} className="flex-1 rounded border border-theme-2 py-1 text-[10px] text-theme-2 transition hover:border-theme hover:text-theme">Deselect All</button>
               </div>
             ) : (
               <button type="button" onClick={() => { onChange("all"); setOpen(false); }} className={clsx("w-full px-3 py-1.5 text-left text-[11px] transition hover:bg-surface-2", value === "all" ? "text-green-500" : "text-theme-2")}>

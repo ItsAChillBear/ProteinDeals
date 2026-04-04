@@ -13,8 +13,25 @@ import type {
   ScraperResponse,
 } from "./types";
 
+const SCRAPER_WEBSITES = [
+  {
+    id: "myprotein",
+    label: "MyProtein",
+    sections: [
+      { id: "whey-protein", label: "Whey Protein", url: "https://www.myprotein.com/c/nutrition/protein/whey-protein/" },
+      { id: "clear-protein", label: "Clear Protein", url: "https://www.myprotein.com/c/clear-protein/" },
+      { id: "protein-diet", label: "Diet Protein", url: "https://www.myprotein.com/c/nutrition/protein/diet/" },
+      { id: "weight-gainers", label: "Weight Gainers", url: "https://www.myprotein.com/c/nutrition/weight-management/weight-gainers/" },
+      { id: "meal-replacement", label: "Meal Replacement", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/meal-replacement/" },
+    ],
+  },
+] as const;
+
 export function MyproteinScraperPanel() {
-  const [limit, setLimit] = useState("");
+  const [websiteId, setWebsiteId] = useState<(typeof SCRAPER_WEBSITES)[number]["id"]>("myprotein");
+  const [selectedSectionIds, setSelectedSectionIds] = useState<string[]>(
+    SCRAPER_WEBSITES[0].sections.map((section) => section.id)
+  );
   const [isRunning, setIsRunning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -29,6 +46,10 @@ export function MyproteinScraperPanel() {
   const isPausedRef = useRef(false);
   const bufferedLinesRef = useRef<string[]>([]);
   const bufferedRecordsRef = useRef<ScraperRecord[]>([]);
+  const selectedWebsite = SCRAPER_WEBSITES.find((website) => website.id === websiteId) ?? SCRAPER_WEBSITES[0];
+  const selectedSections = selectedWebsite.sections.filter((section) =>
+    selectedSectionIds.includes(section.id)
+  );
 
   async function runScraper() {
     setIsRunning(true);
@@ -44,11 +65,16 @@ export function MyproteinScraperPanel() {
     bufferedRecordsRef.current = [];
 
     try {
-      const scrapeResult = await streamScraperRun(limit, setProgressLines, setLiveRecords, {
-        isPausedRef,
-        bufferedLinesRef,
-        bufferedRecordsRef,
-      });
+      const scrapeResult = await streamScraperRun(
+        { websiteId, categoryUrls: selectedSections.map((section) => section.url) },
+        setProgressLines,
+        setLiveRecords,
+        {
+          isPausedRef,
+          bufferedLinesRef,
+          bufferedRecordsRef,
+        }
+      );
       setResult(scrapeResult);
       await loadPreview(scrapeResult.records ?? []);
     } catch (runError) {
@@ -161,31 +187,17 @@ export function MyproteinScraperPanel() {
     <section className="space-y-6 rounded-[2rem] border border-stone-800 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.18),_transparent_28%),linear-gradient(180deg,_rgba(28,25,23,0.96),_rgba(12,10,9,0.96))] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-stone-50">Myprotein Whey Scraper</h2>
+          <h2 className="text-2xl font-semibold text-stone-50">Retailer Scraper</h2>
           <p className="max-w-2xl text-sm leading-6 text-stone-300">
-            Run the live scraper, preview creates, updates, deletes, and unchanged variants,
-            then apply each change individually or commit the full diff.
+            Select a website and the sections to crawl, then run the live scraper and review the import diff before applying changes.
           </p>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="space-y-2 text-sm text-stone-300">
-            <span className="block text-xs uppercase tracking-[0.25em] text-stone-400">
-              Product Limit
-            </span>
-            <input
-              value={limit}
-              onChange={(event) => setLimit(event.target.value)}
-              inputMode="numeric"
-              placeholder="Unlimited"
-              className="w-28 rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 text-stone-50 outline-none transition focus:border-amber-400"
-            />
-          </label>
-
           <button
             type="button"
             onClick={runScraper}
-            disabled={isRunning}
+            disabled={isRunning || selectedSections.length === 0}
             className="rounded-xl bg-amber-400 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
           >
             {isRunning ? "Running..." : "Run Scraper"}
@@ -217,6 +229,75 @@ export function MyproteinScraperPanel() {
         </div>
       </header>
 
+      <div className="grid gap-4 rounded-3xl border border-stone-800/80 bg-stone-950/40 p-5 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <label className="space-y-2 text-sm text-stone-300">
+          <span className="block text-xs uppercase tracking-[0.25em] text-stone-400">
+            Website
+          </span>
+          <select
+            value={websiteId}
+            onChange={(event) => {
+              const nextWebsiteId = event.target.value as (typeof SCRAPER_WEBSITES)[number]["id"];
+              setWebsiteId(nextWebsiteId);
+              const nextWebsite =
+                SCRAPER_WEBSITES.find((website) => website.id === nextWebsiteId) ?? SCRAPER_WEBSITES[0];
+              setSelectedSectionIds(nextWebsite.sections.map((section) => section.id));
+            }}
+            className="w-full rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 text-stone-50 outline-none transition focus:border-amber-400"
+          >
+            {SCRAPER_WEBSITES.map((website) => (
+              <option key={website.id} value={website.id}>
+                {website.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="space-y-2 text-sm text-stone-300">
+          <div className="flex items-center justify-between gap-3">
+            <span className="block text-xs uppercase tracking-[0.25em] text-stone-400">
+              Sections
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedSectionIds(selectedWebsite.sections.map((section) => section.id))}
+              className="text-xs font-semibold text-amber-300 transition hover:text-amber-200"
+            >
+              Select all
+            </button>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {selectedWebsite.sections.map((section) => {
+              const checked = selectedSectionIds.includes(section.id);
+              return (
+                <label
+                  key={section.id}
+                  className="flex items-start gap-3 rounded-2xl border border-stone-800 bg-stone-900/80 px-4 py-3"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => {
+                      setSelectedSectionIds((current) =>
+                        event.target.checked
+                          ? [...current, section.id]
+                          : current.filter((value) => value !== section.id)
+                      );
+                    }}
+                    className="mt-1 h-4 w-4 rounded border-stone-600 bg-stone-950 text-amber-400"
+                  />
+                  <span className="space-y-1">
+                    <span className="block font-medium text-stone-100">{section.label}</span>
+                    <span className="block text-xs leading-5 text-stone-400">{section.url}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       <ScraperSummaryCards
         status={isRunning ? "Running" : result ? "Completed" : "Idle"}
         variantCount={result?.count ?? 0}
@@ -240,19 +321,19 @@ export function MyproteinScraperPanel() {
 }
 
 async function streamScraperRun(
-  limit: string,
+  options: { websiteId: string; categoryUrls: string[] },
   onProgress: Dispatch<SetStateAction<string[]>>,
   onRecord: Dispatch<SetStateAction<ScraperRecord[]>>,
-  options?: {
+  streamOptions?: {
     isPausedRef?: MutableRefObject<boolean>;
     bufferedLinesRef?: MutableRefObject<string[]>;
     bufferedRecordsRef?: MutableRefObject<ScraperRecord[]>;
   }
 ) {
-  const limitValue = Number(limit);
   const params = new URLSearchParams();
-  if (Number.isFinite(limitValue) && limitValue > 0) {
-    params.set("limit", String(limitValue));
+  params.set("website", options.websiteId);
+  for (const categoryUrl of options.categoryUrls) {
+    params.append("categoryUrl", categoryUrl);
   }
 
   return new Promise<ScraperResponse>((resolve, reject) => {
@@ -262,8 +343,8 @@ async function streamScraperRun(
     source.addEventListener("progress", (event) => {
       const payload = JSON.parse((event as MessageEvent<string>).data) as { message: string };
       lines = [...lines, payload.message];
-      if (options?.isPausedRef?.current) {
-        options.bufferedLinesRef?.current.push(payload.message);
+      if (streamOptions?.isPausedRef?.current) {
+        streamOptions.bufferedLinesRef?.current.push(payload.message);
       } else {
         onProgress(lines);
       }
@@ -273,8 +354,8 @@ async function streamScraperRun(
       const payload = JSON.parse((event as MessageEvent<string>).data) as {
         record: ScraperRecord;
       };
-      if (options?.isPausedRef?.current) {
-        options.bufferedRecordsRef?.current.push(payload.record);
+      if (streamOptions?.isPausedRef?.current) {
+        streamOptions.bufferedRecordsRef?.current.push(payload.record);
       } else {
         onRecord((current) => [...current, payload.record]);
       }

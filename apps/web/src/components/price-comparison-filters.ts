@@ -11,7 +11,7 @@ export function parseMultiFilter(filter: string): string[] {
 }
 
 export function buildMultiFilter(values: string[]): string {
-  return values.length ? `${MULTI_PREFIX}${values.join("\t")}` : "all";
+  return `${MULTI_PREFIX}${values.join("\t")}`;
 }
 
 export interface ColumnFilters {

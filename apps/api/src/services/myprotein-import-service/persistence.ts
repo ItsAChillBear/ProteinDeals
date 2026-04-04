@@ -8,7 +8,7 @@ import {
   getCanonicalProteinPer100g,
   getRetailerProductId,
   getSubscriptionPricePer100g,
-  inferCategory,
+  inferCategoryFromLabels,
   parseServings,
 } from "./helpers.js";
 import type { ClearMyproteinResult, MyproteinDbVariant } from "./types.js";
@@ -59,6 +59,24 @@ export async function clearMyproteinDatabase(): Promise<ClearMyproteinResult> {
 
   const variantIds = variants.map((variant) => variant.id);
   const productIds = [...new Set(variants.map((variant) => variant.productId))];
+  const remainingVariantsByProduct = await db.productVariant.groupBy({
+    by: ["productId"],
+    where: {
+      productId: {
+        in: productIds,
+      },
+      id: {
+        notIn: variantIds,
+      },
+    },
+    _count: {
+      productId: true,
+    },
+  });
+  const orphanedProductIds = productIds.filter(
+    (productId) =>
+      !remainingVariantsByProduct.some((entry) => entry.productId === productId)
+  );
 
   return db.$transaction(async (tx) => {
     const deletedPriceRecords = await tx.priceRecord.count({
@@ -84,18 +102,6 @@ export async function clearMyproteinDatabase(): Promise<ClearMyproteinResult> {
         },
       },
     });
-
-    const orphanedProductIds: string[] = [];
-    for (const productId of productIds) {
-      const remainingVariants = await tx.productVariant.count({
-        where: {
-          productId,
-        },
-      });
-      if (remainingVariants === 0) {
-        orphanedProductIds.push(productId);
-      }
-    }
 
     const deletedProductsResult = orphanedProductIds.length
       ? await tx.product.deleteMany({
@@ -127,7 +133,11 @@ export async function upsertScrapedVariant(
     record.flavour,
     record.sizeLabel
   );
-  const category = inferCategory(record.productName);
+  const category = inferCategoryFromLabels(
+    record.productName,
+    record.categoryLabels,
+    record.categoryUrls
+  );
   const servingsPerPack = parseServings(record.servingsLabel);
   const proteinPer100g = getCanonicalProteinPer100g(record);
   const description = buildProductDescription(record);
@@ -149,6 +159,8 @@ export async function upsertScrapedVariant(
     name: productName,
     brand: record.brand,
     category,
+    categoryLabels: record.categoryLabels as Prisma.InputJsonValue,
+    categoryUrls: record.categoryUrls as Prisma.InputJsonValue,
     proteinPer100g: proteinPer100g !== null ? new Prisma.Decimal(proteinPer100g.toFixed(2)) : null,
     servingSizeG:
       servingsPerPack ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2)) : null,

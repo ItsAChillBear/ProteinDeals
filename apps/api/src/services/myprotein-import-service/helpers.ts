@@ -45,6 +45,8 @@ export function getFieldDiffs(record: MyproteinVariantRecord, current: Myprotein
     diff("name", current.product.name, nextProductName),
     diff("brand", current.product.brand, record.brand),
     diff("category", current.product.category, nextCategory),
+    diff("categoryLabels", JSON.stringify(current.product.categoryLabels ?? null), JSON.stringify(record.categoryLabels)),
+    diff("categoryUrls", JSON.stringify(current.product.categoryUrls ?? null), JSON.stringify(record.categoryUrls)),
     diff("proteinPer100g", toNumber(current.product.proteinPer100g), nextProteinPer100g),
     diff("servingSizeG", toNumber(current.product.servingSizeG), nextServingSize),
     diff("servingsPerPack", current.product.servingsPerPack, servingsPerPack),
@@ -150,10 +152,40 @@ export function inferCategory(productName: string): ProductCategory {
   if (lower.includes("isolate")) return "whey_isolate";
   if (lower.includes("vegan")) return "vegan";
   if (lower.includes("casein")) return "casein";
-  if (lower.includes("mass")) return "mass_gainer";
+  if (
+    lower.includes("mass") ||
+    lower.includes("gainer") ||
+    lower.includes("weight gain")
+  ) {
+    return "mass_gainer";
+  }
   if (lower.includes("plant")) return "plant_blend";
   if (lower.includes("whey")) return "whey_concentrate";
   return "other";
+}
+
+export function inferCategoryFromLabels(
+  productName: string,
+  categoryLabels: string[],
+  categoryUrls: string[]
+): ProductCategory {
+  const joined = [productName, ...categoryLabels, ...categoryUrls].join(" ").toLowerCase();
+  if (joined.includes("clear-protein")) return "whey_isolate";
+  if (joined.includes("clear protein")) return "whey_isolate";
+  if (joined.includes("isolate")) return "whey_isolate";
+  if (joined.includes("vegan")) return "vegan";
+  if (joined.includes("casein")) return "casein";
+  if (
+    joined.includes("weight-gainers") ||
+    joined.includes("weight gain") ||
+    joined.includes("mass gainer") ||
+    joined.includes("gainer")
+  ) {
+    return "mass_gainer";
+  }
+  if (joined.includes("plant")) return "plant_blend";
+  if (joined.includes("whey")) return "whey_concentrate";
+  return inferCategory(productName);
 }
 
 export function createProductSlug(
@@ -198,6 +230,18 @@ export function formatCategoryLabel(category: ProductCategory) {
     default:
       return "Other";
   }
+}
+
+export function formatProductType(
+  category: ProductCategory,
+  categoryLabels: string[] | null | undefined
+) {
+  if (category !== "other") {
+    return formatCategoryLabel(category);
+  }
+
+  const firstLabel = categoryLabels?.find((label) => typeof label === "string" && label.trim());
+  return firstLabel ?? "Other";
 }
 
 export function formatSizeLabel(sizeG: number) {

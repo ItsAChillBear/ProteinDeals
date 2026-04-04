@@ -2,6 +2,9 @@ export type ScraperRecord = {
   retailer: string;
   brand: string;
   productName: string;
+  categoryUrl: string;
+  categoryUrls: string[];
+  categoryLabels: string[];
   variantUrl: string;
   retailerProductId: string | null;
   flavour: string | null;
