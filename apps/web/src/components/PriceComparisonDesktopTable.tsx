@@ -10,6 +10,67 @@ import type { ColumnVisibility } from "./price-comparison-visibility";
 import { getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, getProteinPerServing } from "./price-comparison-metrics";
 import { getCaloriesPer100g } from "./price-comparison-nutrition";
 
+function getScrollContainer(element?: HTMLElement | null) {
+  let current = element?.parentElement ?? null;
+
+  while (current) {
+    const style = window.getComputedStyle(current);
+    const overflowY = style.overflowY;
+    if ((overflowY === "auto" || overflowY === "scroll") && current.scrollHeight > current.clientHeight) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+
+  return (document.scrollingElement as HTMLElement | null) ?? document.documentElement;
+}
+
+function isRootScrollContainer(container: HTMLElement) {
+  return container === document.body || container === document.documentElement || container === document.scrollingElement;
+}
+
+function getContainerScrollTop(container: HTMLElement) {
+  return isRootScrollContainer(container)
+    ? window.scrollY || window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
+    : container.scrollTop;
+}
+
+function setContainerScrollTop(container: HTMLElement, top: number) {
+  if (isRootScrollContainer(container)) {
+    window.scrollTo(0, top);
+    document.documentElement.scrollTop = top;
+    document.body.scrollTop = top;
+    if (document.scrollingElement) {
+      document.scrollingElement.scrollTop = top;
+    }
+    return;
+  }
+
+  container.scrollTop = top;
+}
+
+function getTargetTopWithinContainer(target: HTMLElement, container: HTMLElement) {
+  const scrollTop = getContainerScrollTop(container);
+
+  if (isRootScrollContainer(container)) {
+    return scrollTop + target.getBoundingClientRect().top;
+  }
+
+  return scrollTop + (target.getBoundingClientRect().top - container.getBoundingClientRect().top);
+}
+
+function describeContainer(container: HTMLElement | null) {
+  if (!container) return null;
+  return {
+    tag: container.tagName,
+    id: container.id || null,
+    className: container.className || null,
+    scrollTop: container.scrollTop,
+    clientHeight: container.clientHeight,
+    scrollHeight: container.scrollHeight,
+  };
+}
+
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (sortKey !== col) return <ArrowUpDown className="h-3.5 w-3.5 opacity-50" strokeWidth={3} />;
   return sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />;
@@ -57,9 +118,24 @@ export default function PriceComparisonDesktopTable({
   flavourMode?: "separate" | "consolidate";
 }) {
   const pendingScrollGroupRef = useRef<string | null>(null);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const lockedScrollYRef = useRef<number | null>(null);
 
-  function handleCardSort(key: SortKey, groupId?: string, viewportTop?: number) {
-    pendingScrollGroupRef.current = groupId ?? null;
+  function handleCardSort(key: SortKey, groupId?: string, viewportTop?: number, sourceElement?: HTMLElement | null) {
+    const clickedGroupIndex =
+      groupId !== undefined
+        ? cardGroups.findIndex((group) => group.id === groupId)
+        : -1;
+    const shouldFollow = clickedGroupIndex > 0;
+    const scrollContainer = getScrollContainer(sourceElement);
+
+    if (!shouldFollow && sourceElement instanceof HTMLElement) {
+      sourceElement.blur();
+    }
+
+    scrollContainerRef.current = scrollContainer;
+    pendingScrollGroupRef.current = shouldFollow ? (groupId ?? null) : null;
+    lockedScrollYRef.current = shouldFollow ? null : getContainerScrollTop(scrollContainer);
     onSort(key, groupId, viewportTop);
   }
 
@@ -122,9 +198,23 @@ export default function PriceComparisonDesktopTable({
     : groups;
 
   useLayoutEffect(() => {
-    if (viewMode !== "card" || !pendingScrollGroupRef.current) return;
+    if (viewMode !== "card" || lockedScrollYRef.current === null || !scrollContainerRef.current) return;
+
+    const lockedScrollY = lockedScrollYRef.current;
+    const scrollContainer = scrollContainerRef.current;
+    const frame = requestAnimationFrame(() => {
+      setContainerScrollTop(scrollContainer, lockedScrollY);
+      lockedScrollYRef.current = null;
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [cardGroups, sortDir, sortKey, viewMode]);
+
+  useLayoutEffect(() => {
+    if (viewMode !== "card" || !pendingScrollGroupRef.current || !scrollContainerRef.current) return;
 
     const groupId = pendingScrollGroupRef.current;
+    const scrollContainer = scrollContainerRef.current;
     let frame1 = 0;
     let frame2 = 0;
 
@@ -132,11 +222,8 @@ export default function PriceComparisonDesktopTable({
       frame2 = requestAnimationFrame(() => {
         const element = document.getElementById(`compare-group-${encodeURIComponent(groupId)}`);
         if (element) {
-          const targetTop = window.scrollY + element.getBoundingClientRect().top - 88;
-          window.scrollTo({
-            top: Math.max(0, targetTop),
-            behavior: "smooth",
-          });
+          const targetTop = getTargetTopWithinContainer(element, scrollContainer) - 88;
+          setContainerScrollTop(scrollContainer, Math.max(0, targetTop));
         }
         pendingScrollGroupRef.current = null;
       });
@@ -150,7 +237,7 @@ export default function PriceComparisonDesktopTable({
 
   if (viewMode === "card") {
     return (
-      <div className="hidden sm:block">
+      <div className="hidden sm:block" style={{ overflowAnchor: "none" }}>
         <table className="w-full text-sm">
           <tbody className="divide-y divide-theme">
             {cardGroups.map((group, i) => (
@@ -226,7 +313,7 @@ export default function PriceComparisonDesktopTable({
   );
 
   return (
-    <div className="hidden overflow-x-auto overflow-y-visible sm:block">
+    <div className="hidden overflow-x-auto overflow-y-visible sm:block" style={{ overflowAnchor: "none" }}>
       <table className="w-full text-sm">
         <thead className="border-b border-theme bg-surface-2">
           {columnGroupMode === "nutrient" ? (

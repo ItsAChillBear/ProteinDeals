@@ -30,7 +30,7 @@ interface Props {
   showFilterBar?: boolean;
   filterOptions?: ColumnFilterOptions;
   onFilter?: (key: keyof ColumnFilters, value: string) => void;
-  onSort?: (key: SortKey, groupId?: string, viewportTop?: number) => void;
+  onSort?: (key: SortKey, groupId?: string, viewportTop?: number, sourceElement?: HTMLElement | null) => void;
   sortKey?: SortKey;
   sortDir?: SortDir;
   flavourMode?: "separate" | "consolidate";

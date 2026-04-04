@@ -47,7 +47,7 @@ interface Props {
   priceMode?: PriceMode;
   sortKey?: SortKey;
   sortDir?: SortDir;
-  onSort?: (key: SortKey, groupId?: string, viewportTop?: number) => void;
+  onSort?: (key: SortKey, groupId?: string, viewportTop?: number, sourceElement?: HTMLElement | null) => void;
   flavourMode?: "separate" | "consolidate";
 }
 
@@ -89,8 +89,8 @@ export default function PriceComparisonDesktopCardGroup({
       ? `${group.retailer}||${group.baseName}`
       : group.id;
 
-  function handleSortWithAnchor(key: SortKey, viewportTop?: number) {
-    onSort?.(key, scrollAnchorGroupId, viewportTop);
+  function handleSortWithAnchor(key: SortKey, viewportTop?: number, sourceElement?: HTMLElement | null) {
+    onSort?.(key, scrollAnchorGroupId, viewportTop, sourceElement);
   }
 
   // In consolidate mode, group variants by size
@@ -150,7 +150,7 @@ export default function PriceComparisonDesktopCardGroup({
   );
 }
 
-function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, filterOptions, filters, onFilter, hasAnySubscription, effectiveMode, onToggleMode, sortKey, sortDir, onSort, flavourMode }: Omit<Props, "group" | "flavourVariants" | "bestValueVariantIds" | "isBestValue" | "isExpanded" | "onToggleExpanded" | "totalColumns" | "planner" | "onSort"> & { hasAnySubscription: boolean; effectiveMode: PriceMode; onToggleMode: () => void; onSort?: (key: SortKey, viewportTop?: number) => void; }) {
+function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, filterOptions, filters, onFilter, hasAnySubscription, effectiveMode, onToggleMode, sortKey, sortDir, onSort, flavourMode }: Omit<Props, "group" | "flavourVariants" | "bestValueVariantIds" | "isBestValue" | "isExpanded" | "onToggleExpanded" | "totalColumns" | "planner" | "onSort"> & { hasAnySubscription: boolean; effectiveMode: PriceMode; onToggleMode: () => void; onSort?: (key: SortKey, viewportTop?: number, sourceElement?: HTMLElement | null) => void; }) {
   const consolidated = flavourMode === "consolidate";
   return (
     <div className="flex border-b border-theme bg-surface-2">
@@ -189,7 +189,7 @@ function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, fil
   );
 }
 
-function MetricHeader({ title, widths, labels, colors, sortKeys, sortKey, sortDir, onSort, filters }: { title: string; widths: string[]; labels: string[]; colors: string[]; sortKeys?: (SortKey | undefined)[]; sortKey?: SortKey; sortDir?: SortDir; onSort?: (key: SortKey, viewportTop?: number) => void; filters?: React.ReactNode[]; }) {
+function MetricHeader({ title, widths, labels, colors, sortKeys, sortKey, sortDir, onSort, filters }: { title: string; widths: string[]; labels: string[]; colors: string[]; sortKeys?: (SortKey | undefined)[]; sortKey?: SortKey; sortDir?: SortDir; onSort?: (key: SortKey, viewportTop?: number, sourceElement?: HTMLElement | null) => void; filters?: React.ReactNode[]; }) {
   return (
     <div className="flex-shrink-0 px-3 pt-2 pb-1.5 border-l border-theme">
       <div className="text-center text-[11px] font-bold uppercase tracking-widest text-theme-3 mb-1">{title}</div>
@@ -199,7 +199,7 @@ function MetricHeader({ title, widths, labels, colors, sortKeys, sortKey, sortDi
           const isActive = sk !== undefined && sortKey === sk;
           if (sk && onSort) {
             return (
-              <button key={label} type="button" onClick={(event) => onSort(sk, event.currentTarget.getBoundingClientRect().top)} className={`${widths[index]} text-center font-medium ${colors[index]} flex items-center justify-center gap-0.5 hover:opacity-100 transition-opacity ${isActive ? "opacity-100" : "opacity-70"}`}>
+              <button key={label} type="button" onClick={(event) => onSort(sk, event.currentTarget.getBoundingClientRect().top, event.currentTarget)} className={`${widths[index]} text-center font-medium ${colors[index]} flex items-center justify-center gap-0.5 hover:opacity-100 transition-opacity ${isActive ? "opacity-100" : "opacity-70"}`}>
                 <span>{label}</span>
                 {isActive ? (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-50" strokeWidth={3} />}
               </button>

@@ -147,7 +147,7 @@ export default function PriceComparisonTable({
     return { lowest, highest };
   }, [servingMetric, activeColumn, filteredGroups, activeFilters, planner]);
 
-  function handleSort(key: SortKey, groupId?: string) {
+  function handleSort(key: SortKey, groupId?: string, viewportTop?: number, sourceElement?: HTMLElement | null) {
     if (sortKey === key) {
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
       return;
