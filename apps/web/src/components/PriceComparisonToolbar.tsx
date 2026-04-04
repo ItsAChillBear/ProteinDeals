@@ -129,6 +129,7 @@ export default function PriceComparisonToolbar({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <PriceComparisonFilterDropdown value={filters.retailer} options={filterOptions.retailers} onChange={(v) => onFilter("retailer", v)} multi label="Supplier" />
+        <PriceComparisonFilterDropdown value={filters.category} options={filterOptions.categories} onChange={(v) => onFilter("category", v)} multi label="Category" />
         <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => onFilter("product", v)} multi label="Product" />
         <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi label="Flavour" />
         <span className="mx-1 h-4 w-px bg-theme-2" />

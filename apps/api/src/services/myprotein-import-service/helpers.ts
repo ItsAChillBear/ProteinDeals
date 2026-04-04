@@ -244,6 +244,18 @@ export function formatProductType(
   return firstLabel ?? "Other";
 }
 
+export function formatCategoryList(categoryLabels: string[] | null | undefined, fallback: string) {
+  const normalized = (categoryLabels ?? [])
+    .map((label) => label.trim())
+    .filter(Boolean);
+
+  if (!normalized.length) {
+    return fallback;
+  }
+
+  return [...new Set(normalized)].join(", ");
+}
+
 export function formatSizeLabel(sizeG: number) {
   if (sizeG >= 1000) {
     const kg = sizeG / 1000;

@@ -7,6 +7,7 @@ export interface Product {
   brand: string;
   imageUrl: string | null;
   retailer: string;
+  category: string;
   flavour: string | null;
   size: string;
   sizeG: number;
@@ -38,6 +39,7 @@ export interface ProductGroup {
   baseName: string;
   brand: string;
   retailer: string;
+  category: string;
   type: string;
   imageUrl: string | null;
   description: string | null;

@@ -164,6 +164,7 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
               </div>
               <div className="flex flex-col items-center gap-0.5 min-w-0 text-center">
                 <div className="text-xs text-theme-3">{group.retailer}</div>
+                <div className="text-[11px] leading-4 text-theme-4 line-clamp-2">{group.category}</div>
                 <button type="button" onClick={() => onToggleExpanded(group.id)} className="text-sm font-medium leading-snug text-theme transition-colors hover:text-green-500 text-center">{group.baseName}</button>
               </div>
             </div>

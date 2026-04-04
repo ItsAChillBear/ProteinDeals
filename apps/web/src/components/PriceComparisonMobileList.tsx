@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { CheckCircle, Tag, TrendingDown, TrendingUp, XCircle } from "lucide-react";
 import { clsx } from "clsx";
@@ -90,7 +90,7 @@ export default function PriceComparisonMobileList({
                 </div>
 
                 <div className="mb-3 text-xs text-theme-3">
-                  {group.brand} • {group.retailer} • {group.type}
+                  {group.brand} • {group.retailer} • {group.category}
                 </div>
 
                 <div className="text-xs text-theme-3">
@@ -114,7 +114,7 @@ export default function PriceComparisonMobileList({
                         <span className="text-sm font-medium text-theme">{variant.size}</span>
                         {hasSubscription ? (
                           <span className={clsx("text-[9px] font-semibold px-1 py-0.5 rounded", effectiveMode === "subscription" ? "bg-sky-700/50 text-sky-200" : "bg-sky-700/50 text-sky-200")}>
-                            {effectiveMode === "subscription" ? "sub" : "1×"}
+                            {effectiveMode === "subscription" ? "sub" : "1Ã—"}
                           </span>
                         ) : null}
                       </div>
@@ -163,8 +163,8 @@ export default function PriceComparisonMobileList({
             </div>
 
               <div className="mt-3 text-xs text-theme-3">
-              {product.flavour ?? "No flavour"} • {product.size} •{" "}
-              {getServingsPerPack(product) ? `${getServingsPerPack(product)} servings` : "No servings"} •{" "}
+              {product.flavour ?? "No flavour"} â€¢ {product.size} â€¢{" "}
+              {getServingsPerPack(product) ? `${getServingsPerPack(product)} servings` : "No servings"} â€¢{" "}
               {product.inStock ? "In stock" : "Out of stock"}
             </div>
 
@@ -195,3 +195,5 @@ export default function PriceComparisonMobileList({
     </div>
   );
 }
+
+

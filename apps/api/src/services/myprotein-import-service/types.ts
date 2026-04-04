@@ -28,6 +28,7 @@ export interface CompareProductRow {
   brand: string;
   imageUrl: string | null;
   retailer: string;
+  category: string;
   flavour: string | null;
   size: string;
   sizeG: number;

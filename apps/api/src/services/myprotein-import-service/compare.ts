@@ -1,5 +1,6 @@
 import { db } from "@proteindeals/db";
 import {
+  formatCategoryList,
   formatProductType,
   formatSizeLabel,
   parseNutritionalInformation,
@@ -94,6 +95,17 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
         brand: row.product.brand,
         imageUrl: row.product.imageUrl,
         retailer: row.retailer.name,
+        category: formatCategoryList(
+          Array.isArray(row.product.categoryLabels)
+            ? row.product.categoryLabels.filter((value): value is string => typeof value === "string")
+            : [],
+          formatProductType(
+            row.product.category,
+            Array.isArray(row.product.categoryLabels)
+              ? row.product.categoryLabels.filter((value): value is string => typeof value === "string")
+              : []
+          )
+        ),
         flavour: row.flavour,
         size: formatSizeLabel(Number(row.sizeG)),
         sizeG: Number(row.sizeG),

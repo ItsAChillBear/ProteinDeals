@@ -18,6 +18,7 @@ export interface ColumnFilters {
   size: string;
   flavour: string;
   retailer: string;
+  category: string;
   product: string;
   servings: string;
   pricePerServing: string;
@@ -36,6 +37,7 @@ export interface ColumnFilterOptions {
   sizeGs: number[];
   flavours: string[];
   retailers: string[];
+  categories: string[];
   products: string[];
   servings: string[];
   pricePerServings: string[];
@@ -53,6 +55,7 @@ export const DEFAULT_FILTERS: ColumnFilters = {
   size: "all",
   flavour: "all",
   retailer: "all",
+  category: "all",
   product: "all",
   servings: "all",
   pricePerServing: "all",
@@ -70,6 +73,7 @@ export const FILTER_KEYS: Array<keyof ColumnFilters> = [
   "size",
   "flavour",
   "retailer",
+  "category",
   "product",
   "servings",
   "pricePerServing",
@@ -111,6 +115,7 @@ export function getFilterOptionsForFilters(
       .sort(),
     retailers: getOptionsForKey(allVariants, filters, "retailer", (variant) => variant.retailer)
       .sort(),
+    categories: getAtomicCategoryOptions(allVariants, filters).sort(),
     products: getOptionsForKey(allVariants, filters, "product", (variant) => normalizeBaseName(variant))
       .sort(),
     servings: getOptionsForKey(visibleVariants, filters, "servings", (variant) =>
@@ -187,6 +192,7 @@ function getOptionsForKey(
       size: targetKey === "size" ? DEFAULT_FILTERS.size : filters.size,
       flavour: targetKey === "flavour" ? DEFAULT_FILTERS.flavour : filters.flavour,
       retailer: targetKey === "retailer" ? DEFAULT_FILTERS.retailer : filters.retailer,
+      category: targetKey === "category" ? DEFAULT_FILTERS.category : filters.category,
       product: targetKey === "product" ? DEFAULT_FILTERS.product : filters.product,
       servings: targetKey === "servings" ? DEFAULT_FILTERS.servings : filters.servings,
       pricePerServing:
@@ -246,6 +252,8 @@ function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters
       return options.flavours;
     case "retailer":
       return options.retailers;
+    case "category":
+      return options.categories;
     case "product":
       return options.products;
     case "servings":
@@ -277,6 +285,15 @@ export function variantMatchesFilters(variant: Product, filters: ColumnFilters) 
       const allowed = parseMultiFilter(filters.retailer);
       if (!allowed.includes(variant.retailer)) return false;
     } else if (variant.retailer !== filters.retailer) return false;
+  }
+  if (filters.category !== "all") {
+    const variantCategories = splitCategoryLabels(variant.category);
+    if (filters.category.startsWith(MULTI_PREFIX)) {
+      const allowed = parseMultiFilter(filters.category);
+      if (!allowed.some((value) => variantCategories.includes(value))) return false;
+    } else if (variant.category !== filters.category) {
+      if (!variantCategories.includes(filters.category)) return false;
+    }
   }
   if (filters.product !== "all") {
     const baseName = normalizeBaseName(variant);
@@ -314,4 +331,39 @@ function matchesNumericFilter(value: number | null, filter: string, fixedDigits?
   if (filter.startsWith(RANGE_PREFIX)) return matchesRange(value, filter);
   if (value === null) return false;
   return fixedDigits !== undefined ? value.toFixed(fixedDigits) === filter : String(value) === filter;
+}
+
+function getAtomicCategoryOptions(variants: Product[], filters: ColumnFilters) {
+  const matchingVariants = variants.filter((variant) =>
+    variantMatchesFilters(variant, {
+      size: filters.size,
+      flavour: filters.flavour,
+      retailer: filters.retailer,
+      category: DEFAULT_FILTERS.category,
+      product: filters.product,
+      servings: filters.servings,
+      pricePerServing: filters.pricePerServing,
+      price: filters.price,
+      pricePer100g: filters.pricePer100g,
+      protein: filters.protein,
+      pricePerGramProtein: filters.pricePerGramProtein,
+      caloriesPer100g: filters.caloriesPer100g,
+      caloriesPerGramProtein: filters.caloriesPerGramProtein,
+      caloriesPerServing: filters.caloriesPerServing,
+      proteinPerServing: filters.proteinPerServing,
+    })
+  );
+
+  return Array.from(
+    new Set(
+      matchingVariants.flatMap((variant) => splitCategoryLabels(variant.category))
+    )
+  );
+}
+
+function splitCategoryLabels(value: string) {
+  return value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
 }

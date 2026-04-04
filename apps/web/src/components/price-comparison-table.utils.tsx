@@ -105,6 +105,7 @@ export function groupProducts(products: Product[]) {
       baseName,
       brand: product.brand,
       retailer: product.retailer,
+      category: product.category,
       type: product.type,
       imageUrl: product.imageUrl,
       description: product.description,
