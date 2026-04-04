@@ -14,6 +14,13 @@ export interface ImportMyproteinResult {
   unchanged: number;
 }
 
+export interface ClearMyproteinResult {
+  deletedProducts: number;
+  deletedVariants: number;
+  deletedPriceRecords: number;
+  deletedPriceAlerts: number;
+}
+
 export interface CompareProductRow {
   id: string;
   slug: string;
@@ -206,6 +213,103 @@ export async function applyMyproteinSync(
   }
 
   return result;
+}
+
+export async function clearMyproteinDatabase(): Promise<ClearMyproteinResult> {
+  const retailer = await db.retailer.findUnique({
+    where: {
+      slug: "myprotein",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!retailer) {
+    return {
+      deletedProducts: 0,
+      deletedVariants: 0,
+      deletedPriceRecords: 0,
+      deletedPriceAlerts: 0,
+    };
+  }
+
+  const variants = await db.productVariant.findMany({
+    where: {
+      retailerId: retailer.id,
+    },
+    select: {
+      id: true,
+      productId: true,
+    },
+  });
+
+  if (!variants.length) {
+    return {
+      deletedProducts: 0,
+      deletedVariants: 0,
+      deletedPriceRecords: 0,
+      deletedPriceAlerts: 0,
+    };
+  }
+
+  const variantIds = variants.map((variant) => variant.id);
+  const productIds = [...new Set(variants.map((variant) => variant.productId))];
+
+  return db.$transaction(async (tx) => {
+    const deletedPriceRecords = await tx.priceRecord.count({
+      where: {
+        variantId: {
+          in: variantIds,
+        },
+      },
+    });
+
+    const deletedPriceAlerts = await tx.priceAlert.count({
+      where: {
+        variantId: {
+          in: variantIds,
+        },
+      },
+    });
+
+    const deletedVariantsResult = await tx.productVariant.deleteMany({
+      where: {
+        id: {
+          in: variantIds,
+        },
+      },
+    });
+
+    const orphanedProductIds: string[] = [];
+    for (const productId of productIds) {
+      const remainingVariants = await tx.productVariant.count({
+        where: {
+          productId,
+        },
+      });
+      if (remainingVariants === 0) {
+        orphanedProductIds.push(productId);
+      }
+    }
+
+    const deletedProductsResult = orphanedProductIds.length
+      ? await tx.product.deleteMany({
+          where: {
+            id: {
+              in: orphanedProductIds,
+            },
+          },
+        })
+      : { count: 0 };
+
+    return {
+      deletedProducts: deletedProductsResult.count,
+      deletedVariants: deletedVariantsResult.count,
+      deletedPriceRecords,
+      deletedPriceAlerts,
+    };
+  });
 }
 
 function buildProductDescription(record: MyproteinVariantRecord) {

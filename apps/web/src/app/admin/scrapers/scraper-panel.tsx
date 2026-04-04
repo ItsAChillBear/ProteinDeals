@@ -5,16 +5,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ScraperDiffTable } from "./ScraperDiffTable";
 import { ScraperLiveColumn } from "./ScraperLiveColumn";
 import { ScraperSummaryCards } from "./ScraperSummaryCards";
-import type { ImportResponse, PreviewResponse, ScraperRecord, ScraperResponse } from "./types";
+import type {
+  ClearResponse,
+  ImportResponse,
+  PreviewResponse,
+  ScraperRecord,
+  ScraperResponse,
+} from "./types";
 
 export function MyproteinScraperPanel() {
   const [limit, setLimit] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [result, setResult] = useState<ScraperResponse | null>(null);
   const [preview, setPreview] = useState<PreviewResponse["preview"] | null>(null);
   const [importResult, setImportResult] = useState<ImportResponse | null>(null);
+  const [clearResult, setClearResult] = useState<ClearResponse["clearResult"] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progressLines, setProgressLines] = useState<string[]>([]);
   const [liveRecords, setLiveRecords] = useState<ScraperRecord[]>([]);
@@ -28,6 +36,7 @@ export function MyproteinScraperPanel() {
     setResult(null);
     setPreview(null);
     setImportResult(null);
+    setClearResult(null);
     setProgressLines([]);
     setLiveRecords([]);
     setIsPaused(false);
@@ -67,6 +76,7 @@ export function MyproteinScraperPanel() {
   async function applyChanges(entryIds: string[]) {
     setIsApplying(true);
     setError(null);
+    setClearResult(null);
 
     try {
       const records = result?.records ?? [];
@@ -90,6 +100,39 @@ export function MyproteinScraperPanel() {
       setError(runError instanceof Error ? runError.message : "Unknown error");
     } finally {
       setIsApplying(false);
+    }
+  }
+
+  async function clearDatabase() {
+    const confirmed = window.confirm(
+      "Clear all Myprotein scraper data from the database? This deletes Myprotein variants, price history, alerts, and any orphaned products."
+    );
+    if (!confirmed) return;
+
+    setIsClearing(true);
+    setError(null);
+    setImportResult(null);
+
+    try {
+      const response = await fetch(`/api/admin/scrapers/myprotein/clear`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as ClearResponse;
+      if (!response.ok || !payload.ok || !payload.clearResult) {
+        throw new Error(payload.error ?? "Clear failed");
+      }
+
+      setClearResult(payload.clearResult);
+      setResult(null);
+      setPreview(null);
+      setLiveRecords([]);
+      setProgressLines([]);
+      bufferedLinesRef.current = [];
+      bufferedRecordsRef.current = [];
+    } catch (runError) {
+      setError(runError instanceof Error ? runError.message : "Unknown error");
+    } finally {
+      setIsClearing(false);
     }
   }
 
@@ -163,6 +206,14 @@ export function MyproteinScraperPanel() {
           >
             {isApplying ? "Applying..." : "Apply All Changes"}
           </button>
+          <button
+            type="button"
+            onClick={clearDatabase}
+            disabled={isClearing || isRunning || isApplying}
+            className="rounded-xl border border-red-400/40 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:border-stone-700 disabled:bg-stone-900 disabled:text-stone-500"
+          >
+            {isClearing ? "Clearing..." : "Clear Database"}
+          </button>
         </div>
       </header>
 
@@ -176,6 +227,7 @@ export function MyproteinScraperPanel() {
 
       {error ? <Message tone="error">{error}</Message> : null}
       {importResult?.importResult ? <ImportMessage result={importResult.importResult} /> : null}
+      {clearResult ? <ClearMessage result={clearResult} /> : null}
 
       <ScraperLiveColumn lines={progressLines} records={liveRecords} />
       <ScraperDiffTable
@@ -254,6 +306,16 @@ function ImportMessage(props: { result: NonNullable<ImportResponse["importResult
       products and {props.result.createdVariants} variants, updated {props.result.updatedProducts}{" "}
       products and {props.result.updatedVariants} variants, deleted {props.result.deletedVariants}{" "}
       variants, and wrote {props.result.createdPriceRecords} price records.
+    </Message>
+  );
+}
+
+function ClearMessage(props: { result: NonNullable<ClearResponse["clearResult"]> }) {
+  return (
+    <Message tone="success">
+      Cleared {props.result.deletedVariants} Myprotein variants, {props.result.deletedPriceRecords}{" "}
+      price records, {props.result.deletedPriceAlerts} alerts, and{" "}
+      {props.result.deletedProducts} orphaned products.
     </Message>
   );
 }

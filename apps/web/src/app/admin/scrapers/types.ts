@@ -106,3 +106,16 @@ export type ImportResponse = {
     unchanged: number;
   };
 };
+
+export type ClearResponse = {
+  ok: boolean;
+  startedAt: string;
+  finishedAt: string;
+  error?: string;
+  clearResult?: {
+    deletedProducts: number;
+    deletedVariants: number;
+    deletedPriceRecords: number;
+    deletedPriceAlerts: number;
+  };
+};

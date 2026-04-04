@@ -10,6 +10,7 @@ import {
   previewMyproteinSync,
   importMyproteinRecords,
   applyMyproteinSync,
+  clearMyproteinDatabase,
 } from "./services/myprotein-import.js";
 
 const server = Fastify({
@@ -200,6 +201,30 @@ async function start() {
         startedAt,
         finishedAt: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Unknown import error",
+      };
+    }
+  });
+
+  server.post("/internal/scrapers/myprotein/clear", async (request, reply) => {
+    const startedAt = new Date().toISOString();
+
+    try {
+      const clearResult = await clearMyproteinDatabase();
+
+      return {
+        ok: true,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        clearResult,
+      };
+    } catch (error) {
+      request.log.error(error);
+      reply.code(500);
+      return {
+        ok: false,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown clear error",
       };
     }
   });
