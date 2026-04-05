@@ -177,8 +177,8 @@ function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, fil
             <span className="w-16 flex-shrink-0" />
             <div className="w-20 flex-shrink-0 flex justify-center">
               <div className="flex rounded overflow-hidden border border-theme-2 text-[10px] font-semibold">
-                <button type="button" onClick={() => effectiveMode !== "single" && onToggleMode()} className={clsx("px-1.5 py-0.5 transition-colors", effectiveMode === "single" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>1Ã—</button>
-                <button type="button" onClick={() => effectiveMode !== "subscription" && onToggleMode()} className={clsx("px-1.5 py-0.5 transition-colors border-l border-theme-2", effectiveMode === "subscription" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>Sub</button>
+                <button type="button" onClick={() => effectiveMode !== "single" && onToggleMode()} className={clsx("px-1.5 py-0.5 transition-colors", effectiveMode === "single" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme-2")}>1×</button>
+                <button type="button" onClick={() => effectiveMode !== "subscription" && onToggleMode()} className={clsx("px-1.5 py-0.5 transition-colors border-l border-theme-2", effectiveMode === "subscription" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme-2")}>Sub</button>
               </div>
             </div>
           </div>

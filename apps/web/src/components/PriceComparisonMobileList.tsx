@@ -126,7 +126,7 @@ export default function PriceComparisonMobileList({
                         <span className="text-sm font-medium text-theme">{variant.size}</span>
                         {hasSubscription ? (
                           <span className={clsx("text-[9px] font-semibold px-1 py-0.5 rounded", effectiveMode === "subscription" ? "bg-sky-700/50 text-sky-200" : "bg-sky-700/50 text-sky-200")}>
-                            {effectiveMode === "subscription" ? "sub" : "1Ã—"}
+                            {effectiveMode === "subscription" ? "sub" : "1×"}
                           </span>
                         ) : null}
                       </div>

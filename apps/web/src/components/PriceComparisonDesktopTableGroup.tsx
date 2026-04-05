@@ -477,9 +477,9 @@ function TotalCell({ price, hasSubscription, effectiveMode, onToggle, saving }: 
   return (
     <div className="flex flex-col items-center gap-0.5">
       {hasSubscription ? (
-        <div className="flex rounded overflow-hidden border border-sky-700/50 text-[10px] font-semibold mb-0.5">
-          <button type="button" onClick={() => effectiveMode !== "single" && onToggle()} className={clsx("px-1.5 py-0.5 transition-colors", effectiveMode === "single" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>1Ã—</button>
-          <button type="button" onClick={() => effectiveMode !== "subscription" && onToggle()} className={clsx("px-1.5 py-0.5 transition-colors border-l border-sky-700/50", effectiveMode === "subscription" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>Sub</button>
+        <div className="flex rounded overflow-hidden border border-theme-2 text-[10px] font-semibold mb-0.5">
+          <button type="button" onClick={() => effectiveMode !== "single" && onToggle()} className={clsx("px-1.5 py-0.5 transition-colors", effectiveMode === "single" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme-2")}>1×</button>
+          <button type="button" onClick={() => effectiveMode !== "subscription" && onToggle()} className={clsx("px-1.5 py-0.5 transition-colors border-l border-theme-2", effectiveMode === "subscription" ? "bg-green-500 text-white" : "text-theme-3 hover:text-theme-2")}>Sub</button>
         </div>
       ) : null}
       <span className="text-xs font-semibold">{price}</span>
