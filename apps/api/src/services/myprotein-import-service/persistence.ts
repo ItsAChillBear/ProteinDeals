@@ -13,12 +13,6 @@ import {
 } from "./helpers.js";
 import type { ClearMyproteinResult, MyproteinDbVariant } from "./types.js";
 
-type PersistableMyproteinRecord = MyproteinVariantRecord & {
-  price: number;
-  pricePer100g: number;
-  sizeG: number;
-};
-
 export async function clearMyproteinDatabase(
   selectedCategoryUrls?: string[]
 ): Promise<ClearMyproteinResult> {
@@ -144,7 +138,7 @@ export async function clearMyproteinDatabase(
 }
 
 export async function upsertScrapedVariant(
-  record: PersistableMyproteinRecord,
+  record: MyproteinVariantRecord,
   current: MyproteinDbVariant | null
 ) {
   const retailer = await ensureRetailer();
@@ -184,7 +178,9 @@ export async function upsertScrapedVariant(
     categoryUrls: record.categoryUrls as Prisma.InputJsonValue,
     proteinPer100g: proteinPer100g !== null ? new Prisma.Decimal(proteinPer100g.toFixed(2)) : null,
     servingSizeG:
-      servingsPerPack ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2)) : null,
+      servingsPerPack && record.sizeG
+        ? new Prisma.Decimal((record.sizeG / servingsPerPack).toFixed(2))
+        : null,
     servingsPerPack,
     imageUrl,
     description,
@@ -219,7 +215,7 @@ export async function upsertScrapedVariant(
     retailerProductId,
     url: record.variantUrl,
     flavour: record.flavour,
-    sizeG: new Prisma.Decimal(record.sizeG.toFixed(2)),
+    sizeG: record.sizeG !== null ? new Prisma.Decimal(record.sizeG.toFixed(2)) : null,
     inStock: record.inStock,
     lastScrapedAt: new Date(record.scrapedAt),
   };
@@ -234,34 +230,45 @@ export async function upsertScrapedVariant(
       });
 
   const subscriptionPricePer100g = getSubscriptionPricePer100g(record);
-  await db.priceRecord.create({
-    data: {
-      variantId: variant.id,
-      price: new Prisma.Decimal(record.price.toFixed(2)),
-      pricePer100g: new Prisma.Decimal(record.pricePer100g.toFixed(4)),
-      subscriptionPrice:
-        record.subscriptionPrice !== null
-          ? new Prisma.Decimal(record.subscriptionPrice.toFixed(2))
-          : null,
-      subscriptionPricePer100g:
-        subscriptionPricePer100g !== null
-          ? new Prisma.Decimal(subscriptionPricePer100g.toFixed(4))
-          : null,
-      subscriptionSavings:
-        record.subscriptionSavings !== null
-          ? new Prisma.Decimal(record.subscriptionSavings.toFixed(2))
-          : null,
-      wasOnSale: record.wasOnSale,
-      scrapedAt: new Date(record.scrapedAt),
-    },
-  });
+  const hasAnyPriceData =
+    record.price !== null ||
+    record.pricePer100g !== null ||
+    record.subscriptionPrice !== null ||
+    subscriptionPricePer100g !== null;
+
+  if (hasAnyPriceData) {
+    await db.priceRecord.create({
+      data: {
+        variantId: variant.id,
+        price: record.price !== null ? new Prisma.Decimal(record.price.toFixed(2)) : null,
+        pricePer100g:
+          record.pricePer100g !== null
+            ? new Prisma.Decimal(record.pricePer100g.toFixed(4))
+            : null,
+        subscriptionPrice:
+          record.subscriptionPrice !== null
+            ? new Prisma.Decimal(record.subscriptionPrice.toFixed(2))
+            : null,
+        subscriptionPricePer100g:
+          subscriptionPricePer100g !== null
+            ? new Prisma.Decimal(subscriptionPricePer100g.toFixed(4))
+            : null,
+        subscriptionSavings:
+          record.subscriptionSavings !== null
+            ? new Prisma.Decimal(record.subscriptionSavings.toFixed(2))
+            : null,
+        wasOnSale: record.wasOnSale,
+        scrapedAt: new Date(record.scrapedAt),
+      },
+    });
+  }
 
   return {
     createdProduct: !existingProduct,
     updatedProduct: Boolean(existingProduct),
     createdVariant: !existingVariant,
     updatedVariant: Boolean(existingVariant),
-    createdPriceRecord: true,
+    createdPriceRecord: hasAnyPriceData,
   };
 }
 

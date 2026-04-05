@@ -29,6 +29,18 @@ import {
 import { formatSize } from "./price-comparison-card.shared";
 import { applyPriceMode, type PriceMode } from "./price-comparison-metrics";
 
+function getSubscriptionSaving(variant: ProductGroupWithSelection["selected"]) {
+  if (variant.singlePrice === null || variant.subscriptionPrice === null || variant.singlePrice <= 0) {
+    return null;
+  }
+
+  const amount = variant.singlePrice - variant.subscriptionPrice;
+  return {
+    amount,
+    pct: Math.round((amount / variant.singlePrice) * 100),
+  };
+}
+
 interface Props {
   group: ProductGroupWithSelection;
   flavourVariants: ProductGroupWithSelection["variants"];
@@ -197,7 +209,7 @@ function ConsolidatedTableRow({ sizeVariants, sizeIndex, totalSizes, group, best
       if (sortKey === "caloriesPerGramProtein") return getCaloriesPerGramProtein(v) ?? Infinity;
       if (sortKey === "proteinPerServing") return -(getProteinPerServing(v) ?? 0);
       if (sortKey === "proteinPer100g") return -(v.proteinPer100g ?? 0);
-      return v.pricePer100g;
+      return v.pricePer100g ?? Infinity;
     };
     return [...sizeVariants].sort((a, b) => getVal(a) - getVal(b))[0];
   }, [sizeVariants, sortKey]);
@@ -230,7 +242,7 @@ function ConsolidatedTableRow({ sizeVariants, sizeIndex, totalSizes, group, best
     <tr className={clsx("transition-colors", rowBg)}>
       {showPlanner ? (
         <td className="border-x border-green-500/10 bg-green-500/5 px-3 py-2 text-center text-sm font-semibold">
-          {dailyCost !== null ? <span className="text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">—</span>}
+          {dailyCost !== null ? <span className="text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">â€”</span>}
           {dailyCalories !== null ? <div className="mt-0.5 text-[11px] font-normal text-amber-500/80">{Math.round(dailyCalories)} kcal</div> : null}
         </td>
       ) : null}
@@ -280,14 +292,14 @@ function ConsolidatedTableRow({ sizeVariants, sizeIndex, totalSizes, group, best
           {visibility.show100g ? <CaloriesGroupedCell isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{getCaloriesPer100g(variant) !== null ? `${getCaloriesPer100g(variant)}` : "-"}</CaloriesGroupedCell> : null}
           {visibility.showServing ? <CaloriesGroupedCell isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{formatCaloriesPerServing(v)}</CaloriesGroupedCell> : null}
           {visibility.show1gProtein ? <CaloriesGroupedCell isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{getCaloriesPerGramProtein(variant) !== null ? getCaloriesPerGramProtein(variant)!.toFixed(2) : "-"}</CaloriesGroupedCell> : null}
-          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? { amount: formatCurrency(variant.singlePrice - variant.subscriptionPrice), pct: Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100) } : null} /></td> : null}
+          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? (() => { const saving = getSubscriptionSaving(variant); return saving ? { amount: formatCurrency(saving.amount), pct: saving.pct } : null; })() : null} /></td> : null}
           {visibility.show100g ? <PriceCell bestValue={!calorieMode && best100g} value={formatCurrency(v.pricePer100g)} dimmed /> : null}
           {visibility.showServing ? <PriceCell bestValue={!calorieMode && bestServing} value={getPricePerServing(v) !== null ? formatCurrencyPrecise(getPricePerServing(v)!) : null} dimmed /> : null}
           {visibility.show1gProtein ? <PriceCell bestValue={!calorieMode && best1gProtein} value={getPricePerGramProtein(v) !== null ? formatCurrencyPrecise(getPricePerGramProtein(v)!) : null} dimmed /> : null}
         </>
       ) : (
         <>
-          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? { amount: formatCurrency(variant.singlePrice - variant.subscriptionPrice), pct: Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100) } : null} /></td> : null}
+          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? (() => { const saving = getSubscriptionSaving(variant); return saving ? { amount: formatCurrency(saving.amount), pct: saving.pct } : null; })() : null} /></td> : null}
           {visibility.showServing ? <td className="whitespace-nowrap border-l border-theme px-2 py-2 text-center text-sm text-theme-2">{getServingsPerPack(v) ?? "-"}</td> : null}
           {visibility.showServing ? <MeasureCell tone="violet">{formatProteinPerServing(v)}</MeasureCell> : null}
           {visibility.showServing ? <MeasureCell tone="amber" isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{formatCaloriesPerServing(v)}</MeasureCell> : null}
@@ -345,7 +357,7 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
     <tr className={clsx("transition-colors", rowBg)}>
       {showPlanner ? (
         <td className="border-x border-green-500/10 bg-green-500/5 px-3 py-2 text-center text-sm font-semibold">
-          {dailyCost !== null ? <span className="text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">—</span>}
+          {dailyCost !== null ? <span className="text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">â€”</span>}
           {dailyCalories !== null ? <div className="mt-0.5 text-[11px] font-normal text-amber-500/80">{Math.round(dailyCalories)} kcal</div> : null}
         </td>
       ) : null}
@@ -383,14 +395,14 @@ function TableVariantRow({ variant, variantIndex, rowSpan, group, bestValueVaria
           {visibility.show100g && isFirstRow ? <CaloriesGroupedCell rowSpan={rowSpan} isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{getCaloriesPer100g(product) !== null ? `${getCaloriesPer100g(product)}` : "-"}</CaloriesGroupedCell> : null}
           {visibility.showServing ? <CaloriesGroupedCell isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{formatCaloriesPerServing(v)}</CaloriesGroupedCell> : null}
           {visibility.show1gProtein && isFirstRow ? <CaloriesGroupedCell rowSpan={rowSpan} isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{getCaloriesPerGramProtein(product) !== null ? getCaloriesPerGramProtein(product)!.toFixed(2) : "-"}</CaloriesGroupedCell> : null}
-          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? { amount: formatCurrency(variant.singlePrice - variant.subscriptionPrice), pct: Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100) } : null} /></td> : null}
+          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? (() => { const saving = getSubscriptionSaving(variant); return saving ? { amount: formatCurrency(saving.amount), pct: saving.pct } : null; })() : null} /></td> : null}
           {visibility.show100g ? <PriceCell bestValue={!calorieMode && best100g} value={formatCurrency(v.pricePer100g)} dimmed /> : null}
           {visibility.showServing ? <PriceCell bestValue={!calorieMode && bestServing} value={getPricePerServing(v) !== null ? formatCurrencyPrecise(getPricePerServing(v)!) : null} dimmed /> : null}
           {visibility.show1gProtein ? <PriceCell bestValue={!calorieMode && best1gProtein} value={getPricePerGramProtein(v) !== null ? formatCurrencyPrecise(getPricePerGramProtein(v)!) : null} dimmed /> : null}
         </>
       ) : (
         <>
-          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? { amount: formatCurrency(variant.singlePrice - variant.subscriptionPrice), pct: Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100) } : null} /></td> : null}
+          {visibility.showTotal ? <td className="border-x border-green-500/10 bg-green-500/5 px-2 py-2 text-center text-sm font-semibold text-green-500 align-top"><TotalCell price={formatCurrency(v.price)} hasSubscription={hasSubscription} effectiveMode={effectiveMode} onToggle={() => setLocalMode(m => m === "single" ? "subscription" : "single")} saving={effectiveMode === "subscription" && variant.subscriptionPrice != null ? (() => { const saving = getSubscriptionSaving(variant); return saving ? { amount: formatCurrency(saving.amount), pct: saving.pct } : null; })() : null} /></td> : null}
           {visibility.showServing ? <td className="whitespace-nowrap border-l border-theme px-2 py-2 text-center text-sm text-theme-2">{getServingsPerPack(v) ?? "-"}</td> : null}
           {visibility.showServing && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="violet">{formatProteinPerServing(v)}</MeasureCell> : null}
           {visibility.showServing && isFirstRow ? <MeasureCell rowSpan={rowSpan} tone="amber" isLowest={isLowestCalorie} isHighest={isHighestCalorie}>{formatCaloriesPerServing(v)}</MeasureCell> : null}
@@ -466,7 +478,7 @@ function TotalCell({ price, hasSubscription, effectiveMode, onToggle, saving }: 
     <div className="flex flex-col items-center gap-0.5">
       {hasSubscription ? (
         <div className="flex rounded overflow-hidden border border-sky-700/50 text-[10px] font-semibold mb-0.5">
-          <button type="button" onClick={() => effectiveMode !== "single" && onToggle()} className={clsx("px-1.5 py-0.5 transition-colors", effectiveMode === "single" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>1×</button>
+          <button type="button" onClick={() => effectiveMode !== "single" && onToggle()} className={clsx("px-1.5 py-0.5 transition-colors", effectiveMode === "single" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>1Ã—</button>
           <button type="button" onClick={() => effectiveMode !== "subscription" && onToggle()} className={clsx("px-1.5 py-0.5 transition-colors border-l border-sky-700/50", effectiveMode === "subscription" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>Sub</button>
         </div>
       ) : null}

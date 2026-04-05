@@ -85,9 +85,7 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
     },
   });
 
-  return rows
-    .filter((row) => row.priceRecords[0])
-    .map((row) => {
+  return rows.map((row) => {
       const latest = row.priceRecords[0];
       return {
         id: row.id,
@@ -108,23 +106,35 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
           )
         ),
         flavour: row.flavour,
-        size: formatSizeLabel(Number(row.sizeG)),
-        sizeG: Number(row.sizeG),
+        size: formatSizeLabel(row.sizeG !== null ? Number(row.sizeG) : null),
+        sizeG: row.sizeG !== null ? Number(row.sizeG) : null,
         servingSizeG:
           row.product.servingSizeG !== null ? Number(row.product.servingSizeG) : null,
         servings: row.product.servingsPerPack,
-        price: Number(latest.price),
-        pricePer100g: Number(latest.pricePer100g),
-        singlePrice: Number(latest.price),
-        singlePricePer100g: Number(latest.pricePer100g),
+        price: latest?.price !== null && latest?.price !== undefined ? Number(latest.price) : null,
+        pricePer100g:
+          latest?.pricePer100g !== null && latest?.pricePer100g !== undefined
+            ? Number(latest.pricePer100g)
+            : null,
+        singlePrice:
+          latest?.price !== null && latest?.price !== undefined ? Number(latest.price) : null,
+        singlePricePer100g:
+          latest?.pricePer100g !== null && latest?.pricePer100g !== undefined
+            ? Number(latest.pricePer100g)
+            : null,
         subscriptionPrice:
-          latest.subscriptionPrice !== null ? Number(latest.subscriptionPrice) : null,
+          latest?.subscriptionPrice !== null && latest?.subscriptionPrice !== undefined
+            ? Number(latest.subscriptionPrice)
+            : null,
         subscriptionPricePer100g:
-          latest.subscriptionPricePer100g !== null
+          latest?.subscriptionPricePer100g !== null &&
+          latest?.subscriptionPricePer100g !== undefined
             ? Number(latest.subscriptionPricePer100g)
             : null,
         subscriptionSavings:
-          latest.subscriptionSavings !== null ? Number(latest.subscriptionSavings) : null,
+          latest?.subscriptionSavings !== null && latest?.subscriptionSavings !== undefined
+            ? Number(latest.subscriptionSavings)
+            : null,
         proteinPer100g:
           row.product.proteinPer100g !== null ? Number(row.product.proteinPer100g) : null,
         ingredients: row.product.ingredients,

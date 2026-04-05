@@ -121,7 +121,7 @@ export const productVariants = pgTable(
     retailerProductId: varchar("retailer_product_id", { length: 255 }),
     url: text("url").notNull(),
     flavour: varchar("flavour", { length: 150 }),
-    sizeG: decimal("size_g", { precision: 8, scale: 2 }).notNull(),
+    sizeG: decimal("size_g", { precision: 8, scale: 2 }),
     inStock: boolean("in_stock").notNull().default(true),
     lastScrapedAt: timestamp("last_scraped_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -154,11 +154,11 @@ export const priceRecords = pgTable(
     variantId: uuid("variant_id")
       .notNull()
       .references(() => productVariants.id, { onDelete: "cascade" }),
-    price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+    price: decimal("price", { precision: 10, scale: 2 }),
     pricePer100g: decimal("price_per_100g", {
       precision: 10,
       scale: 4,
-    }).notNull(),
+    }),
     subscriptionPrice: decimal("subscription_price", { precision: 10, scale: 2 }),
     subscriptionPricePer100g: decimal("subscription_price_per_100g", {
       precision: 10,

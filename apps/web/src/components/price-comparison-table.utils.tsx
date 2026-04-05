@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { clsx } from "clsx";
 import type {
@@ -9,9 +9,14 @@ import type {
   SortKey,
 } from "./price-comparison-table.types";
 import { getDailyCaloriesForTarget, getDailyCostForTarget } from "./price-comparison-planner";
-import { getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, getProteinPerServing } from "./price-comparison-metrics";
-import { getCaloriesPer100g } from "./price-comparison-nutrition";
-import { getProteinPer100g } from "./price-comparison-nutrition";
+import {
+  getCaloriesPerGramProtein,
+  getCaloriesPerServing,
+  getPricePerGramProtein,
+  getPricePerServing,
+  getProteinPerServing,
+} from "./price-comparison-metrics";
+import { getCaloriesPer100g, getProteinPer100g } from "./price-comparison-nutrition";
 import type { ProteinPlannerState } from "./price-comparison-planner";
 
 export function ProductThumbnail({
@@ -23,25 +28,21 @@ export function ProductThumbnail({
   imageUrl: string | null;
   size?: "sm" | "lg";
 }) {
-  const cls = size === "lg"
-    ? "h-24 w-24 rounded-xl border border-theme bg-surface object-cover"
-    : "h-14 w-14 rounded-xl border border-theme bg-surface object-cover";
+  const cls =
+    size === "lg"
+      ? "h-24 w-24 rounded-xl border border-theme bg-surface object-cover"
+      : "h-14 w-14 rounded-xl border border-theme bg-surface object-cover";
   if (!imageUrl) {
     return (
-      <div className={`flex items-center justify-center rounded-xl border border-dashed border-theme bg-surface px-1 text-center text-[10px] uppercase tracking-wide text-theme-4 ${size === "lg" ? "h-24 w-24" : "h-14 w-14"}`}>
+      <div
+        className={`flex items-center justify-center rounded-xl border border-dashed border-theme bg-surface px-1 text-center text-[10px] uppercase tracking-wide text-theme-4 ${size === "lg" ? "h-24 w-24" : "h-14 w-14"}`}
+      >
         No image
       </div>
     );
   }
 
-  return (
-    <img
-      src={imageUrl}
-      alt={name}
-      loading="lazy"
-      className={cls}
-    />
-  );
+  return <img src={imageUrl} alt={name} loading="lazy" className={cls} />;
 }
 
 export function BuyButton({ product }: { product: Product }) {
@@ -77,6 +78,29 @@ export function normalizeBaseName(product: Product) {
   if (!product.flavour) return product.name;
   const suffix = ` - ${product.flavour}`;
   return product.name.endsWith(suffix) ? product.name.slice(0, -suffix.length) : product.name;
+}
+
+function compareProductsForDeterminism(a: Product, b: Product) {
+  const flavourCompare = (a.flavour ?? "").localeCompare(b.flavour ?? "");
+  if (flavourCompare !== 0) return flavourCompare;
+
+  const sizeCompare =
+    (a.sizeG ?? Number.POSITIVE_INFINITY) - (b.sizeG ?? Number.POSITIVE_INFINITY);
+  if (sizeCompare !== 0) return sizeCompare;
+
+  const price100gCompare =
+    (a.pricePer100g ?? Number.POSITIVE_INFINITY) -
+    (b.pricePer100g ?? Number.POSITIVE_INFINITY);
+  if (price100gCompare !== 0) return price100gCompare;
+
+  const priceCompare =
+    (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
+  if (priceCompare !== 0) return priceCompare;
+
+  const sizeLabelCompare = a.size.localeCompare(b.size);
+  if (sizeLabelCompare !== 0) return sizeLabelCompare;
+
+  return a.id.localeCompare(b.id);
 }
 
 export function groupProducts(products: Product[]) {
@@ -115,19 +139,20 @@ export function groupProducts(products: Product[]) {
 
   return [...groups.values()].map((group) => ({
     ...group,
-    variants: [...group.variants].sort((a, b) => {
-      const flavourCompare = (a.flavour ?? "").localeCompare(b.flavour ?? "");
-      if (flavourCompare !== 0) return flavourCompare;
-      if (a.sizeG !== b.sizeG) return a.sizeG - b.sizeG;
-      return a.pricePer100g - b.pricePer100g;
-    }),
+    variants: [...group.variants].sort(compareProductsForDeterminism),
   }));
 }
 
 export function getDefaultVariant(group: ProductGroup) {
   const inStock = group.variants.filter((variant) => variant.inStock);
   const pool = inStock.length ? inStock : group.variants;
-  return [...pool].sort((a, b) => a.pricePer100g - b.pricePer100g)[0];
+  return [...pool].sort((a, b) => {
+    const price100gCompare =
+      (a.pricePer100g ?? Number.POSITIVE_INFINITY) -
+      (b.pricePer100g ?? Number.POSITIVE_INFINITY);
+    if (price100gCompare !== 0) return price100gCompare;
+    return compareProductsForDeterminism(a, b);
+  })[0];
 }
 
 export function getVariantOptions(group: ProductGroup) {
@@ -170,10 +195,7 @@ export function getVariantsForFlavour(group: ProductGroup, flavour: string) {
   return group.variants.filter((variant) => (variant.flavour ?? "") === flavour);
 }
 
-export function getDisplayProteinPer100g(
-  selected: Product,
-  variants: Product[]
-) {
+export function getDisplayProteinPer100g(selected: Product, variants: Product[]) {
   const selectedProtein = getProteinPer100g(selected);
   if (selectedProtein !== null) return selectedProtein;
 
@@ -196,20 +218,16 @@ export function sortGroups(
     const bValue = getSortValue(b, sortKey, planner);
 
     if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDir === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+      return sortDir === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
     }
 
-    return sortDir === "asc"
-      ? Number(aValue) - Number(bValue)
-      : Number(bValue) - Number(aValue);
+    return sortDir === "asc" ? Number(aValue) - Number(bValue) : Number(bValue) - Number(aValue);
   });
 }
 
 function getSortValue(group: ProductGroupWithSelection, sortKey: SortKey, planner?: ProteinPlannerState) {
   if (sortKey === "name") return group.baseName;
-  if (sortKey === "size") return group.selected.sizeG;
+  if (sortKey === "size") return group.selected.sizeG ?? Number.POSITIVE_INFINITY;
   if (sortKey === "pricePerServing") return getPricePerServing(group.selected) ?? Number.POSITIVE_INFINITY;
   if (sortKey === "caloriesPerServing") return getCaloriesPerServing(group.selected) ?? Number.POSITIVE_INFINITY;
   if (sortKey === "caloriesPer100g") return getCaloriesPer100g(group.selected) ?? Number.POSITIVE_INFINITY;
@@ -227,9 +245,10 @@ function getSortValue(group: ProductGroupWithSelection, sortKey: SortKey, planne
     if (!target) return Number.POSITIVE_INFINITY;
     return getDailyCaloriesForTarget(group.selected, target) ?? Number.POSITIVE_INFINITY;
   }
-  return group.selected[sortKey];
+  return group.selected[sortKey] ?? Number.POSITIVE_INFINITY;
 }
 
-export function formatCurrency(value: number) {
-  return `£${value.toFixed(2)}`;
+export function formatCurrency(value: number | null) {
+  if (value === null) return "-";
+  return `\u00A3${value.toFixed(2)}`;
 }

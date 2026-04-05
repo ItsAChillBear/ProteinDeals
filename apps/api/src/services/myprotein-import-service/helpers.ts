@@ -137,13 +137,24 @@ export function getCanonicalProteinPer100g(record: MyproteinVariantRecord) {
     (row) => row.label.trim().toLowerCase() === "protein"
   );
   const nutritionProteinValue = extractGramAmount(nutritionProtein?.per100g ?? null);
-  return nutritionProteinValue ?? record.proteinPer100g;
+  const fallbackProteinPer100g = isReasonableProteinPer100g(record.proteinPer100g)
+    ? record.proteinPer100g
+    : null;
+  return nutritionProteinValue ?? fallbackProteinPer100g;
 }
 
 function extractGramAmount(value: string | null) {
   if (!value) return null;
-  const match = value.match(/(\d+(?:\.\d+)?)/);
-  return match ? Number(match[1]) : null;
+  const normalized = value.trim().toLowerCase();
+  const match = normalized.match(/(\d+(?:\.\d+)?)\s*g\b/);
+  if (!match) return null;
+
+  const amount = Number(match[1]);
+  return isReasonableProteinPer100g(amount) ? amount : null;
+}
+
+function isReasonableProteinPer100g(value: number | null | undefined) {
+  return value !== null && value !== undefined && Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
 export function getSubscriptionPricePer100g(record: MyproteinVariantRecord) {
@@ -302,7 +313,10 @@ export function formatCategoryList(categoryLabels: string[] | null | undefined, 
   return [...new Set(normalized)].join(", ");
 }
 
-export function formatSizeLabel(sizeG: number) {
+export function formatSizeLabel(sizeG: number | null) {
+  if (sizeG === null || sizeG <= 0) {
+    return "Unknown size";
+  }
   if (sizeG >= 1000) {
     const kg = sizeG / 1000;
     return Number.isInteger(kg) ? `${kg}kg` : `${kg.toFixed(2)}kg`;

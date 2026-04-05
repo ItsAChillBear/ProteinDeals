@@ -80,7 +80,7 @@ export default function PriceComparisonTable({
       ...f,
       retailer: buildMultiFilter(filterOptions.retailers),
       product: buildMultiFilter(filterOptions.products),
-      flavour: buildMultiFilter(filterOptions.flavours),
+      flavour: DEFAULT_FILTERS.flavour,
     }));
     setDefaultsInitialized(true);
   }, [filterOptions, defaultsInitialized]);
@@ -183,7 +183,7 @@ export default function PriceComparisonTable({
       ...DEFAULT_FILTERS,
       retailer: buildMultiFilter(filterOptions.retailers),
       product: buildMultiFilter(filterOptions.products),
-      flavour: buildMultiFilter(filterOptions.flavours),
+      flavour: DEFAULT_FILTERS.flavour,
     });
     setVisibility(DEFAULT_VISIBILITY);
     setSortKey("pricePer100g");
@@ -207,6 +207,7 @@ export default function PriceComparisonTable({
         filters={filters}
         filterOptions={filterOptions}
         onFilter={setFilter}
+        onSearchChange={(value) => setFilter("search", value)}
         visibility={visibility}
         setVisibility={setVisibility}
         setSortKey={setSortKey}

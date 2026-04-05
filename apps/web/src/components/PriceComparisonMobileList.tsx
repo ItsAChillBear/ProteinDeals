@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { CheckCircle, Tag, TrendingDown, TrendingUp, XCircle } from "lucide-react";
 import { clsx } from "clsx";
@@ -21,6 +21,18 @@ import {
   ProductPageLink,
   ProductThumbnail,
 } from "./price-comparison-table.utils";
+
+function getSubscriptionSaving(singlePrice: number | null, subscriptionPrice: number | null) {
+  if (singlePrice === null || subscriptionPrice === null || singlePrice <= 0) {
+    return null;
+  }
+
+  const amount = singlePrice - subscriptionPrice;
+  return {
+    amount,
+    pct: Math.round((amount / singlePrice) * 100),
+  };
+}
 
 export default function PriceComparisonMobileList({
   groups,
@@ -122,7 +134,7 @@ export default function PriceComparisonMobileList({
                         <span>{getServingsPerPack(v) ? `${getServingsPerPack(v)} servings` : "-"}</span>
                         <span className="flex items-baseline gap-1">
                           {formatCurrency(v.price)}
-                          {effectiveMode === "subscription" && variant.subscriptionPrice != null ? <span className="text-xs text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
+                          {(() => { const saving = effectiveMode === "subscription" ? getSubscriptionSaving(variant.singlePrice, variant.subscriptionPrice) : null; return saving ? <span className="text-xs text-red-400 whitespace-nowrap">-{formatCurrency(saving.amount)} (-{saving.pct}%)</span> : null; })()}
                         </span>
                         <span>{formatCurrency(v.pricePer100g)}/100g</span>
                         <span>

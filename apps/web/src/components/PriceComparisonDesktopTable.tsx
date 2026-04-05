@@ -177,7 +177,7 @@ export default function PriceComparisonDesktopTable({
         }
         // Re-sort merged groups by the best variant value for the active sort key
         const getVariantVal = (v: Product): number => {
-          if (sortKey === "pricePer100g") return v.pricePer100g;
+          if (sortKey === "pricePer100g") return v.pricePer100g ?? Infinity;
           if (sortKey === "pricePerServing") return getPricePerServing(v) ?? Infinity;
           if (sortKey === "pricePerGramProtein") return getPricePerGramProtein(v) ?? Infinity;
           if (sortKey === "caloriesPerServing") return getCaloriesPerServing(v) ?? Infinity;
@@ -185,7 +185,7 @@ export default function PriceComparisonDesktopTable({
           if (sortKey === "caloriesPerGramProtein") return getCaloriesPerGramProtein(v) ?? Infinity;
           if (sortKey === "proteinPerServing") return getProteinPerServing(v) ?? Infinity;
           if (sortKey === "proteinPer100g") return v.proteinPer100g ?? Infinity;
-          return v.pricePer100g;
+          return v.pricePer100g ?? Infinity;
         };
         return Array.from(merged.values()).sort((a, b) => {
           const aVals = a.variants.map(getVariantVal).filter((x) => x !== Infinity);

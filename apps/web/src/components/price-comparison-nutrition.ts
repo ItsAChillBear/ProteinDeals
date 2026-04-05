@@ -60,7 +60,7 @@ export function getServingSizeG(product: Product) {
   const candidates = product.nutritionalInformation
     .map((row) => getServingSizeCandidate(row.per100g, row.perServing ?? row.perDailyServing ?? null))
     .filter((value): value is number => value !== null)
-    .filter((value) => value > 0 && value <= product.sizeG);
+    .filter((value) => product.sizeG !== null && value > 0 && value <= product.sizeG);
 
   if (!candidates.length) return null;
   const average = candidates.reduce((sum, value) => sum + value, 0) / candidates.length;
@@ -70,7 +70,7 @@ export function getServingSizeG(product: Product) {
 export function getServingsPerPack(product: Product) {
   if (product.servings && product.servings > 0) return product.servings;
   const servingSizeG = getServingSizeG(product);
-  if (servingSizeG === null || product.sizeG <= 0) return null;
+  if (servingSizeG === null || product.sizeG === null || product.sizeG <= 0) return null;
   return Math.round(product.sizeG / servingSizeG);
 }
 

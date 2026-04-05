@@ -31,11 +31,13 @@ export function extractMyproteinProductContent(html: string) {
     whyChoose: firstNonEmpty([headingBlocks.get("why choose"), headingBlocks.get("why choose?")]) ?? null,
     suggestedUse: firstNonEmpty([headingBlocks.get("suggested use"), headingBlocks.get("how to use")]) ?? null,
     ingredients:
-      firstNonEmpty([
-        headingBlocks.get("ingredients"),
-        [...ingredientsFallback, ...dietarySuitabilityFallback].join("\n"),
-        extractIngredientsFromText(documentText),
-      ]) ?? null,
+      sanitizeIngredientsText(
+        firstNonEmpty([
+          headingBlocks.get("ingredients"),
+          [...ingredientsFallback, ...dietarySuitabilityFallback].join("\n"),
+          extractIngredientsFromText(documentText),
+        ])
+      ) ?? null,
     faqEntries: extractFaqEntries($, headingBlocks.get("frequently asked questions") ?? null),
     nutritionalInformation:
       extractNutritionRowsFromCmsPayload(html) ??
@@ -197,6 +199,7 @@ function extractNutritionRowsUsingExplicitHeader(parsedRows: string[][]) {
   const headerCells = parsedRows[headerIndex];
   const per100gIndex = findPer100gColumnIndex(headerCells);
   const perServingIndex = findPerServingColumnIndex(headerCells);
+  const referenceIntakeIndex = findReferenceIntakeColumnIndex(headerCells);
 
   if (per100gIndex <= 0 || perServingIndex <= 0 || per100gIndex === perServingIndex) {
     return rows;
@@ -209,6 +212,10 @@ function extractNutritionRowsUsingExplicitHeader(parsedRows: string[][]) {
       label: cells[0],
       per100g: cells[per100gIndex] || null,
       perServing: cells[perServingIndex] || null,
+      referenceIntake:
+        referenceIntakeIndex !== -1 && cells.length > referenceIntakeIndex
+          ? normalizeReferenceIntakeValue(cells[referenceIntakeIndex] || null)
+          : null,
     };
 
     if (isCleanNutritionRow(candidate)) rows.push(candidate);
@@ -302,7 +309,7 @@ function isPer100gHeader(value: string) {
 }
 
 function isPerServingHeader(value: string) {
-  return /(?:^|\b)(?:per\s*\d+(?:\.\d+)?g|per\s*serving|a\s+serving\s+contains|serving\s+contains)(?:\b|$)/i.test(
+  return /(?:^|\b)(?:per\s*\d+(?:\.\d+)?g|per\s*serving|per\s+(?:sachet|tablet|capsule|softgel|gummy|stick|shot|bar|packet|pack|portion)(?:\s*\(\d+(?:\.\d+)?g\))?|a\s+serving\s+contains|serving\s+contains)(?:\b|$)/i.test(
     value
   );
 }
@@ -429,9 +436,19 @@ function isReferenceIntakeValue(value: string | null) {
   const normalized = value.trim().toLowerCase();
   return (
     /^-+$/.test(normalized) ||
+    normalized === "" ||
+    normalized === "n/a" ||
+    normalized === "&nbsp;" ||
     /^<?\s*\d+(?:\.\d+)?\s*%?$/.test(normalized) ||
     /less than\s+\d+%/.test(normalized)
   );
+}
+
+function normalizeReferenceIntakeValue(value: string | null) {
+  if (!value) return null;
+  const normalized = value.trim();
+  if (!normalized || normalized === "&nbsp;") return null;
+  return normalized;
 }
 
 function extractNutritionRowsFromText(text: string) {
@@ -500,6 +517,42 @@ function extractIngredientsFromText(text: string) {
     .trim();
 
   return cleaned || null;
+}
+
+function sanitizeIngredientsText(value: string | null) {
+  if (!value) return null;
+
+  const cleaned = value
+    .replace(/\bQuantity:\b[\s\S]*$/i, "")
+    .replace(/\bAdd to basket\b[\s\S]*$/i, "")
+    .replace(/\bEmail When In Stock\b[\s\S]*$/i, "")
+    .replace(/\bNotify Me When Available\b[\s\S]*$/i, "")
+    .replace(/\bIn stock \| Usually dispatched within 24 hours\b[\s\S]*$/i, "")
+    .replace(/\b\(function\(\)\{[\s\S]*$/i, "")
+    .replace(/\bdocument\.addEventListener\([\s\S]*$/i, "")
+    .replace(/\bwindow\.[A-Za-z0-9_.]+\([\s\S]*$/i, "")
+    .replace(/\bDescription\b[\s\S]*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return null;
+
+  const normalized = cleaned.toLowerCase();
+  const noisySignals = [
+    "add to basket",
+    "notify me when available",
+    "document.addeventlistener",
+    "window.sharedfunctions",
+    "opengallerysharemodal",
+    "product-gallery-refreshed",
+    "variation_updated",
+  ];
+
+  if (noisySignals.some((signal) => normalized.includes(signal))) {
+    return null;
+  }
+
+  return cleaned;
 }
 
 function extractSection(text: string, startHeading: string, endHeadings: string[]) {

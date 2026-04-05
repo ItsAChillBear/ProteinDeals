@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { PriceComparisonFilterDropdown } from "./PriceComparisonFilterDropdown";
 import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
 import type { SortKey } from "./price-comparison-table.types";
@@ -10,6 +12,7 @@ interface Props {
   filters: ColumnFilters;
   filterOptions: ColumnFilterOptions;
   onFilter: (key: keyof ColumnFilters, value: string) => void;
+  onSearchChange: (value: string) => void;
   visibility: ColumnVisibility;
   setVisibility: React.Dispatch<React.SetStateAction<ColumnVisibility>>;
   setSortKey: React.Dispatch<React.SetStateAction<SortKey>>;
@@ -38,6 +41,7 @@ export default function PriceComparisonToolbar({
   filters,
   filterOptions,
   onFilter,
+  onSearchChange,
   visibility,
   setVisibility,
   viewMode,
@@ -52,6 +56,20 @@ export default function PriceComparisonToolbar({
   flavourMode,
   setFlavourMode,
 }: Props) {
+  const [searchInput, setSearchInput] = useState(filters.search);
+
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      onSearchChange(searchInput);
+    }, 150);
+
+    return () => window.clearTimeout(timeout);
+  }, [onSearchChange, searchInput]);
+
   return (
     <div className="border-b border-theme px-6 py-3 space-y-2">
       <div className="flex items-center justify-between">
@@ -96,6 +114,16 @@ export default function PriceComparisonToolbar({
         </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex items-center">
+          <Search className="absolute left-2 h-3.5 w-3.5 text-theme-4 pointer-events-none" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search products..."
+            className="rounded-md border border-theme-2 bg-surface pl-7 pr-2.5 py-1 text-xs text-theme placeholder:text-theme-4 focus:outline-none focus:border-green-500/50 w-44"
+          />
+        </div>
         <PriceComparisonFilterDropdown value={filters.retailer} options={filterOptions.retailers} onChange={(v) => onFilter("retailer", v)} multi label="Supplier" />
         <PriceComparisonFilterDropdown value={filters.category} options={filterOptions.categories} onChange={(v) => onFilter("category", v)} multi label="Category" />
         <PriceComparisonFilterDropdown value={filters.product} options={filterOptions.products} onChange={(v) => onFilter("product", v)} multi label="Product" />

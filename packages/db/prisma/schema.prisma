@@ -87,7 +87,7 @@ model ProductVariant {
   retailerProductId String?       @map("retailer_product_id") @db.VarChar(255)
   url               String
   flavour           String?       @db.VarChar(150)
-  sizeG             Decimal       @map("size_g") @db.Decimal(8, 2)
+  sizeG             Decimal?      @map("size_g") @db.Decimal(8, 2)
   inStock           Boolean       @default(true) @map("in_stock")
   lastScrapedAt     DateTime?     @map("last_scraped_at") @db.Timestamptz(6)
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -107,8 +107,8 @@ model ProductVariant {
 model PriceRecord {
   id           String         @id @default(uuid()) @db.Uuid
   variantId    String         @map("variant_id") @db.Uuid
-  price        Decimal        @db.Decimal(10, 2)
-  pricePer100g Decimal        @map("price_per_100g") @db.Decimal(10, 4)
+  price        Decimal?       @db.Decimal(10, 2)
+  pricePer100g Decimal?       @map("price_per_100g") @db.Decimal(10, 4)
   subscriptionPrice Decimal?  @map("subscription_price") @db.Decimal(10, 2)
   subscriptionPricePer100g Decimal? @map("subscription_price_per_100g") @db.Decimal(10, 4)
   subscriptionSavings Decimal? @map("subscription_savings") @db.Decimal(10, 2)

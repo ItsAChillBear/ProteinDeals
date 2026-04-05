@@ -20,7 +20,7 @@ export function applyPriceMode(product: Product, mode: PriceMode): Product {
 
 export function getPricePerServing(product: Product) {
   const servingsPerPack = getServingsPerPack(product);
-  if (!servingsPerPack || servingsPerPack <= 0) return null;
+  if (product.price === null || !servingsPerPack || servingsPerPack <= 0) return null;
   return product.price / servingsPerPack;
 }
 
@@ -35,7 +35,7 @@ export function getProteinPerServing(product: Product) {
 
 export function getPricePerGramProtein(product: Product) {
   const proteinPer100g = getProteinPer100g(product);
-  if (!proteinPer100g || product.sizeG <= 0) return null;
+  if (product.price === null || !proteinPer100g || product.sizeG === null || product.sizeG <= 0) return null;
   const totalProteinG = (product.sizeG * proteinPer100g) / 100;
   if (totalProteinG <= 0) return null;
   return product.price / totalProteinG;

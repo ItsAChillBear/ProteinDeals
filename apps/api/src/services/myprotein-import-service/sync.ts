@@ -141,7 +141,7 @@ export async function applyMyproteinSync(
       continue;
     }
 
-    if (!isPersistableRecord(entry.scraped)) {
+    if (!entry.scraped) {
       continue;
     }
 
@@ -158,18 +158,3 @@ export async function applyMyproteinSync(
 }
 
 export { clearMyproteinDatabase } from "./persistence.js";
-
-function isPersistableRecord(
-  record: MyproteinVariantRecord | null
-): record is MyproteinVariantRecord & {
-  price: number;
-  pricePer100g: number;
-  sizeG: number;
-} {
-  return Boolean(
-    record &&
-      record.price !== null &&
-      record.pricePer100g !== null &&
-      record.sizeG !== null
-  );
-}

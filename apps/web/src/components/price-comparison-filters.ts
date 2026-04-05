@@ -15,6 +15,7 @@ export function buildMultiFilter(values: string[]): string {
 }
 
 export interface ColumnFilters {
+  search: string;
   size: string;
   flavour: string;
   retailer: string;
@@ -52,6 +53,7 @@ export interface ColumnFilterOptions {
 }
 
 export const DEFAULT_FILTERS: ColumnFilters = {
+  search: "",
   size: "all",
   flavour: "all",
   retailer: "all",
@@ -70,6 +72,7 @@ export const DEFAULT_FILTERS: ColumnFilters = {
 };
 
 export const FILTER_KEYS: Array<keyof ColumnFilters> = [
+  "search",
   "size",
   "flavour",
   "retailer",
@@ -125,10 +128,12 @@ export function getFilterOptionsForFilters(
       const value = getPricePerServing(variant);
       return value !== null ? value.toFixed(3) : null;
     }).sort((a, b) => Number(a) - Number(b)),
-    prices: getOptionsForKey(visibleVariants, filters, "price", (variant) => variant.price.toFixed(2))
+    prices: getOptionsForKey(visibleVariants, filters, "price", (variant) =>
+      variant.price !== null ? variant.price.toFixed(2) : null
+    )
       .sort((a, b) => Number(a) - Number(b)),
     pricePer100gs: getOptionsForKey(visibleVariants, filters, "pricePer100g", (variant) =>
-      variant.pricePer100g.toFixed(2)
+      variant.pricePer100g !== null ? variant.pricePer100g.toFixed(2) : null
     ).sort((a, b) => Number(a) - Number(b)),
     proteins: getOptionsForKey(visibleVariants, filters, "protein", (variant) =>
       variant.proteinPer100g !== null ? String(variant.proteinPer100g) : null
@@ -189,6 +194,7 @@ function getOptionsForKey(
 ) {
   const matchingVariants = variants.filter((variant) =>
     variantMatchesFilters(variant, {
+      search: filters.search,
       size: targetKey === "size" ? DEFAULT_FILTERS.size : filters.size,
       flavour: targetKey === "flavour" ? DEFAULT_FILTERS.flavour : filters.flavour,
       retailer: targetKey === "retailer" ? DEFAULT_FILTERS.retailer : filters.retailer,
@@ -229,6 +235,7 @@ export function sanitizeFilters(variants: Product[], filters: ColumnFilters) {
   let nextFilters = { ...filters };
 
   for (const key of FILTER_KEYS) {
+    if (key === "search") continue;
     const options = getFilterOptionsForFilters(variants, variants, nextFilters);
     const validOptions = mapOptionsForKey(options, key);
     if (
@@ -246,6 +253,8 @@ export function sanitizeFilters(variants: Product[], filters: ColumnFilters) {
 
 function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters) {
   switch (key) {
+    case "search":
+      return [] as string[]; // search is free-text, not option-based
     case "size":
       return options.sizes;
     case "flavour":
@@ -280,6 +289,11 @@ function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters
 }
 
 export function variantMatchesFilters(variant: Product, filters: ColumnFilters) {
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    const haystack = `${normalizeBaseName(variant)} ${variant.retailer}`.toLowerCase();
+    if (!haystack.includes(q)) return false;
+  }
   if (filters.retailer !== "all") {
     if (filters.retailer.startsWith(MULTI_PREFIX)) {
       const allowed = parseMultiFilter(filters.retailer);
@@ -336,6 +350,7 @@ function matchesNumericFilter(value: number | null, filter: string, fixedDigits?
 function getAtomicCategoryOptions(variants: Product[], filters: ColumnFilters) {
   const matchingVariants = variants.filter((variant) =>
     variantMatchesFilters(variant, {
+      search: filters.search,
       size: filters.size,
       flavour: filters.flavour,
       retailer: filters.retailer,

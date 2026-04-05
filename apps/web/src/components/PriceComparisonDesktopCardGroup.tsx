@@ -26,6 +26,18 @@ import { ProductThumbnail, formatCurrency } from "./price-comparison-table.utils
 import { Stat, formatSize } from "./price-comparison-card.shared";
 import { applyPriceMode, type PriceMode } from "./price-comparison-metrics";
 
+function getSubscriptionSaving(variant: ProductGroupWithSelection["selected"]) {
+  if (variant.singlePrice === null || variant.subscriptionPrice === null || variant.singlePrice <= 0) {
+    return null;
+  }
+
+  const amount = variant.singlePrice - variant.subscriptionPrice;
+  return {
+    amount,
+    pct: Math.round((amount / variant.singlePrice) * 100),
+  };
+}
+
 interface Props {
   group: ProductGroupWithSelection;
   flavourVariants: ProductGroupWithSelection["variants"];
@@ -165,7 +177,7 @@ function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, fil
             <span className="w-16 flex-shrink-0" />
             <div className="w-20 flex-shrink-0 flex justify-center">
               <div className="flex rounded overflow-hidden border border-theme-2 text-[10px] font-semibold">
-                <button type="button" onClick={() => effectiveMode !== "single" && onToggleMode()} className={clsx("px-1.5 py-0.5 transition-colors", effectiveMode === "single" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>1×</button>
+                <button type="button" onClick={() => effectiveMode !== "single" && onToggleMode()} className={clsx("px-1.5 py-0.5 transition-colors", effectiveMode === "single" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>1Ã—</button>
                 <button type="button" onClick={() => effectiveMode !== "subscription" && onToggleMode()} className={clsx("px-1.5 py-0.5 transition-colors border-l border-theme-2", effectiveMode === "subscription" ? "bg-sky-700/60 text-sky-200" : "text-theme-3 hover:text-theme-2")}>Sub</button>
               </div>
             </div>
@@ -180,13 +192,13 @@ function CardHeader({ visibility, showPlanner, proteinTarget, showFilterBar, fil
           <span className="w-4 flex-shrink-0" />
           {consolidated ? <div className="w-20 flex-shrink-0 px-1 pb-1.5">{showFilterBar && filterOptions && onFilter ? <PriceComparisonFilterDropdown value={filters.flavour} options={filterOptions.flavours} onChange={(v) => onFilter("flavour", v)} multi /> : null}</div> : null}
           <div className="w-16 flex-shrink-0 px-1 pb-1.5">{showFilterBar && filterOptions && onFilter ? <PriceComparisonFilterDropdown value={filters.size} options={filterOptions.sizes} numericValues={filterOptions.sizeGs} formatFn={(n) => { const match = filterOptions.sizes[filterOptions.sizeGs.indexOf(n)]; return match ? match.replace(/^(\d+\.\d+?)0+(kg|g)$/, "$1$2") : `${n}g`; }} numeric onChange={(v) => onFilter("size", v)} /> : null}</div>
-          {visibility.showTotal ? <div className="w-20 flex-shrink-0 px-1 pb-1.5">{showFilterBar && filterOptions && onFilter ? <PriceComparisonFilterDropdown value={filters.price} options={filterOptions.prices} onChange={(v) => onFilter("price", v)} formatFn={(n) => `£${n.toFixed(2)}`} numeric /> : null}</div> : null}
+          {visibility.showTotal ? <div className="w-20 flex-shrink-0 px-1 pb-1.5">{showFilterBar && filterOptions && onFilter ? <PriceComparisonFilterDropdown value={filters.price} options={filterOptions.prices} onChange={(v) => onFilter("price", v)} formatFn={(n) => `Â£${n.toFixed(2)}`} numeric /> : null}</div> : null}
         </div>
       </div>
       <div className="flex divide-x divide-theme">
-        {visibility.showServing ? <MetricHeader title="Per serving" widths={["w-16", "w-16", "w-16", "w-16"]} labels={["servings", "protein", "kcal", "price"]} colors={["text-theme-3", "text-violet-500", "text-amber-500", "text-green-500"]} sortKeys={[undefined, "proteinPerServing", "caloriesPerServing", "pricePerServing"]} sortKey={sortKey} sortDir={sortDir} onSort={onSort} filters={showFilterBar && filterOptions && onFilter ? [<PriceComparisonFilterDropdown key="s1" value={filters.servings} options={filterOptions.servings} onChange={(v) => onFilter("servings", v)} formatFn={(n) => `${n}`} numeric />, <PriceComparisonFilterDropdown key="s2" value={filters.proteinPerServing} options={filterOptions.proteinPerServings} onChange={(v) => onFilter("proteinPerServing", v)} formatFn={(n) => `${n.toFixed(1)}g`} numeric />, <PriceComparisonFilterDropdown key="s3" value={filters.caloriesPerServing} options={filterOptions.caloriesPerServings} onChange={(v) => onFilter("caloriesPerServing", v)} formatFn={(n) => `${n}`} numeric />, <PriceComparisonFilterDropdown key="s4" value={filters.pricePerServing} options={filterOptions.pricePerServings} onChange={(v) => onFilter("pricePerServing", v)} formatFn={(n) => `£${n.toFixed(3)}`} numeric />] : undefined} /> : null}
-        {visibility.show100g ? <MetricHeader title="Per 100g" widths={["w-16", "w-16", "w-16"]} labels={["protein", "kcal", "price"]} colors={["text-violet-500", "text-amber-500", "text-green-500"]} sortKeys={["proteinPer100g", "caloriesPer100g", "pricePer100g"]} sortKey={sortKey} sortDir={sortDir} onSort={onSort} filters={showFilterBar && filterOptions && onFilter ? [<PriceComparisonFilterDropdown key="h1" value={filters.protein} options={filterOptions.proteins} onChange={(v) => onFilter("protein", v)} formatFn={(n) => `${n}g`} numeric />, <PriceComparisonFilterDropdown key="h2" value={filters.caloriesPer100g} options={filterOptions.caloriesPer100gs} onChange={(v) => onFilter("caloriesPer100g", v)} formatFn={(n) => `${n}`} numeric />, <PriceComparisonFilterDropdown key="h3" value={filters.pricePer100g} options={filterOptions.pricePer100gs} onChange={(v) => onFilter("pricePer100g", v)} formatFn={(n) => `£${n.toFixed(2)}`} numeric />] : undefined} /> : null}
-        {visibility.show1gProtein ? <MetricHeader title="Per 1g protein" widths={["w-16", "w-16"]} labels={["kcal", "price"]} colors={["text-amber-500", "text-green-500"]} sortKeys={["caloriesPerGramProtein", "pricePerGramProtein"]} sortKey={sortKey} sortDir={sortDir} onSort={onSort} filters={showFilterBar && filterOptions && onFilter ? [<PriceComparisonFilterDropdown key="g1" value={filters.caloriesPerGramProtein} options={filterOptions.caloriesPerGramProteins} onChange={(v) => onFilter("caloriesPerGramProtein", v)} formatFn={(n) => n.toFixed(2)} numeric />, <PriceComparisonFilterDropdown key="g2" value={filters.pricePerGramProtein} options={filterOptions.pricePerGramProteins} onChange={(v) => onFilter("pricePerGramProtein", v)} formatFn={(n) => `£${n.toFixed(3)}`} numeric />] : undefined} /> : null}
+        {visibility.showServing ? <MetricHeader title="Per serving" widths={["w-16", "w-16", "w-16", "w-16"]} labels={["servings", "protein", "kcal", "price"]} colors={["text-theme-3", "text-violet-500", "text-amber-500", "text-green-500"]} sortKeys={[undefined, "proteinPerServing", "caloriesPerServing", "pricePerServing"]} sortKey={sortKey} sortDir={sortDir} onSort={onSort} filters={showFilterBar && filterOptions && onFilter ? [<PriceComparisonFilterDropdown key="s1" value={filters.servings} options={filterOptions.servings} onChange={(v) => onFilter("servings", v)} formatFn={(n) => `${n}`} numeric />, <PriceComparisonFilterDropdown key="s2" value={filters.proteinPerServing} options={filterOptions.proteinPerServings} onChange={(v) => onFilter("proteinPerServing", v)} formatFn={(n) => `${n.toFixed(1)}g`} numeric />, <PriceComparisonFilterDropdown key="s3" value={filters.caloriesPerServing} options={filterOptions.caloriesPerServings} onChange={(v) => onFilter("caloriesPerServing", v)} formatFn={(n) => `${n}`} numeric />, <PriceComparisonFilterDropdown key="s4" value={filters.pricePerServing} options={filterOptions.pricePerServings} onChange={(v) => onFilter("pricePerServing", v)} formatFn={(n) => `Â£${n.toFixed(3)}`} numeric />] : undefined} /> : null}
+        {visibility.show100g ? <MetricHeader title="Per 100g" widths={["w-16", "w-16", "w-16"]} labels={["protein", "kcal", "price"]} colors={["text-violet-500", "text-amber-500", "text-green-500"]} sortKeys={["proteinPer100g", "caloriesPer100g", "pricePer100g"]} sortKey={sortKey} sortDir={sortDir} onSort={onSort} filters={showFilterBar && filterOptions && onFilter ? [<PriceComparisonFilterDropdown key="h1" value={filters.protein} options={filterOptions.proteins} onChange={(v) => onFilter("protein", v)} formatFn={(n) => `${n}g`} numeric />, <PriceComparisonFilterDropdown key="h2" value={filters.caloriesPer100g} options={filterOptions.caloriesPer100gs} onChange={(v) => onFilter("caloriesPer100g", v)} formatFn={(n) => `${n}`} numeric />, <PriceComparisonFilterDropdown key="h3" value={filters.pricePer100g} options={filterOptions.pricePer100gs} onChange={(v) => onFilter("pricePer100g", v)} formatFn={(n) => `Â£${n.toFixed(2)}`} numeric />] : undefined} /> : null}
+        {visibility.show1gProtein ? <MetricHeader title="Per 1g protein" widths={["w-16", "w-16"]} labels={["kcal", "price"]} colors={["text-amber-500", "text-green-500"]} sortKeys={["caloriesPerGramProtein", "pricePerGramProtein"]} sortKey={sortKey} sortDir={sortDir} onSort={onSort} filters={showFilterBar && filterOptions && onFilter ? [<PriceComparisonFilterDropdown key="g1" value={filters.caloriesPerGramProtein} options={filterOptions.caloriesPerGramProteins} onChange={(v) => onFilter("caloriesPerGramProtein", v)} formatFn={(n) => n.toFixed(2)} numeric />, <PriceComparisonFilterDropdown key="g2" value={filters.pricePerGramProtein} options={filterOptions.pricePerGramProteins} onChange={(v) => onFilter("pricePerGramProtein", v)} formatFn={(n) => `Â£${n.toFixed(3)}`} numeric />] : undefined} /> : null}
         {showPlanner ? <div className="w-24 flex-shrink-0 px-3 pt-2 pb-1.5 border-l border-green-500/20 bg-green-500/5"><div className="text-[10px] font-bold uppercase tracking-widest text-green-500/80">{proteinTarget}g/day</div></div> : null}
       </div>
     </div>
@@ -244,7 +256,7 @@ function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, cal
         {visibility.showTotal ? (
           <div className="w-20 flex-shrink-0 flex flex-col items-center">
             <span className="text-xs font-semibold leading-[1.2rem] text-green-500">{formatCurrency(v.price)}</span>
-            {effectiveMode === "subscription" && hasSubscription && variant.subscriptionPrice != null ? <span className="text-[10px] leading-tight text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
+            {(() => { const saving = effectiveMode === "subscription" ? getSubscriptionSaving(variant) : null; return saving ? <span className="text-[10px] leading-tight text-red-400 whitespace-nowrap">-{formatCurrency(saving.amount)} (-{saving.pct}%)</span> : null; })()}
           </div>
         ) : null}
       </div>
@@ -276,7 +288,7 @@ function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, cal
             </div>
           </div>
         ) : null}
-        {showPlanner ? <div className="w-24 flex-shrink-0 px-3 py-2.5 text-right">{dailyCost !== null ? <span className="text-sm font-bold text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">—</span>}{dailyCalories !== null ? <div className="text-[10px] text-amber-500/80">{Math.round(dailyCalories)} kcal</div> : null}</div> : null}
+        {showPlanner ? <div className="w-24 flex-shrink-0 px-3 py-2.5 text-right">{dailyCost !== null ? <span className="text-sm font-bold text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">â€”</span>}{dailyCalories !== null ? <div className="text-[10px] text-amber-500/80">{Math.round(dailyCalories)} kcal</div> : null}</div> : null}
       </div>
     </div>
   );
@@ -295,10 +307,10 @@ function ConsolidatedSizeRow({ sizeVariants, effectiveMode, isOverridden, calori
       if (sortKey === "caloriesPerServing") return getCaloriesPerServing(applied) ?? Infinity;
       if (sortKey === "caloriesPer100g") return getCaloriesPer100g(applied) ?? Infinity;
       if (sortKey === "caloriesPerGramProtein") return getCaloriesPerGramProtein(applied) ?? Infinity;
-      // For protein, higher is better — negate so sort ascending finds highest
+      // For protein, higher is better â€” negate so sort ascending finds highest
       if (sortKey === "proteinPerServing") return -(getProteinPerServing(applied) ?? 0);
       if (sortKey === "proteinPer100g") return -(applied.proteinPer100g ?? 0);
-      return applied.pricePer100g;
+      return applied.pricePer100g ?? Infinity;
     };
     // Always pick the "best" (lowest getVal = best value) regardless of sortDir
     return [...sizeVariants].sort((a, b) => getVal(a) - getVal(b))[0];
@@ -346,13 +358,13 @@ function ConsolidatedSizeRow({ sizeVariants, effectiveMode, isOverridden, calori
                 <option key={sv.id} value={sv.flavour ?? ""}>{sv.flavour || "Default"}</option>
               ))}
             </select>
-          ) : <span className="text-[10px] text-theme-4">—</span>}
+          ) : <span className="text-[10px] text-theme-4">â€”</span>}
         </div>
         <span className="w-16 flex-shrink-0 px-1 text-center text-sm font-bold text-theme leading-[1.2rem]">{formatSize(variant.size)}</span>
         {visibility.showTotal ? (
           <div className="w-20 flex-shrink-0 flex flex-col items-center">
             <span className="text-xs font-semibold leading-[1.2rem] text-green-500">{formatCurrency(v.price)}</span>
-            {effectiveMode === "subscription" && hasSubscription && variant.subscriptionPrice != null ? <span className="text-[10px] leading-tight text-red-400 whitespace-nowrap">-{formatCurrency(variant.singlePrice - variant.subscriptionPrice)} (-{Math.round(((variant.singlePrice - variant.subscriptionPrice) / variant.singlePrice) * 100)}%)</span> : null}
+            {(() => { const saving = effectiveMode === "subscription" ? getSubscriptionSaving(variant) : null; return saving ? <span className="text-[10px] leading-tight text-red-400 whitespace-nowrap">-{formatCurrency(saving.amount)} (-{saving.pct}%)</span> : null; })()}
           </div>
         ) : null}
       </div>
@@ -384,7 +396,7 @@ function ConsolidatedSizeRow({ sizeVariants, effectiveMode, isOverridden, calori
             </div>
           </div>
         ) : null}
-        {showPlanner ? <div className="w-24 flex-shrink-0 px-3 py-2.5 text-right">{dailyCost !== null ? <span className="text-sm font-bold text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">—</span>}{dailyCalories !== null ? <div className="text-[10px] text-amber-500/80">{Math.round(dailyCalories)} kcal</div> : null}</div> : null}
+        {showPlanner ? <div className="w-24 flex-shrink-0 px-3 py-2.5 text-right">{dailyCost !== null ? <span className="text-sm font-bold text-green-500">{formatCurrency(dailyCost)}</span> : <span className="text-theme-4">â€”</span>}{dailyCalories !== null ? <div className="text-[10px] text-amber-500/80">{Math.round(dailyCalories)} kcal</div> : null}</div> : null}
       </div>
     </div>
   );

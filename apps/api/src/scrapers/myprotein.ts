@@ -13,6 +13,7 @@ import {
   resolveUrl,
   roundTo,
 } from "./myprotein/helpers.js";
+import * as cheerio from "cheerio";
 import { extractMyproteinProductContent } from "./myprotein/content.js";
 import type {
   MyproteinVariantRecord,
@@ -38,6 +39,11 @@ type CategoryTarget = {
   label: string;
 };
 
+type ScrapeSkip = {
+  productUrl: string;
+  reason: string;
+};
+
 export type {
   MyproteinVariantRecord,
   ScrapeMyproteinOptions,
@@ -52,30 +58,62 @@ export async function scrapeMyproteinWheyProducts(
 
   const productCategoryMap = new Map<string, CategoryTarget[]>();
   for (const category of categoryTargets) {
-    await options.onProgress?.(`Fetching category ${category.label}: ${category.url}`);
-
-    const listingHtml = await fetchText(category.url, fetchImpl);
-    const listingNodes = extractJsonLdNodes(listingHtml);
-    const productUrls = extractCategoryProductUrls(listingNodes, category.url);
-    const resolvedProductUrls =
-      productUrls.length > 0
-        ? productUrls
-        : isProductUrl(category.url)
-          ? [category.url]
-          : [];
-
-    if (productUrls.length === 0 && resolvedProductUrls.length > 0) {
+    if (isProductUrl(category.url)) {
+      await options.onProgress?.(`Fetching category ${category.label}: ${category.url}`);
+      const resolvedProductUrls = [category.url];
       await options.onProgress?.(
         `Category ${category.label} resolved as a direct product target`
       );
+
+      for (const productUrl of resolvedProductUrls) {
+        const existing = productCategoryMap.get(productUrl) ?? [];
+        if (!existing.some((entry) => entry.url === category.url)) {
+          existing.push(category);
+        }
+        productCategoryMap.set(productUrl, existing);
+      }
+      continue;
     }
 
-    for (const productUrl of resolvedProductUrls) {
-      const existing = productCategoryMap.get(productUrl) ?? [];
-      if (!existing.some((entry) => entry.url === category.url)) {
-        existing.push(category);
+    const seenCategoryProductUrls = new Set<string>();
+    let pageNumber = 1;
+
+    while (true) {
+      const pageUrl = buildCategoryPageUrl(category.url, pageNumber);
+      await options.onProgress?.(
+        `Fetching category ${category.label} page ${pageNumber}: ${pageUrl}`
+      );
+
+      const listingHtml = await fetchText(pageUrl, fetchImpl);
+      const listingNodes = extractJsonLdNodes(listingHtml);
+      const productUrls = extractCategoryProductUrls(listingNodes, pageUrl);
+      const newProductUrls = productUrls.filter((url) => !seenCategoryProductUrls.has(url));
+
+      if (pageNumber === 1 && productUrls.length === 0) {
+        await options.onProgress?.(
+          `Category ${category.label} page 1 returned no product URLs`
+        );
       }
-      productCategoryMap.set(productUrl, existing);
+
+      for (const productUrl of newProductUrls) {
+        seenCategoryProductUrls.add(productUrl);
+        const existing = productCategoryMap.get(productUrl) ?? [];
+        if (!existing.some((entry) => entry.url === category.url)) {
+          existing.push(category);
+        }
+        productCategoryMap.set(productUrl, existing);
+      }
+
+      if (productUrls.length === 0 || newProductUrls.length === 0) {
+        if (pageNumber > 1) {
+          await options.onProgress?.(
+            `Finished category ${category.label} after ${pageNumber - 1} page${pageNumber - 1 === 1 ? "" : "s"}`
+          );
+        }
+        break;
+      }
+
+      pageNumber += 1;
     }
   }
 
@@ -90,6 +128,7 @@ export async function scrapeMyproteinWheyProducts(
   );
 
   const results: MyproteinVariantRecord[] = [];
+  const skippedProducts: ScrapeSkip[] = [];
   for (const [index, productUrl] of limitedProductUrls.entries()) {
     const categoryTargetsForProduct = productCategoryMap.get(productUrl) ?? [];
     await options.onProgress?.(
@@ -104,12 +143,27 @@ export async function scrapeMyproteinWheyProducts(
       fetchImpl,
       onProgress: options.onProgress,
       onVariant: options.onVariant,
+      onSkipProduct: (skip) => {
+        skippedProducts.push(skip);
+      },
     });
 
     results.push(...productResults);
     await options.onProgress?.(
       `Finished product ${index + 1}/${limitedProductUrls.length}: ${productResults.length} variants`
     );
+  }
+
+  if (skippedProducts.length > 0) {
+    await options.onProgress?.(
+      `Skipped ${skippedProducts.length} product${skippedProducts.length === 1 ? "" : "s"} due to unexpected structure`
+    );
+
+    for (const [index, skip] of skippedProducts.entries()) {
+      await options.onProgress?.(
+        `  Skipped ${index + 1}/${skippedProducts.length}: ${skip.productUrl} (${skip.reason})`
+      );
+    }
   }
 
   await options.onProgress?.(`Scrape complete: ${results.length} variants collected`);
@@ -123,12 +177,38 @@ async function extractProductVariants(args: {
   fetchImpl: typeof fetch;
   onProgress?: (message: string) => void | Promise<void>;
   onVariant?: (record: MyproteinVariantRecord) => void | Promise<void>;
+  onSkipProduct?: (skip: ScrapeSkip) => void | Promise<void>;
 }) {
-  const { productHtml, productUrl, categoryTargets, fetchImpl, onProgress, onVariant } = args;
+  const {
+    productHtml,
+    productUrl,
+    categoryTargets,
+    fetchImpl,
+    onProgress,
+    onVariant,
+    onSkipProduct,
+  } = args;
   const nodes = extractJsonLdNodes(productHtml);
   const productGroup = nodes.find((node) => node["@type"] === "ProductGroup");
   if (!productGroup) {
-    await onProgress?.(`Skipped product with no ProductGroup JSON-LD: ${productUrl}`);
+    const fallbackRecord = await scrapeFallbackProduct({
+      productHtml,
+      productUrl,
+      categoryTargets,
+      fetchImpl,
+      onProgress,
+    });
+    if (fallbackRecord) {
+      await onProgress?.(
+        `Product "${fallbackRecord.productName}" uses fallback parsing (no ProductGroup JSON-LD)`
+      );
+      await onVariant?.(fallbackRecord);
+      return [fallbackRecord];
+    }
+
+    const reason = "missing ProductGroup JSON-LD and fallback parsing failed";
+    await onProgress?.(`Skipped product with ${reason}: ${productUrl}`);
+    await onSkipProduct?.({ productUrl, reason });
     return [];
   }
 
@@ -168,6 +248,77 @@ async function extractProductVariants(args: {
   }
 
   return variantRecords;
+}
+
+async function scrapeFallbackProduct(args: {
+  productHtml: string;
+  productUrl: string;
+  categoryTargets: CategoryTarget[];
+  fetchImpl: typeof fetch;
+  onProgress?: (message: string) => void | Promise<void>;
+}): Promise<MyproteinVariantRecord | null> {
+  const { productHtml, productUrl, categoryTargets, fetchImpl } = args;
+  const productContent = extractMyproteinProductContent(productHtml);
+  const variantStateMap = extractVariantStateMap(productHtml);
+  const variantPage = await parseVariantPage(productHtml, productUrl, fetchImpl);
+  const $ = cheerio.load(productHtml);
+
+  const productName = extractFallbackProductName($, productHtml);
+  if (!productName) return null;
+
+  const retailerProductId = variantPage.retailerProductId ?? extractRetailerProductIdFromUrl(productUrl);
+  const variantState = retailerProductId
+    ? variantStateMap.get(retailerProductId) ?? [...variantStateMap.values()][0] ?? null
+    : [...variantStateMap.values()][0] ?? null;
+  const sizeLabel = variantPage.sizeLabel;
+  const sizeG = parseSizeToGrams(sizeLabel ?? variantPage.ariaLabel ?? productName);
+  const price = variantPage.price ?? parseNumber(variantState?.price?.price?.amount);
+  const subscriptionPrice =
+    getSubscriptionPriceFromVariantState(variantState) ?? variantPage.subscriptionPrice;
+  const subscriptionSavings =
+    subscriptionPrice !== null && price !== null && subscriptionPrice < price
+      ? roundTo(price - subscriptionPrice, 2)
+      : variantPage.subscriptionSavings;
+
+  return {
+    retailer: "MyProtein",
+    brand: extractFallbackBrandName($) ?? "MyProtein",
+    productName,
+    categoryUrl: categoryTargets[0]?.url ?? DEFAULT_CATEGORY_URL,
+    categoryUrls: categoryTargets.map((target) => target.url),
+    categoryLabels: categoryTargets.map((target) => target.label),
+    productUrl,
+    variantUrl: productUrl,
+    retailerProductId,
+    groupId: retailerProductId,
+    flavour: normalizeFallbackFlavour(variantPage.flavour),
+    sizeLabel,
+    sizeG,
+    servingsLabel: variantPage.servingsLabel,
+    pricePerServingLabel: variantPage.pricePerServingLabel,
+    price,
+    originalPrice: variantPage.originalPrice,
+    wasOnSale:
+      price !== null &&
+      variantPage.originalPrice !== null &&
+      variantPage.originalPrice > price,
+    subscriptionPrice,
+    subscriptionSavings,
+    pricePer100g: price !== null && sizeG ? roundTo((price / sizeG) * 100, 4) : null,
+    proteinPer100g: variantPage.proteinPer100g,
+    inStock: variantPage.inStock,
+    currency: variantPage.currency ?? "GBP",
+    imageUrl: variantPage.imageUrl ?? extractFallbackImageUrl($),
+    description: productContent.description,
+    keyBenefits: productContent.keyBenefits,
+    whyChoose: productContent.whyChoose,
+    suggestedUse: productContent.suggestedUse,
+    ingredients: productContent.ingredients,
+    faqEntries: productContent.faqEntries,
+    nutritionalInformation: productContent.nutritionalInformation,
+    productDetails: productContent.productDetails,
+    scrapedAt: new Date().toISOString(),
+  } satisfies MyproteinVariantRecord;
 }
 
 async function scrapeVariant(args: {
@@ -323,6 +474,14 @@ function isProductUrl(url: string) {
   return url.includes("/p/");
 }
 
+function buildCategoryPageUrl(categoryUrl: string, pageNumber: number) {
+  if (pageNumber <= 1) return categoryUrl;
+
+  const url = new URL(categoryUrl);
+  url.searchParams.set("pageNumber", String(pageNumber));
+  return url.toString();
+}
+
 function pickBestImageUrl(...candidates: Array<string | null>) {
   for (const candidate of candidates) {
     if (!candidate) continue;
@@ -331,6 +490,73 @@ function pickBestImageUrl(...candidates: Array<string | null>) {
   }
 
   return candidates.find(Boolean) ?? null;
+}
+
+function extractFallbackProductName($: cheerio.CheerioAPI, html: string) {
+  const metaTitle =
+    $("meta[property='og:title']").attr("content")?.trim() ??
+    $("meta[name='twitter:title']").attr("content")?.trim() ??
+    null;
+  const heading =
+    $("h1").first().text().trim() ||
+    $("[data-e2e='product-name']").first().text().trim() ||
+    "";
+  const documentTitle = $("title").first().text().trim();
+
+  return (
+    sanitizeFallbackTitle(heading) ??
+    sanitizeFallbackTitle(metaTitle) ??
+    sanitizeFallbackTitle(documentTitle) ??
+    extractProductNameFromRawHtml(html)
+  );
+}
+
+function sanitizeFallbackTitle(value: string | null) {
+  if (!value) return null;
+  const normalized = value
+    .replace(/\s+/g, " ")
+    .replace(/\|\s*Myprotein.*$/i, "")
+    .replace(/\|\s*The Zone.*$/i, "")
+    .replace(/\s+-\s+Buy now.*$/i, "")
+    .trim();
+  return normalized || null;
+}
+
+function extractProductNameFromRawHtml(html: string) {
+  const match =
+    html.match(/"productTitle"\s*:\s*"([^"]+)"/i) ??
+    html.match(/"name"\s*:\s*"([^"]+)"/i);
+  return match?.[1]?.trim() || null;
+}
+
+function extractFallbackBrandName($: cheerio.CheerioAPI) {
+  return (
+    $("meta[property='product:brand']").attr("content")?.trim() ??
+    $("meta[name='brand']").attr("content")?.trim() ??
+    null
+  );
+}
+
+function normalizeFallbackFlavour(flavour: string | null) {
+  if (!flavour) return null;
+  const normalized = flavour.trim();
+  if (!normalized || /^all$/i.test(normalized)) return null;
+  return normalized;
+}
+
+function extractRetailerProductIdFromUrl(url: string) {
+  const pathname = new URL(url).pathname.replace(/\/+$/, "");
+  const segments = pathname.split("/").filter(Boolean);
+  const lastSegment = segments.at(-1) ?? null;
+  return lastSegment && /^\d+$/.test(lastSegment) ? lastSegment : null;
+}
+
+function extractFallbackImageUrl($: cheerio.CheerioAPI) {
+  return (
+    $("meta[property='og:image']").attr("content")?.trim() ??
+    $("meta[name='twitter:image']").attr("content")?.trim() ??
+    null
+  );
 }
 
 function isGenericMarketingImage(url: string) {

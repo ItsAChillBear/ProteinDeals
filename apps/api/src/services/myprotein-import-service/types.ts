@@ -31,13 +31,13 @@ export interface CompareProductRow {
   category: string;
   flavour: string | null;
   size: string;
-  sizeG: number;
+  sizeG: number | null;
   servingSizeG: number | null;
   servings: number | null;
-  price: number;
-  pricePer100g: number;
-  singlePrice: number;
-  singlePricePer100g: number;
+  price: number | null;
+  pricePer100g: number | null;
+  singlePrice: number | null;
+  singlePricePer100g: number | null;
   subscriptionPrice: number | null;
   subscriptionPricePer100g: number | null;
   subscriptionSavings: number | null;
