@@ -59,6 +59,26 @@ export function PriceComparisonDesktopRowGroup({
   flavourMode = "separate",
 }: Props) {
   const product = group.selected;
+
+  const compareVariantsDeterministically = (
+    a: ProductGroupWithSelection["variants"][0],
+    b: ProductGroupWithSelection["variants"][0]
+  ) => {
+    const flavourCompare = (a.flavour ?? "").localeCompare(b.flavour ?? "");
+    if (flavourCompare !== 0) return flavourCompare;
+
+    const sizeCompare =
+      (a.sizeG ?? Number.POSITIVE_INFINITY) - (b.sizeG ?? Number.POSITIVE_INFINITY);
+    if (sizeCompare !== 0) return sizeCompare;
+
+    const priceCompare =
+      (a.pricePer100g ?? Number.POSITIVE_INFINITY) -
+      (b.pricePer100g ?? Number.POSITIVE_INFINITY);
+    if (priceCompare !== 0) return priceCompare;
+
+    return a.id.localeCompare(b.id);
+  };
+
   const flavourVariants = group.variants
     .filter((variant) => matchesVariantFilters(variant, filters) && plannerMatchesVariant(variant, planner))
     .sort((a, b) => {
@@ -74,9 +94,14 @@ export function PriceComparisonDesktopRowGroup({
       };
       const aVal = getVal(pa);
       const bVal = getVal(pb);
+      if (aVal === null && bVal === null) {
+        return compareVariantsDeterministically(a, b);
+      }
       if (aVal === null) return 1;
       if (bVal === null) return -1;
-      return aVal - bVal;
+      const valueCompare = aVal - bVal;
+      if (valueCompare !== 0) return valueCompare;
+      return compareVariantsDeterministically(a, b);
     });
 
   if (!flavourVariants.length) return null;

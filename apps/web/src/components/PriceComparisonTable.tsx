@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PriceComparisonDesktopTable from "./PriceComparisonDesktopTable";
 import PriceComparisonMobileList from "./PriceComparisonMobileList";
 import PriceComparisonPlanner from "./PriceComparisonPlanner";
@@ -25,7 +25,6 @@ import type {
 import { applyPriceMode, getCaloriesPerGramProtein, getCaloriesPerServing, getPricePerGramProtein, getPricePerServing, type PriceMode } from "./price-comparison-metrics";
 import { getCaloriesPer100g } from "./price-comparison-nutrition";
 import {
-  countMatchingVariantsForGroup,
   DEFAULT_PROTEIN_PLANNER,
   plannerMatchesVariant,
   type ProteinPlannerState,
@@ -37,6 +36,24 @@ interface Props {
   products: Product[];
   priceMode?: PriceMode;
   onPriceModeChange?: (mode: PriceMode) => void;
+}
+
+function logCompareDebug(label: string, data: Record<string, unknown>) {
+  console.log(`[compare-search-debug] ${label}`, data);
+}
+
+function markComparePerformance(name: string) {
+  if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
+  performance.mark(name);
+}
+
+function measureComparePerformance(name: string, startMark: string, endMark: string) {
+  if (typeof performance === "undefined" || typeof performance.measure !== "function") return;
+  try {
+    performance.measure(name, startMark, endMark);
+  } catch {
+    // Ignore missing-mark errors during rapid state changes.
+  }
 }
 
 export type { Product } from "./price-comparison-table.types";
@@ -59,7 +76,31 @@ export default function PriceComparisonTable({
   const [servingMetric, setServingMetric] = useState<"price" | "calories">("price");
   const [activeColumn, setActiveColumn] = useState<"pricePerServing" | "pricePer100g" | "pricePerGramProtein">("pricePer100g");
   const [defaultsInitialized, setDefaultsInitialized] = useState(false);
-  const activeFilters = useDeferredValue(filters);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const activeFilters = filters;
+  const optionFilters = useMemo(
+    () => ({
+      ...activeFilters,
+      search: DEFAULT_FILTERS.search,
+    }),
+    [
+      activeFilters.size,
+      activeFilters.flavour,
+      activeFilters.retailer,
+      activeFilters.category,
+      activeFilters.product,
+      activeFilters.servings,
+      activeFilters.pricePerServing,
+      activeFilters.price,
+      activeFilters.pricePer100g,
+      activeFilters.protein,
+      activeFilters.pricePerGramProtein,
+      activeFilters.caloriesPer100g,
+      activeFilters.caloriesPerGramProtein,
+      activeFilters.caloriesPerServing,
+      activeFilters.proteinPerServing,
+    ]
+  );
 
   useEffect(() => {
     if (controlledPriceMode) {
@@ -67,12 +108,70 @@ export default function PriceComparisonTable({
     }
   }, [controlledPriceMode]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 639px)");
+    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+    return () => mediaQuery.removeEventListener("change", updateViewport);
+  }, []);
+
   const groups = useMemo(() => groupProducts(products), [products]);
   const allVariants = useMemo(() => groups.flatMap((group) => group.variants), [groups]);
   const groupedWithSelection = useMemo<ProductGroupWithSelection[]>(() => groups.map((group) => ({ ...group, selected: getDefaultVariant(group) })), [groups]);
   const sorted = useMemo(() => sortGroups(groupedWithSelection, sortKey, sortDir, planner), [groupedWithSelection, sortDir, sortKey, planner]);
   const visibleVariants = useMemo(() => getVisibleVariants(groupedWithSelection), [groupedWithSelection]);
-  const filterOptions = useMemo<ColumnFilterOptions>(() => getFilterOptionsForFilters(visibleVariants, allVariants, activeFilters), [activeFilters, allVariants, visibleVariants]);
+  const filterOptions = useMemo<ColumnFilterOptions>(() => {
+    const startedAt = performance.now();
+    const next = getFilterOptionsForFilters(visibleVariants, allVariants, optionFilters);
+    logCompareDebug("filter-options", {
+      ms: Number((performance.now() - startedAt).toFixed(2)),
+      search: optionFilters.search,
+      visibleVariants: visibleVariants.length,
+      allVariants: allVariants.length,
+      retailers: next.retailers.length,
+      products: next.products.length,
+      flavours: next.flavours.length,
+    });
+    return next;
+  }, [allVariants, optionFilters, visibleVariants]);
+
+  const matchedGroups = useMemo(
+    () => {
+      const startedAt = performance.now();
+      const next = sorted
+        .map((group) => {
+          const matchingVariants = group.variants.filter(
+            (variant) =>
+              variantMatchesFilters(variant, activeFilters) &&
+              plannerMatchesVariant(variant, planner)
+          );
+
+          if (matchingVariants.length === 0) return null;
+          return { group, matchingVariants };
+        })
+        .filter(
+          (
+            entry
+          ): entry is {
+            group: ProductGroupWithSelection;
+            matchingVariants: Product[];
+          } => entry !== null
+        );
+
+      logCompareDebug("matched-groups", {
+        ms: Number((performance.now() - startedAt).toFixed(2)),
+        search: activeFilters.search,
+        sortedGroups: sorted.length,
+        matchedGroups: next.length,
+        matchedVariants: next.reduce((count, entry) => count + entry.matchingVariants.length, 0),
+      });
+
+      return next;
+    },
+    [activeFilters, planner, sorted]
+  );
 
   useEffect(() => {
     if (defaultsInitialized || filterOptions.retailers.length === 0) return;
@@ -84,14 +183,22 @@ export default function PriceComparisonTable({
     }));
     setDefaultsInitialized(true);
   }, [filterOptions, defaultsInitialized]);
-  const filteredGroups = useMemo(() => sorted.filter((group) => countMatchingVariantsForGroup(group, activeFilters, planner) > 0), [activeFilters, planner, sorted]);
-  const filteredVariantCount = useMemo(() => filteredGroups.reduce((count, group) => count + countMatchingVariantsForGroup(group, activeFilters, planner), 0), [activeFilters, filteredGroups, planner]);
+  const filteredGroups = useMemo(
+    () => matchedGroups.map((entry) => entry.group),
+    [matchedGroups]
+  );
+  const filteredVariantCount = useMemo(
+    () => matchedGroups.reduce((count, entry) => count + entry.matchingVariants.length, 0),
+    [matchedGroups]
+  );
 
   const bestValueVariantIds = useMemo(() => {
+    const startedAt = performance.now();
     const metrics = ["pricePer100g", "pricePerServing", "pricePerGramProtein"] as const;
-    const inStockFilteredVariants = filteredGroups.flatMap((group) =>
-      group.variants.filter((variant) => variant.inStock && variantMatchesFilters(variant, activeFilters) && plannerMatchesVariant(variant, planner))
-        .map((v) => applyPriceMode(v, priceMode))
+    const inStockFilteredVariants = matchedGroups.flatMap((entry) =>
+      entry.matchingVariants
+        .filter((variant) => variant.inStock)
+        .map((variant) => applyPriceMode(variant, priceMode))
     );
 
     const result: Record<string, string[]> = {};
@@ -104,27 +211,32 @@ export default function PriceComparisonTable({
       if (min === null) { result[metric] = []; continue; }
 
       const found: string[] = [];
-      for (const group of filteredGroups) {
-        for (const variant of group.variants) {
+      for (const entry of matchedGroups) {
+        for (const variant of entry.matchingVariants) {
           if (!variant.inStock) continue;
-          if (!variantMatchesFilters(variant, activeFilters) || !plannerMatchesVariant(variant, planner)) continue;
           if (getBestValueAmount(applyPriceMode(variant, priceMode), metric) === min) found.push(variant.id);
         }
       }
       result[metric] = found;
     }
+    logCompareDebug("best-value", {
+      ms: Number((performance.now() - startedAt).toFixed(2)),
+      search: activeFilters.search,
+      inStockFilteredVariants: inStockFilteredVariants.length,
+    });
     return result;
-  }, [activeFilters, filteredGroups, planner, priceMode]);
+  }, [activeFilters.search, matchedGroups, priceMode]);
 
   const calorieVariantIds = useMemo(() => {
+    const startedAt = performance.now();
     if (servingMetric !== "calories") return { lowest: [] as string[], highest: [] as string[] };
     const getCalVal = (variant: Product): number | null => {
       if (activeColumn === "pricePerServing") return getCaloriesPerServing(variant);
       if (activeColumn === "pricePerGramProtein") return getCaloriesPerGramProtein(variant);
       return getCaloriesPer100g(variant);
     };
-    const inStockFilteredVariants = filteredGroups.flatMap((group) =>
-      group.variants.filter((variant) => variant.inStock && variantMatchesFilters(variant, activeFilters) && plannerMatchesVariant(variant, planner))
+    const inStockFilteredVariants = matchedGroups.flatMap((entry) =>
+      entry.matchingVariants.filter((variant) => variant.inStock)
     );
     let minVal: number | null = null;
     let maxVal: number | null = null;
@@ -136,16 +248,25 @@ export default function PriceComparisonTable({
     }
     const lowest: string[] = [];
     const highest: string[] = [];
-    for (const group of filteredGroups) {
-      for (const variant of group.variants) {
-        if (!variant.inStock || !variantMatchesFilters(variant, activeFilters) || !plannerMatchesVariant(variant, planner)) continue;
+    for (const entry of matchedGroups) {
+      for (const variant of entry.matchingVariants) {
+        if (!variant.inStock) continue;
         const val = getCalVal(variant);
         if (minVal !== null && val === minVal) lowest.push(variant.id);
         if (maxVal !== null && val === maxVal) highest.push(variant.id);
       }
     }
-    return { lowest, highest };
-  }, [servingMetric, activeColumn, filteredGroups, activeFilters, planner]);
+    const result = { lowest, highest };
+    logCompareDebug("calorie-highlights", {
+      ms: Number((performance.now() - startedAt).toFixed(2)),
+      search: activeFilters.search,
+      activeColumn,
+      inStockFilteredVariants: inStockFilteredVariants.length,
+      lowest: result.lowest.length,
+      highest: result.highest.length,
+    });
+    return result;
+  }, [activeFilters.search, servingMetric, activeColumn, matchedGroups]);
 
   function handleSort(key: SortKey, groupId?: string, viewportTop?: number, sourceElement?: HTMLElement | null) {
     if (sortKey === key) {
@@ -161,9 +282,17 @@ export default function PriceComparisonTable({
   }
 
   function setFilter(key: keyof ColumnFilters, value: string) {
-    startTransition(() => {
-      setFilters((current) => sanitizeFilters(allVariants, { ...current, [key]: value }));
-    });
+    if (key === "search") {
+      markComparePerformance("compare-search:filter-commit");
+      measureComparePerformance(
+        "compare-search:debounce-to-filter-commit",
+        "compare-search:debounce-fired",
+        "compare-search:filter-commit"
+      );
+      setFilters((current) => ({ ...current, search: value }));
+      return;
+    }
+    setFilters((current) => sanitizeFilters(allVariants, { ...current, [key]: value }));
   }
 
   function updatePlanner(patch: Partial<ProteinPlannerState>) {
@@ -191,6 +320,57 @@ export default function PriceComparisonTable({
   }
 
   const hasActiveFilters = FILTER_KEYS.some((key) => filters[key] !== DEFAULT_FILTERS[key]);
+
+  useEffect(() => {
+    logCompareDebug("render-summary", {
+      search: activeFilters.search,
+      totalProducts: products.length,
+      groups: groups.length,
+      filteredGroups: filteredGroups.length,
+      filteredVariants: filteredVariantCount,
+      isMobileViewport,
+      viewMode,
+    });
+
+    if (
+      typeof window !== "undefined" &&
+      window.__compareSearchDebug?.appliedValue === activeFilters.search &&
+      window.__compareSearchDebug?.inputChangedAt !== undefined
+    ) {
+      markComparePerformance("compare-search:render-committed");
+      measureComparePerformance(
+        "compare-search:filter-commit-to-render",
+        "compare-search:filter-commit",
+        "compare-search:render-committed"
+      );
+      measureComparePerformance(
+        "compare-search:input-to-render",
+        "compare-search:input-changed",
+        "compare-search:render-committed"
+      );
+      const now = performance.now();
+      logCompareDebug("search-render-latency", {
+        search: activeFilters.search,
+        msFromInput: Number((now - window.__compareSearchDebug.inputChangedAt).toFixed(2)),
+        msFromDebounce:
+          window.__compareSearchDebug.debouncedAppliedAt !== undefined
+            ? Number((now - window.__compareSearchDebug.debouncedAppliedAt).toFixed(2))
+            : null,
+        filteredGroups: filteredGroups.length,
+        filteredVariants: filteredVariantCount,
+        isMobileViewport,
+        viewMode,
+      });
+    }
+  }, [
+    activeFilters.search,
+    filteredGroups.length,
+    filteredVariantCount,
+    groups.length,
+    isMobileViewport,
+    products.length,
+    viewMode,
+  ]);
 
   if (products.length === 0) {
     return (
@@ -224,28 +404,40 @@ export default function PriceComparisonTable({
         flavourMode={flavourMode}
         setFlavourMode={setFlavourMode}
       />
-      <PriceComparisonDesktopTable
-        groups={filteredGroups}
-        expandedRows={expandedRows}
-        bestValueVariantIds={bestValueVariantIds}
-        calorieMode={servingMetric === "calories"}
-        calorieVariantIds={calorieVariantIds}
-        onSort={handleSort}
-        onToggleExpanded={toggleExpanded}
-        sortDir={sortDir}
-        sortKey={sortKey}
-        filters={filters}
-        activeFilters={activeFilters}
-        planner={planner}
-        filterOptions={filterOptions}
-        onFilter={setFilter}
-        visibility={visibility}
-        viewMode={viewMode}
-        columnGroupMode={columnGroupMode}
-        priceMode={priceMode}
-        flavourMode={flavourMode}
-      />
-      <PriceComparisonMobileList groups={filteredGroups} expandedRows={expandedRows} bestValueVariantIds={bestValueVariantIds} calorieMode={servingMetric === "calories"} calorieVariantIds={calorieVariantIds} planner={planner} onToggleExpanded={toggleExpanded} priceMode={priceMode} />
+      {isMobileViewport ? (
+        <PriceComparisonMobileList
+          groups={filteredGroups}
+          expandedRows={expandedRows}
+          bestValueVariantIds={bestValueVariantIds}
+          calorieMode={servingMetric === "calories"}
+          calorieVariantIds={calorieVariantIds}
+          planner={planner}
+          onToggleExpanded={toggleExpanded}
+          priceMode={priceMode}
+        />
+      ) : (
+        <PriceComparisonDesktopTable
+          groups={filteredGroups}
+          expandedRows={expandedRows}
+          bestValueVariantIds={bestValueVariantIds}
+          calorieMode={servingMetric === "calories"}
+          calorieVariantIds={calorieVariantIds}
+          onSort={handleSort}
+          onToggleExpanded={toggleExpanded}
+          sortDir={sortDir}
+          sortKey={sortKey}
+          filters={filters}
+          activeFilters={activeFilters}
+          planner={planner}
+          filterOptions={filterOptions}
+          onFilter={setFilter}
+          visibility={visibility}
+          viewMode={viewMode}
+          columnGroupMode={columnGroupMode}
+          priceMode={priceMode}
+          flavourMode={flavourMode}
+        />
+      )}
     </div>
   );
 }

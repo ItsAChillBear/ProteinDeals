@@ -1,5 +1,5 @@
 "use client";
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { Product, ProductGroupWithSelection, SortDir, SortKey } from "./price-comparison-table.types";
 import type { ColumnFilters, ColumnFilterOptions } from "./price-comparison-filters";
@@ -71,6 +71,10 @@ function describeContainer(container: HTMLElement | null) {
   };
 }
 
+function logDesktopDebug(label: string, data: Record<string, unknown>) {
+  console.log(`[compare-search-debug] ${label}`, data);
+}
+
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (sortKey !== col) return <ArrowUpDown className="h-3.5 w-3.5 opacity-50" strokeWidth={3} />;
   return sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />;
@@ -117,9 +121,13 @@ export default function PriceComparisonDesktopTable({
   priceMode: import("./price-comparison-metrics").PriceMode;
   flavourMode?: "separate" | "consolidate";
 }) {
+  const CARD_ROW_ESTIMATED_HEIGHT = 260;
+  const CARD_ROW_OVERSCAN = 6;
   const pendingScrollGroupRef = useRef<string | null>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const lockedScrollYRef = useRef<number | null>(null);
+  const [virtualScrollTop, setVirtualScrollTop] = useState(0);
+  const [virtualViewportHeight, setVirtualViewportHeight] = useState(0);
 
   function handleCardSort(key: SortKey, groupId?: string, viewportTop?: number, sourceElement?: HTMLElement | null) {
     const clickedGroupIndex =
@@ -210,6 +218,99 @@ export default function PriceComparisonDesktopTable({
     return () => cancelAnimationFrame(frame);
   }, [cardGroups, sortDir, sortKey, viewMode]);
 
+  useEffect(() => {
+    if (viewMode !== "card") return;
+
+    const updateWindowMetrics = () => {
+      const container = scrollContainerRef.current ?? getScrollContainer(document.documentElement);
+      scrollContainerRef.current = container;
+      setVirtualScrollTop(getContainerScrollTop(container));
+      setVirtualViewportHeight(
+        isRootScrollContainer(container) ? window.innerHeight : container.clientHeight
+      );
+    };
+
+    updateWindowMetrics();
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollTarget: EventTarget = isRootScrollContainer(container) ? window : container;
+    scrollTarget.addEventListener("scroll", updateWindowMetrics, { passive: true });
+    window.addEventListener("resize", updateWindowMetrics);
+
+    return () => {
+      scrollTarget.removeEventListener("scroll", updateWindowMetrics);
+      window.removeEventListener("resize", updateWindowMetrics);
+    };
+  }, [viewMode]);
+
+  const cardVirtualWindow = useMemo(() => {
+    if (viewMode !== "card") {
+      return {
+        startIndex: 0,
+        endIndex: cardGroups.length,
+        topSpacerHeight: 0,
+        bottomSpacerHeight: 0,
+      };
+    }
+
+    const targetIndex = pendingScrollGroupRef.current
+      ? cardGroups.findIndex((group) => group.id === pendingScrollGroupRef.current)
+      : -1;
+    const rawStartIndex = Math.max(
+      0,
+      Math.floor(virtualScrollTop / CARD_ROW_ESTIMATED_HEIGHT) - CARD_ROW_OVERSCAN
+    );
+    const rawVisibleCount = Math.ceil(
+      Math.max(virtualViewportHeight, CARD_ROW_ESTIMATED_HEIGHT) / CARD_ROW_ESTIMATED_HEIGHT
+    );
+    const rawEndIndex = Math.min(
+      cardGroups.length,
+      rawStartIndex + rawVisibleCount + CARD_ROW_OVERSCAN * 2
+    );
+    const startIndex =
+      targetIndex >= 0 ? Math.min(rawStartIndex, targetIndex) : rawStartIndex;
+    const endIndex =
+      targetIndex >= 0 ? Math.max(rawEndIndex, targetIndex + 1) : rawEndIndex;
+
+    return {
+      startIndex,
+      endIndex,
+      topSpacerHeight: startIndex * CARD_ROW_ESTIMATED_HEIGHT,
+      bottomSpacerHeight: Math.max(0, (cardGroups.length - endIndex) * CARD_ROW_ESTIMATED_HEIGHT),
+    };
+  }, [cardGroups, viewMode, virtualScrollTop, virtualViewportHeight]);
+
+  const visibleCardGroups = useMemo(
+    () => cardGroups.slice(cardVirtualWindow.startIndex, cardVirtualWindow.endIndex),
+    [cardGroups, cardVirtualWindow.endIndex, cardVirtualWindow.startIndex]
+  );
+
+  useEffect(() => {
+    if (viewMode !== "card") return;
+    logDesktopDebug("desktop-virtual-window", {
+      totalCardGroups: cardGroups.length,
+      mountedCardGroups: visibleCardGroups.length,
+      startIndex: cardVirtualWindow.startIndex,
+      endIndex: cardVirtualWindow.endIndex,
+      topSpacerHeight: cardVirtualWindow.topSpacerHeight,
+      bottomSpacerHeight: cardVirtualWindow.bottomSpacerHeight,
+      viewportHeight: virtualViewportHeight,
+      scrollTop: virtualScrollTop,
+    });
+  }, [
+    cardGroups.length,
+    cardVirtualWindow.bottomSpacerHeight,
+    cardVirtualWindow.endIndex,
+    cardVirtualWindow.startIndex,
+    cardVirtualWindow.topSpacerHeight,
+    viewMode,
+    virtualScrollTop,
+    virtualViewportHeight,
+    visibleCardGroups.length,
+  ]);
+
   useLayoutEffect(() => {
     if (viewMode !== "card" || !pendingScrollGroupRef.current || !scrollContainerRef.current) return;
 
@@ -240,7 +341,12 @@ export default function PriceComparisonDesktopTable({
       <div className="hidden sm:block" style={{ overflowAnchor: "none" }}>
         <table className="w-full text-sm">
           <tbody className="divide-y divide-theme">
-            {cardGroups.map((group, i) => (
+            {cardVirtualWindow.topSpacerHeight > 0 ? (
+              <tr aria-hidden="true">
+                <td style={{ height: `${cardVirtualWindow.topSpacerHeight}px`, padding: 0, border: 0 }} />
+              </tr>
+            ) : null}
+            {visibleCardGroups.map((group, i) => (
               <PriceComparisonDesktopRowGroup
                 key={group.id}
                 group={group}
@@ -254,7 +360,7 @@ export default function PriceComparisonDesktopTable({
                 onToggleExpanded={onToggleExpanded}
                 totalColumns={1}
                 viewMode="card"
-                showFilterBar={i === 0}
+                showFilterBar={cardVirtualWindow.startIndex + i === 0}
                 filterOptions={filterOptions}
                 onFilter={onFilter}
                 onSort={handleCardSort}
@@ -264,6 +370,11 @@ export default function PriceComparisonDesktopTable({
                 flavourMode={flavourMode}
               />
             ))}
+            {cardVirtualWindow.bottomSpacerHeight > 0 ? (
+              <tr aria-hidden="true">
+                <td style={{ height: `${cardVirtualWindow.bottomSpacerHeight}px`, padding: 0, border: 0 }} />
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </div>

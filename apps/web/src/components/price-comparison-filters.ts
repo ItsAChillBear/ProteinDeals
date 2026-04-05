@@ -106,41 +106,43 @@ export function getFilterOptionsForFilters(
   allVariants: Product[],
   filters: ColumnFilters
 ): ColumnFilterOptions {
+  const optionFilters = { ...filters, search: DEFAULT_FILTERS.search };
+
   return {
     ...(() => {
       const sizeToG = new Map(visibleVariants.map((v) => [v.size, v.sizeG]));
-      const sizes = getOptionsForKey(visibleVariants, filters, "size", (variant) => variant.size)
+      const sizes = getOptionsForKey(visibleVariants, optionFilters, "size", (variant) => variant.size)
         .sort((a, b) => (sizeToG.get(a) ?? 0) - (sizeToG.get(b) ?? 0));
       return { sizes, sizeGs: sizes.map((s) => sizeToG.get(s) ?? 0) };
     })(),
-    flavours: getOptionsForKey(allVariants, filters, "flavour", (variant) => variant.flavour ?? "")
+    flavours: getOptionsForKey(allVariants, optionFilters, "flavour", (variant) => variant.flavour ?? "")
       .filter(Boolean)
       .sort(),
-    retailers: getOptionsForKey(allVariants, filters, "retailer", (variant) => variant.retailer)
+    retailers: getOptionsForKey(allVariants, optionFilters, "retailer", (variant) => variant.retailer)
       .sort(),
-    categories: getAtomicCategoryOptions(allVariants, filters).sort(),
-    products: getOptionsForKey(allVariants, filters, "product", (variant) => normalizeBaseName(variant))
+    categories: getAtomicCategoryOptions(allVariants, optionFilters).sort(),
+    products: getOptionsForKey(allVariants, optionFilters, "product", (variant) => normalizeBaseName(variant))
       .sort(),
-    servings: getOptionsForKey(visibleVariants, filters, "servings", (variant) =>
+    servings: getOptionsForKey(visibleVariants, optionFilters, "servings", (variant) =>
       variant.servings !== null ? String(variant.servings) : null
     ).sort((a, b) => Number(a) - Number(b)),
-    pricePerServings: getOptionsForKey(visibleVariants, filters, "pricePerServing", (variant) => {
+    pricePerServings: getOptionsForKey(visibleVariants, optionFilters, "pricePerServing", (variant) => {
       const value = getPricePerServing(variant);
       return value !== null ? value.toFixed(3) : null;
     }).sort((a, b) => Number(a) - Number(b)),
-    prices: getOptionsForKey(visibleVariants, filters, "price", (variant) =>
+    prices: getOptionsForKey(visibleVariants, optionFilters, "price", (variant) =>
       variant.price !== null ? variant.price.toFixed(2) : null
     )
       .sort((a, b) => Number(a) - Number(b)),
-    pricePer100gs: getOptionsForKey(visibleVariants, filters, "pricePer100g", (variant) =>
+    pricePer100gs: getOptionsForKey(visibleVariants, optionFilters, "pricePer100g", (variant) =>
       variant.pricePer100g !== null ? variant.pricePer100g.toFixed(2) : null
     ).sort((a, b) => Number(a) - Number(b)),
-    proteins: getOptionsForKey(visibleVariants, filters, "protein", (variant) =>
+    proteins: getOptionsForKey(visibleVariants, optionFilters, "protein", (variant) =>
       variant.proteinPer100g !== null ? String(variant.proteinPer100g) : null
     ).sort((a, b) => Number(a) - Number(b)),
     pricePerGramProteins: getOptionsForKey(
       visibleVariants,
-      filters,
+      optionFilters,
       "pricePerGramProtein",
       (variant) => {
         const value = getPricePerGramProtein(variant);
@@ -149,7 +151,7 @@ export function getFilterOptionsForFilters(
     ).sort((a, b) => Number(a) - Number(b)),
     caloriesPer100gs: getOptionsForKey(
       visibleVariants,
-      filters,
+      optionFilters,
       "caloriesPer100g",
       (variant) => {
         const value = getCaloriesPer100g(variant);
@@ -158,7 +160,7 @@ export function getFilterOptionsForFilters(
     ).sort((a, b) => Number(a) - Number(b)),
     caloriesPerGramProteins: getOptionsForKey(
       visibleVariants,
-      filters,
+      optionFilters,
       "caloriesPerGramProtein",
       (variant) => {
         const value = getCaloriesPerGramProtein(variant);
@@ -167,7 +169,7 @@ export function getFilterOptionsForFilters(
     ).sort((a, b) => Number(a) - Number(b)),
     caloriesPerServings: getOptionsForKey(
       visibleVariants,
-      filters,
+      optionFilters,
       "caloriesPerServing",
       (variant) => {
         const value = getCaloriesPerServing(variant);
@@ -176,7 +178,7 @@ export function getFilterOptionsForFilters(
     ).sort((a, b) => Number(a) - Number(b)),
     proteinPerServings: getOptionsForKey(
       visibleVariants,
-      filters,
+      optionFilters,
       "proteinPerServing",
       (variant) => {
         const value = getProteinPerServing(variant);
@@ -233,10 +235,14 @@ function getOptionsForKey(
 
 export function sanitizeFilters(variants: Product[], filters: ColumnFilters) {
   let nextFilters = { ...filters };
+  const optionFilters = { ...filters, search: DEFAULT_FILTERS.search };
 
   for (const key of FILTER_KEYS) {
     if (key === "search") continue;
-    const options = getFilterOptionsForFilters(variants, variants, nextFilters);
+    const options = getFilterOptionsForFilters(variants, variants, {
+      ...nextFilters,
+      search: optionFilters.search,
+    });
     const validOptions = mapOptionsForKey(options, key);
     if (
       nextFilters[key] !== "all" &&
@@ -291,8 +297,7 @@ function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters
 export function variantMatchesFilters(variant: Product, filters: ColumnFilters) {
   if (filters.search) {
     const q = filters.search.toLowerCase();
-    const haystack = `${normalizeBaseName(variant)} ${variant.retailer}`.toLowerCase();
-    if (!haystack.includes(q)) return false;
+    if (!variant.searchText.includes(q)) return false;
   }
   if (filters.retailer !== "all") {
     if (filters.retailer.startsWith(MULTI_PREFIX)) {

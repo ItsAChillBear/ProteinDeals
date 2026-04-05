@@ -87,24 +87,33 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
 
   return rows.map((row) => {
       const latest = row.priceRecords[0];
+      const categoryLabels = Array.isArray(row.product.categoryLabels)
+        ? row.product.categoryLabels.filter((value): value is string => typeof value === "string")
+        : [];
+      const type = formatProductType(row.product.category, categoryLabels);
+      const category = formatCategoryList(categoryLabels, type);
+      const searchText = [
+        row.product.name,
+        row.product.brand,
+        row.retailer.name,
+        category,
+        type,
+        row.flavour,
+        formatSizeLabel(row.sizeG !== null ? Number(row.sizeG) : null),
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(" ")
+        .toLowerCase();
+
       return {
         id: row.id,
         slug: row.product.slug,
         name: row.product.name,
         brand: row.product.brand,
+        searchText,
         imageUrl: row.product.imageUrl,
         retailer: row.retailer.name,
-        category: formatCategoryList(
-          Array.isArray(row.product.categoryLabels)
-            ? row.product.categoryLabels.filter((value): value is string => typeof value === "string")
-            : [],
-          formatProductType(
-            row.product.category,
-            Array.isArray(row.product.categoryLabels)
-              ? row.product.categoryLabels.filter((value): value is string => typeof value === "string")
-              : []
-          )
-        ),
+        category,
         flavour: row.flavour,
         size: formatSizeLabel(row.sizeG !== null ? Number(row.sizeG) : null),
         sizeG: row.sizeG !== null ? Number(row.sizeG) : null,
@@ -141,10 +150,7 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
         nutritionalInformation: parseNutritionalInformation(row.product.nutritionalInfo),
         inStock: row.inStock,
         url: row.url,
-        type: formatProductType(
-          row.product.category,
-          Array.isArray(row.product.categoryLabels) ? row.product.categoryLabels.filter((value): value is string => typeof value === "string") : []
-        ),
+        type,
         description: row.product.description,
         discountCodes: discountCodesByRetailer.get(row.retailer.name) ?? [],
       };

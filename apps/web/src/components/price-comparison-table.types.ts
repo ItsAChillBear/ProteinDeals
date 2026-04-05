@@ -5,6 +5,7 @@ export interface Product {
   slug: string;
   name: string;
   brand: string;
+  searchText: string;
   imageUrl: string | null;
   retailer: string;
   category: string;

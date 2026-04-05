@@ -295,11 +295,35 @@ function CardVariantRow({ variant, effectiveMode, isOverridden, calorieMode, cal
 }
 
 function ConsolidatedSizeRow({ sizeVariants, effectiveMode, isOverridden, calorieMode, calorieVariantIds, visibility, bestValueVariantIds, displayProteinPer100g, showPlanner, proteinTarget, planner, bordered, sortKey }: { sizeVariants: ProductGroupWithSelection["variants"]; effectiveMode: PriceMode; isOverridden: boolean; calorieMode: boolean; calorieVariantIds: { lowest: string[]; highest: string[] }; visibility: ColumnVisibility; bestValueVariantIds: Record<string, string[]>; displayProteinPer100g: number | null; showPlanner: boolean; proteinTarget: number; planner: ProteinPlannerState; bordered: boolean; sortKey?: SortKey; }) {
-  const hasFlavours = sizeVariants.some((v) => v.flavour);
+  const sortedSizeVariants = useMemo(
+    () =>
+      [...sizeVariants].sort((a, b) => {
+        const flavourCompare = (a.flavour ?? "").localeCompare(b.flavour ?? "");
+        if (flavourCompare !== 0) return flavourCompare;
+
+        const sizeCompare =
+          (a.sizeG ?? Number.POSITIVE_INFINITY) - (b.sizeG ?? Number.POSITIVE_INFINITY);
+        if (sizeCompare !== 0) return sizeCompare;
+
+        const priceCompare =
+          (a.pricePer100g ?? Number.POSITIVE_INFINITY) -
+          (b.pricePer100g ?? Number.POSITIVE_INFINITY);
+        if (priceCompare !== 0) return priceCompare;
+
+        return a.id.localeCompare(b.id);
+      }),
+    [sizeVariants]
+  );
+  const hasFlavours = sortedSizeVariants.some((v) => v.flavour);
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   // Pick the best flavour for the current sort key
   const bestVariant = useMemo(() => {
-    if (sizeVariants.length <= 1) return sizeVariants[0];
+    if (sortedSizeVariants.length <= 1) return sortedSizeVariants[0];
     const getVal = (v: ProductGroupWithSelection["variants"][0]): number => {
       const applied = applyPriceMode(v, effectiveMode);
       if (sortKey === "pricePerServing") return getPricePerServing(applied) ?? Infinity;
@@ -312,18 +336,45 @@ function ConsolidatedSizeRow({ sizeVariants, effectiveMode, isOverridden, calori
       if (sortKey === "proteinPer100g") return -(applied.proteinPer100g ?? 0);
       return applied.pricePer100g ?? Infinity;
     };
+    const compareDeterministically = (
+      a: ProductGroupWithSelection["variants"][0],
+      b: ProductGroupWithSelection["variants"][0]
+    ) => {
+      const flavourCompare = (a.flavour ?? "").localeCompare(b.flavour ?? "");
+      if (flavourCompare !== 0) return flavourCompare;
+
+      const priceCompare =
+        (a.pricePer100g ?? Number.POSITIVE_INFINITY) -
+        (b.pricePer100g ?? Number.POSITIVE_INFINITY);
+      if (priceCompare !== 0) return priceCompare;
+
+      const sizeCompare =
+        (a.sizeG ?? Number.POSITIVE_INFINITY) - (b.sizeG ?? Number.POSITIVE_INFINITY);
+      if (sizeCompare !== 0) return sizeCompare;
+
+      return a.id.localeCompare(b.id);
+    };
     // Always pick the "best" (lowest getVal = best value) regardless of sortDir
-    return [...sizeVariants].sort((a, b) => getVal(a) - getVal(b))[0];
-  }, [sizeVariants, sortKey, effectiveMode]);
+    return [...sortedSizeVariants].sort((a, b) => {
+      const valueCompare = getVal(a) - getVal(b);
+      if (valueCompare !== 0) return valueCompare;
+      return compareDeterministically(a, b);
+    })[0];
+  }, [sortedSizeVariants, sortKey, effectiveMode]);
 
-  const [selectedFlavour, setSelectedFlavour] = useState<string>(bestVariant?.flavour ?? "");
+  const [selectedFlavourOverride, setSelectedFlavourOverride] = useState<string | null>(null);
+  const initialVariant = sortedSizeVariants[0];
+  const preferredVariant = hasHydrated ? bestVariant : initialVariant;
+  const selectedFlavour = selectedFlavourOverride ?? (preferredVariant?.flavour ?? "");
 
-  // When sort changes, update selected to best flavour
+  // When the preferred auto-pick changes, drop any implicit selection and let the new preferred value apply.
   useEffect(() => {
-    if (bestVariant) setSelectedFlavour(bestVariant.flavour ?? "");
-  }, [bestVariant]);
+    setSelectedFlavourOverride(null);
+  }, [bestVariant, hasHydrated, sortKey, effectiveMode]);
 
-  const variant = sizeVariants.find((v) => (v.flavour ?? "") === selectedFlavour) ?? sizeVariants[0];
+  const variant =
+    sortedSizeVariants.find((v) => (v.flavour ?? "") === selectedFlavour) ??
+    sortedSizeVariants[0];
   if (!variant) return null;
 
   const v = applyPriceMode(variant, effectiveMode);
@@ -351,10 +402,10 @@ function ConsolidatedSizeRow({ sizeVariants, effectiveMode, isOverridden, calori
           {hasFlavours ? (
             <select
               value={selectedFlavour}
-              onChange={(e) => setSelectedFlavour(e.target.value)}
+              onChange={(e) => setSelectedFlavourOverride(e.target.value)}
               className="w-full rounded border border-theme-2 bg-surface px-1 py-0.5 text-[10px] text-theme-2 outline-none"
             >
-              {sizeVariants.map((sv) => (
+              {sortedSizeVariants.map((sv) => (
                 <option key={sv.id} value={sv.flavour ?? ""}>{sv.flavour || "Default"}</option>
               ))}
             </select>
