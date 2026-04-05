@@ -55,6 +55,7 @@ export const products = pgTable(
     description: text("description"),
     ingredients: text("ingredients"),
     nutritionalInfo: jsonb("nutritional_info"),
+    bundleLinks: jsonb("bundle_links"),
     proteinPer100g: decimal("protein_per_100g", { precision: 5, scale: 2 }),
     servingSizeG: decimal("serving_size_g", { precision: 6, scale: 2 }),
     servingsPerPack: integer("servings_per_pack"),

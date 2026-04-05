@@ -71,10 +71,6 @@ function describeContainer(container: HTMLElement | null) {
   };
 }
 
-function logDesktopDebug(label: string, data: Record<string, unknown>) {
-  console.log(`[compare-search-debug] ${label}`, data);
-}
-
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (sortKey !== col) return <ArrowUpDown className="h-3.5 w-3.5 opacity-50" strokeWidth={3} />;
   return sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />;
@@ -286,30 +282,6 @@ export default function PriceComparisonDesktopTable({
     () => cardGroups.slice(cardVirtualWindow.startIndex, cardVirtualWindow.endIndex),
     [cardGroups, cardVirtualWindow.endIndex, cardVirtualWindow.startIndex]
   );
-
-  useEffect(() => {
-    if (viewMode !== "card") return;
-    logDesktopDebug("desktop-virtual-window", {
-      totalCardGroups: cardGroups.length,
-      mountedCardGroups: visibleCardGroups.length,
-      startIndex: cardVirtualWindow.startIndex,
-      endIndex: cardVirtualWindow.endIndex,
-      topSpacerHeight: cardVirtualWindow.topSpacerHeight,
-      bottomSpacerHeight: cardVirtualWindow.bottomSpacerHeight,
-      viewportHeight: virtualViewportHeight,
-      scrollTop: virtualScrollTop,
-    });
-  }, [
-    cardGroups.length,
-    cardVirtualWindow.bottomSpacerHeight,
-    cardVirtualWindow.endIndex,
-    cardVirtualWindow.startIndex,
-    cardVirtualWindow.topSpacerHeight,
-    viewMode,
-    virtualScrollTop,
-    virtualViewportHeight,
-    visibleCardGroups.length,
-  ]);
 
   useLayoutEffect(() => {
     if (viewMode !== "card" || !pendingScrollGroupRef.current || !scrollContainerRef.current) return;

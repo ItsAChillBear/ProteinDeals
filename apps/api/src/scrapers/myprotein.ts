@@ -3,7 +3,6 @@ import {
   asObject,
   asString,
   extractBrandName,
-  extractCategoryLinks,
   extractCategoryProductUrls,
   extractJsonLdNodes,
   extractVariantFlavour,
@@ -27,11 +26,49 @@ import {
 
 const DEFAULT_CATEGORY_URL =
   "https://www.myprotein.com/c/nutrition/protein/whey-protein/";
-const PROTEIN_LANDING_URL = "https://www.myprotein.com/c/nutrition/protein/";
-const EXTRA_CATEGORY_URLS = [
-  "https://www.myprotein.com/c/nutrition/protein/diet/",
-  "https://www.myprotein.com/c/nutrition/weight-management/weight-gainers/",
-  "https://www.myprotein.com/c/nutrition/healthy-food-drinks/meal-replacement/",
+const DEFAULT_CATEGORY_TARGETS: CategoryTarget[] = [
+  { label: "Whey Protein", url: "https://www.myprotein.com/c/nutrition/protein/whey-protein/" },
+  { label: "Clear Protein Drinks", url: "https://www.myprotein.com/c/clear-protein/" },
+  { label: "Protein Isolate", url: "https://www.myprotein.com/c/nutrition/protein/protein-isolate/" },
+  { label: "Casein Protein", url: "https://www.myprotein.com/c/nutrition/protein/milk-protein/" },
+  { label: "Protein Blends", url: "https://www.myprotein.com/c/nutrition/protein/blends/" },
+  { label: "Protein Smoothies", url: "https://www.myprotein.com/p/sports-nutrition/breakfast-smoothie/13251950/" },
+  { label: "Protein Samples", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-foods/protein-samples/" },
+  { label: "Collagen Protein", url: "https://www.myprotein.com/c/nutrition/collagen/" },
+  { label: "Vegan Shakes", url: "https://www.myprotein.com/c/nutrition/protein/vegan-protein/" },
+  { label: "Diet Protein", url: "https://www.myprotein.com/c/nutrition/protein/diet/" },
+  { label: "Weight Gainers", url: "https://www.myprotein.com/c/nutrition/weight-management/weight-gainers/" },
+  { label: "Meal Replacement", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/meal-replacement/" },
+  { label: "Creatine", url: "https://www.myprotein.com/c/nutrition/creatine/" },
+  { label: "Creatine Monohydrate", url: "https://www.myprotein.com/c/nutrition/creatine/creatine-monohydrate/" },
+  { label: "Amino Acids", url: "https://www.myprotein.com/c/nutrition/amino-acids/" },
+  { label: "BCAA Supplements", url: "https://www.myprotein.com/c/nutrition/amino-acids/bcaa/" },
+  { label: "EAA Supplements", url: "https://www.myprotein.com/c/nutrition/amino-acids/eaa/" },
+  { label: "Glutamine Supplements", url: "https://www.myprotein.com/c/nutrition/amino-acids/glutamine/" },
+  { label: "L-Carnitine Supplements", url: "https://www.myprotein.com/c/nutrition/amino-acids/l-carnitine/" },
+  { label: "Pre Workout", url: "https://www.myprotein.com/c/nutrition/pre-post-workout/pre-workout/" },
+  { label: "Caffeine Free Pre Workout", url: "https://www.myprotein.com/c/nutrition/caffeine-free-preworkout/" },
+  { label: "Energy Drinks", url: "https://www.myprotein.com/c/nutrition/carbohydrates/energy-drinks/" },
+  { label: "Weight Management", url: "https://www.myprotein.com/c/nutrition/weight-management/" },
+  { label: "Weight Loss Supplements", url: "https://www.myprotein.com/c/nutrition/weight-management/weight-loss-supplements/" },
+  { label: "GLP1 Nutrition Support", url: "https://www.myprotein.com/c/glp1-nutrition-support/" },
+  { label: "Recovery", url: "https://www.myprotein.com/c/nutrition/recovery/" },
+  { label: "Intra Workout", url: "https://www.myprotein.com/c/nutrition/pre-post-workout/intra-workout/" },
+  { label: "Post Workout", url: "https://www.myprotein.com/c/nutrition/pre-post-workout/post-workout/" },
+  { label: "Hydration", url: "https://www.myprotein.com/c/performance/electrolyte-supplements/" },
+  { label: "Energy And Carbohydrates", url: "https://www.myprotein.com/c/nutrition/carbohydrates/" },
+  { label: "Energy Supplements", url: "https://www.myprotein.com/c/nutrition/carbohydrates/energy-supplements/" },
+  { label: "Energy Bars", url: "https://www.myprotein.com/c/nutrition/carbohydrates/energy-bars/" },
+  { label: "Energy Gels", url: "https://www.myprotein.com/c/nutrition/carbohydrates/energy-gels/" },
+  { label: "Vitamins", url: "https://www.myprotein.com/c/nutrition/vitamins/" },
+  { label: "Trending Vitamins And Supplements", url: "https://www.myprotein.com/c/nutrition/vitamins-minerals/trending-vitamins-supplements/" },
+  { label: "Shop All Vitamins Minerals And Supplements", url: "https://www.myprotein.com/c/nutrition/vitamins-minerals/" },
+  { label: "Vitamin Gummies", url: "https://www.myprotein.com/c/vitamin-gummies-range/" },
+  { label: "Healthy Food And Drinks", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/" },
+  { label: "Protein Foods", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-foods/" },
+  { label: "Protein Bars", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-bars/" },
+  { label: "Protein Snacks", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-snacks/" },
+  { label: "Accessories", url: "https://www.myprotein.com/c/nutrition/accessories/" },
 ];
 
 type CategoryTarget = {
@@ -315,6 +352,7 @@ async function scrapeFallbackProduct(args: {
     suggestedUse: productContent.suggestedUse,
     ingredients: productContent.ingredients,
     faqEntries: productContent.faqEntries,
+    bundleLinks: productContent.bundleLinks,
     nutritionalInformation: productContent.nutritionalInformation,
     productDetails: productContent.productDetails,
     scrapedAt: new Date().toISOString(),
@@ -405,6 +443,7 @@ async function scrapeVariant(args: {
     suggestedUse: context.productContent.suggestedUse,
     ingredients: context.productContent.ingredients,
     faqEntries: context.productContent.faqEntries,
+    bundleLinks: context.productContent.bundleLinks,
     nutritionalInformation: context.productContent.nutritionalInformation,
     productDetails: context.productContent.productDetails,
     scrapedAt: new Date().toISOString(),
@@ -429,16 +468,7 @@ async function resolveCategoryTargets(
     return dedupeCategoryTargets(explicitCategoryUrls.map((url) => ({ url, label: inferCategoryLabel(url) })));
   }
 
-  const landingHtml = await fetchText(PROTEIN_LANDING_URL, fetchImpl);
-  const landingLinks = extractCategoryLinks(landingHtml, PROTEIN_LANDING_URL);
-  const discoveredProteinCategories = landingLinks.filter((url) => isProteinCategoryUrl(url));
-
-  return dedupeCategoryTargets(
-    [DEFAULT_CATEGORY_URL, ...discoveredProteinCategories, ...EXTRA_CATEGORY_URLS].map((url) => ({
-      url,
-      label: inferCategoryLabel(url),
-    }))
-  );
+  return dedupeCategoryTargets(DEFAULT_CATEGORY_TARGETS);
 }
 
 function dedupeCategoryTargets(targets: CategoryTarget[]) {
@@ -449,13 +479,6 @@ function dedupeCategoryTargets(targets: CategoryTarget[]) {
     }
   }
   return [...byUrl.values()];
-}
-
-function isProteinCategoryUrl(url: string) {
-  return (
-    url.startsWith("https://www.myprotein.com/c/nutrition/protein/") ||
-    url.startsWith("https://www.myprotein.com/c/clear-protein/")
-  );
 }
 
 function inferCategoryLabel(url: string) {

@@ -30,6 +30,7 @@ export interface CompareProductRow {
   imageUrl: string | null;
   retailer: string;
   category: string;
+  subcategory: string;
   flavour: string | null;
   size: string;
   sizeG: number | null;
@@ -49,6 +50,7 @@ export interface CompareProductRow {
   url: string;
   type: string;
   description: string | null;
+  bundleLinks: Array<{ name: string; url: string }>;
   discountCodes: Array<{
     label: string;
     code: string;

@@ -186,6 +186,7 @@ export async function upsertScrapedVariant(
     description,
     ingredients: record.ingredients,
     nutritionalInfo: record.nutritionalInformation as unknown as Prisma.InputJsonValue,
+    bundleLinks: record.bundleLinks.length > 0 ? record.bundleLinks as unknown as Prisma.InputJsonValue : Prisma.JsonNull,
     isActive: true,
   };
 

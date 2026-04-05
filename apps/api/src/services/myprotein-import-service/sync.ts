@@ -106,7 +106,8 @@ export async function previewMyproteinSync(
 
 export async function applyMyproteinSync(
   entryIds: string[],
-  preview?: MyproteinSyncPreview
+  preview?: MyproteinSyncPreview,
+  onProgress?: (message: string, index: number, total: number) => Promise<void>
 ): Promise<ImportMyproteinResult> {
   const resolvedPreview = preview ?? (await previewMyproteinSync([]));
   const selectedIds = new Set(entryIds);
@@ -126,11 +127,24 @@ export async function applyMyproteinSync(
 
   await ensureRetailer();
 
+  const actionableEntries = entries.filter((e) => e.action !== "unchanged");
+  let actionableIndex = 0;
+
   for (const entry of entries) {
     if (entry.action === "unchanged") {
       result.unchanged += 1;
       continue;
     }
+
+    actionableIndex += 1;
+    const label = entry.scraped
+      ? `${entry.scraped.productName} (${entry.scraped.sizeLabel ?? "?"})`
+      : entry.retailerProductId;
+    await onProgress?.(
+      `${entry.action === "delete" ? "Deleting" : entry.action === "create" ? "Creating" : "Updating"} ${label}`,
+      actionableIndex,
+      actionableEntries.length
+    );
 
     if (entry.action === "delete") {
       if (entry.current) {

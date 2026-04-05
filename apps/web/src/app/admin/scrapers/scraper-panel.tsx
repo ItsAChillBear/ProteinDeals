@@ -20,37 +20,104 @@ type ScraperSection = {
   disabled?: boolean;
 };
 
-type ScraperWebsite = {
+type ScraperCategory = {
   id: string;
   label: string;
   sections: ScraperSection[];
+};
+
+type ScraperWebsite = {
+  id: string;
+  label: string;
+  categories: ScraperCategory[];
 };
 
 const SCRAPER_WEBSITES: ScraperWebsite[] = [
   {
     id: "myprotein",
     label: "MyProtein",
-    sections: [
-      { id: "whey-protein", label: "Whey Protein", url: "https://www.myprotein.com/c/nutrition/protein/whey-protein/" },
-      { id: "clear-protein-drinks", label: "Clear Protein Drinks", url: "https://www.myprotein.com/c/clear-protein/" },
-      { id: "protein-isolate", label: "Protein Isolate", url: "https://www.myprotein.com/c/nutrition/protein/protein-isolate/" },
-      { id: "casein-protein", label: "Casein Protein", url: "https://www.myprotein.com/c/nutrition/protein/milk-protein/" },
-      { id: "protein-blends", label: "Protein Blends", url: "https://www.myprotein.com/c/nutrition/protein/blends/" },
-      { id: "protein-smoothies", label: "Protein Smoothies", url: "https://www.myprotein.com/p/sports-nutrition/breakfast-smoothie/13251950/" },
-      { id: "protein-samples", label: "Protein Samples", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-foods/protein-samples/" },
-      { id: "collagen-protein", label: "Collagen Protein", url: "https://www.myprotein.com/c/nutrition/collagen/" },
-      { id: "vegan-shakes", label: "Vegan Shakes", url: "https://www.myprotein.com/c/nutrition/protein/vegan-protein/" },
-      { id: "protein-diet", label: "Diet Protein", url: "https://www.myprotein.com/c/nutrition/protein/diet/" },
-      { id: "weight-gainers", label: "Weight Gainers", url: "https://www.myprotein.com/c/nutrition/weight-management/weight-gainers/" },
-      { id: "meal-replacement", label: "Meal Replacement", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/meal-replacement/" },
+    categories: [
+      {
+        id: "protein",
+        label: "Protein",
+        sections: [
+          { id: "whey-protein", label: "Whey Protein", url: "https://www.myprotein.com/c/nutrition/protein/whey-protein/" },
+          { id: "clear-protein-drinks", label: "Clear Protein Drinks", url: "https://www.myprotein.com/c/clear-protein/" },
+          { id: "protein-isolate", label: "Protein Isolate", url: "https://www.myprotein.com/c/nutrition/protein/protein-isolate/" },
+          { id: "casein-protein", label: "Casein Protein", url: "https://www.myprotein.com/c/nutrition/protein/milk-protein/" },
+          { id: "protein-blends", label: "Protein Blends", url: "https://www.myprotein.com/c/nutrition/protein/blends/" },
+          { id: "protein-smoothies", label: "Protein Smoothies", url: "https://www.myprotein.com/p/sports-nutrition/breakfast-smoothie/13251950/" },
+          { id: "protein-samples", label: "Protein Samples", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-foods/protein-samples/" },
+          { id: "collagen-protein", label: "Collagen Protein", url: "https://www.myprotein.com/c/nutrition/collagen/" },
+          { id: "vegan-shakes", label: "Vegan Shakes", url: "https://www.myprotein.com/c/nutrition/protein/vegan-protein/" },
+          { id: "protein-diet", label: "Diet Protein", url: "https://www.myprotein.com/c/nutrition/protein/diet/" },
+          { id: "weight-gainers", label: "Weight Gainers", url: "https://www.myprotein.com/c/nutrition/weight-management/weight-gainers/" },
+          { id: "meal-replacement", label: "Meal Replacement", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/meal-replacement/" },
+        ],
+      },
+      {
+        id: "supplements",
+        label: "Supplements",
+        sections: [
+          { id: "creatine", label: "Creatine", url: "https://www.myprotein.com/c/nutrition/creatine/" },
+          { id: "creatine-monohydrate", label: "Creatine Monohydrate", url: "https://www.myprotein.com/c/nutrition/creatine/creatine-monohydrate/" },
+          { id: "amino-acids", label: "Amino Acids", url: "https://www.myprotein.com/c/nutrition/amino-acids/" },
+          { id: "bcaa-supplements", label: "BCAA Supplements", url: "https://www.myprotein.com/c/nutrition/amino-acids/bcaa/" },
+          { id: "eaa-supplements", label: "EAA Supplements", url: "https://www.myprotein.com/c/nutrition/amino-acids/eaa/" },
+          { id: "glutamine-supplements", label: "Glutamine Supplements", url: "https://www.myprotein.com/c/nutrition/amino-acids/glutamine/" },
+          { id: "l-carnitine-supplements", label: "L-Carnitine Supplements", url: "https://www.myprotein.com/c/nutrition/amino-acids/l-carnitine/" },
+          { id: "pre-workout", label: "Pre Workout", url: "https://www.myprotein.com/c/nutrition/pre-post-workout/pre-workout/" },
+          { id: "caffeine-free-pre-workout", label: "Caffeine Free Pre Workout", url: "https://www.myprotein.com/c/nutrition/caffeine-free-preworkout/" },
+          { id: "energy-drinks", label: "Energy Drinks", url: "https://www.myprotein.com/c/nutrition/carbohydrates/energy-drinks/" },
+          { id: "weight-management", label: "Weight Management", url: "https://www.myprotein.com/c/nutrition/weight-management/" },
+          { id: "weight-loss-supplements", label: "Weight Loss Supplements", url: "https://www.myprotein.com/c/nutrition/weight-management/weight-loss-supplements/" },
+          { id: "glp1-nutrition-support", label: "GLP1 Nutrition Support", url: "https://www.myprotein.com/c/glp1-nutrition-support/" },
+          { id: "recovery", label: "Recovery", url: "https://www.myprotein.com/c/nutrition/recovery/" },
+          { id: "intra-workout", label: "Intra Workout", url: "https://www.myprotein.com/c/nutrition/pre-post-workout/intra-workout/" },
+          { id: "post-workout", label: "Post Workout", url: "https://www.myprotein.com/c/nutrition/pre-post-workout/post-workout/" },
+          { id: "hydration", label: "Hydration", url: "https://www.myprotein.com/c/performance/electrolyte-supplements/" },
+          { id: "energy-and-carbohydrates", label: "Energy And Carbohydrates", url: "https://www.myprotein.com/c/nutrition/carbohydrates/" },
+          { id: "energy-supplements", label: "Energy Supplements", url: "https://www.myprotein.com/c/nutrition/carbohydrates/energy-supplements/" },
+          { id: "energy-bars", label: "Energy Bars", url: "https://www.myprotein.com/c/nutrition/carbohydrates/energy-bars/" },
+          { id: "energy-gels", label: "Energy Gels", url: "https://www.myprotein.com/c/nutrition/carbohydrates/energy-gels/" },
+        ],
+      },
+      {
+        id: "vitamins",
+        label: "Vitamins",
+        sections: [
+          { id: "vitamins", label: "Vitamins", url: "https://www.myprotein.com/c/nutrition/vitamins/" },
+          { id: "trending-vitamins-and-supplements", label: "Trending Vitamins And Supplements", url: "https://www.myprotein.com/c/nutrition/vitamins-minerals/trending-vitamins-supplements/" },
+          { id: "shop-all-vitamins-minerals-and-supplements", label: "Shop All Vitamins Minerals And Supplements", url: "https://www.myprotein.com/c/nutrition/vitamins-minerals/" },
+          { id: "vitamin-gummies", label: "Vitamin Gummies", url: "https://www.myprotein.com/c/vitamin-gummies-range/" },
+        ],
+      },
+      {
+        id: "food-bars-snacks",
+        label: "Food, Bars & Snacks",
+        sections: [
+          { id: "healthy-food-and-drinks", label: "Healthy Food And Drinks", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/" },
+          { id: "protein-foods", label: "Protein Foods", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-foods/" },
+          { id: "protein-bars", label: "Protein Bars", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-bars/" },
+          { id: "protein-snacks", label: "Protein Snacks", url: "https://www.myprotein.com/c/nutrition/healthy-food-drinks/protein-snacks/" },
+        ],
+      },
+      {
+        id: "accessories",
+        label: "Accessories",
+        sections: [
+          { id: "accessories", label: "Accessories", url: "https://www.myprotein.com/c/nutrition/accessories/" },
+        ],
+      },
     ],
   },
 ] as const;
 
 export function MyproteinScraperPanel() {
   const [websiteId, setWebsiteId] = useState<ScraperWebsite["id"]>("myprotein");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("protein");
   const [selectedSectionIds, setSelectedSectionIds] = useState<string[]>(
-    SCRAPER_WEBSITES[0].sections.map((section) => section.id)
+    SCRAPER_WEBSITES[0].categories.flatMap((category) => category.sections.map((section) => section.id))
   );
   const [isRunning, setIsRunning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
@@ -63,14 +130,21 @@ export function MyproteinScraperPanel() {
   const [error, setError] = useState<string | null>(null);
   const [progressLines, setProgressLines] = useState<string[]>([]);
   const [liveRecords, setLiveRecords] = useState<ScraperRecord[]>([]);
+  const [scrapeProgress, setScrapeProgress] = useState<ScrapeProgress | null>(null);
+  const [applyProgress, setApplyProgress] = useState<ApplyProgress | null>(null);
   const isPausedRef = useRef(false);
   const bufferedLinesRef = useRef<string[]>([]);
   const bufferedRecordsRef = useRef<ScraperRecord[]>([]);
   const selectedWebsite = SCRAPER_WEBSITES.find((website) => website.id === websiteId) ?? SCRAPER_WEBSITES[0];
-  const selectedSections = selectedWebsite.sections.filter((section) =>
+  const allSections = selectedWebsite.categories.flatMap((category) => category.sections);
+  const selectedCategory =
+    selectedWebsite.categories.find((category) => category.id === selectedCategoryId) ??
+    selectedWebsite.categories[0];
+  const visibleSections = selectedCategory?.sections ?? [];
+  const selectedSections = allSections.filter((section) =>
     selectedSectionIds.includes(section.id)
   );
-  const includeDeletes = selectedSections.length === selectedWebsite.sections.length;
+  const includeDeletes = selectedSections.length === allSections.length;
 
   async function runScraper() {
     setIsRunning(true);
@@ -82,6 +156,8 @@ export function MyproteinScraperPanel() {
     setProgressLines([]);
     setLiveRecords([]);
     setIsPaused(false);
+    setScrapeProgress(null);
+    setApplyProgress(null);
     bufferedLinesRef.current = [];
     bufferedRecordsRef.current = [];
 
@@ -92,7 +168,12 @@ export function MyproteinScraperPanel() {
           categoryUrls: selectedSections.map((section) => section.url),
           categoryLabels: selectedSections.map((section) => section.label),
         },
-        setProgressLines,
+        (linesOrUpdater) => {
+          setProgressLines(linesOrUpdater);
+          const lines = typeof linesOrUpdater === "function" ? null : linesOrUpdater;
+          const lastLine = lines?.[lines.length - 1];
+          if (lastLine) setScrapeProgress(parseScrapeProgress(lastLine));
+        },
         setLiveRecords,
         {
           isPausedRef,
@@ -100,6 +181,7 @@ export function MyproteinScraperPanel() {
           bufferedRecordsRef,
         }
       );
+      setScrapeProgress(null);
       setResult(scrapeResult);
       await loadPreview(scrapeResult.records ?? [], includeDeletes);
     } catch (runError) {
@@ -133,6 +215,7 @@ export function MyproteinScraperPanel() {
     setIsApplying(true);
     setError(null);
     setClearResult(null);
+    setApplyProgress({ message: "Preparing...", index: 0, total: 0 });
 
     try {
       const records = result?.records ?? [];
@@ -140,25 +223,19 @@ export function MyproteinScraperPanel() {
         throw new Error("Run the scraper first so there are results to apply");
       }
 
-      const response = await fetch(
-        `/api/admin/scrapers/myprotein/import?${(() => {
-          const params = new URLSearchParams();
-          params.set("includeDeletes", includeDeletes ? "true" : "false");
-          for (const section of selectedSections) {
-            params.append("categoryUrl", section.url);
-          }
-          return params.toString();
-        })()}`,
-        {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ records, entryIds }),
-        }
-      );
-      const payload = (await response.json()) as ImportResponse;
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error ?? "Apply failed");
+      const params = new URLSearchParams();
+      params.set("includeDeletes", includeDeletes ? "true" : "false");
+      for (const section of selectedSections) {
+        params.append("categoryUrl", section.url);
       }
+
+      const payload = await streamImportRun(
+        `/api/admin/scrapers/myprotein/import-stream?${params.toString()}`,
+        { records, entryIds },
+        (progress) => setApplyProgress(progress)
+      );
+
+      if (!payload.ok) throw new Error(payload.error ?? "Apply failed");
 
       setImportResult(payload);
       await loadPreview(records, includeDeletes);
@@ -166,12 +243,13 @@ export function MyproteinScraperPanel() {
       setError(runError instanceof Error ? runError.message : "Unknown error");
     } finally {
       setIsApplying(false);
+      setApplyProgress(null);
     }
   }
 
   async function clearDatabase() {
     const scopeLabel =
-      selectedSections.length === selectedWebsite.sections.length
+      selectedSections.length === allSections.length
         ? `${selectedWebsite.label} data`
         : `${selectedWebsite.label} data for ${selectedSections.length} selected section${selectedSections.length === 1 ? "" : "s"}`;
     const confirmed = window.confirm(
@@ -201,6 +279,8 @@ export function MyproteinScraperPanel() {
       setPreview(null);
       setLiveRecords([]);
       setProgressLines([]);
+      setScrapeProgress(null);
+      setApplyProgress(null);
       bufferedLinesRef.current = [];
       bufferedRecordsRef.current = [];
     } catch (runError) {
@@ -289,7 +369,8 @@ export function MyproteinScraperPanel() {
               setWebsiteId(nextWebsiteId);
               const nextWebsite =
                 SCRAPER_WEBSITES.find((website) => website.id === nextWebsiteId) ?? SCRAPER_WEBSITES[0];
-              setSelectedSectionIds(nextWebsite.sections.map((section) => section.id));
+              setSelectedCategoryId(nextWebsite.categories[0]?.id ?? "");
+              setSelectedSectionIds(nextWebsite.categories.flatMap((category) => category.sections.map((section) => section.id)));
             }}
             className="w-full rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 text-stone-50 outline-none transition focus:border-amber-400"
           >
@@ -301,10 +382,99 @@ export function MyproteinScraperPanel() {
           </select>
         </label>
 
-        <div className="space-y-2 text-sm text-stone-300">
+        <div className="space-y-4 text-sm text-stone-300">
+          <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+            <label className="space-y-2 text-sm text-stone-300">
+              <span className="block text-xs uppercase tracking-[0.25em] text-stone-400">
+                Category
+              </span>
+              <select
+                value={selectedCategoryId}
+                onChange={(event) => setSelectedCategoryId(event.target.value)}
+                className="w-full rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 text-stone-50 outline-none transition focus:border-amber-400"
+              >
+                {selectedWebsite.categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="block text-xs uppercase tracking-[0.25em] text-stone-400">
+                  Subcategories
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedSectionIds((current) =>
+                        current.filter(
+                          (sectionId) =>
+                            !visibleSections.some((section) => section.id === sectionId)
+                        )
+                      )
+                    }
+                    className="text-xs font-semibold text-stone-400 transition hover:text-stone-200"
+                  >
+                    Deselect category
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedSectionIds((current) => [
+                        ...current.filter(
+                          (sectionId) =>
+                            !visibleSections.some((section) => section.id === sectionId)
+                        ),
+                        ...visibleSections.map((section) => section.id),
+                      ])
+                    }
+                    className="text-xs font-semibold text-amber-300 transition hover:text-amber-200"
+                  >
+                    Select category
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {visibleSections.map((section) => {
+                  const checked = selectedSectionIds.includes(section.id);
+                  return (
+                    <label
+                      key={section.id}
+                      className="flex items-start gap-3 rounded-2xl border border-stone-800 bg-stone-900/80 px-4 py-3"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) => {
+                          setSelectedSectionIds((current) =>
+                            event.target.checked
+                              ? [...current, section.id]
+                              : current.filter((value) => value !== section.id)
+                          );
+                        }}
+                        className="mt-1 h-4 w-4 rounded border-stone-600 bg-stone-950 text-amber-400"
+                      />
+                      <span className="space-y-1">
+                        <span className="block font-medium text-stone-100">{section.label}</span>
+                        <span className="block text-xs leading-5 text-stone-400">
+                          {section.url}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between gap-3">
             <span className="block text-xs uppercase tracking-[0.25em] text-stone-400">
-              Sections
+              All Selected Subcategories
             </span>
             <div className="flex items-center gap-3">
               <button
@@ -316,43 +486,18 @@ export function MyproteinScraperPanel() {
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedSectionIds(selectedWebsite.sections.map((section) => section.id))}
+                onClick={() =>
+                  setSelectedSectionIds(
+                    selectedWebsite.categories.flatMap((category) =>
+                      category.sections.map((section) => section.id)
+                    )
+                  )
+                }
                 className="text-xs font-semibold text-amber-300 transition hover:text-amber-200"
               >
                 Select all
               </button>
             </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {selectedWebsite.sections.map((section) => {
-              const checked = selectedSectionIds.includes(section.id);
-              return (
-                <label
-                  key={section.id}
-                  className="flex items-start gap-3 rounded-2xl border border-stone-800 bg-stone-900/80 px-4 py-3"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(event) => {
-                      setSelectedSectionIds((current) =>
-                        event.target.checked
-                          ? [...current, section.id]
-                          : current.filter((value) => value !== section.id)
-                      );
-                    }}
-                    className="mt-1 h-4 w-4 rounded border-stone-600 bg-stone-950 text-amber-400"
-                  />
-                  <span className="space-y-1">
-                    <span className="block font-medium text-stone-100">{section.label}</span>
-                    <span className="block text-xs leading-5 text-stone-400">
-                      {section.url}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
           </div>
         </div>
       </div>
@@ -364,6 +509,9 @@ export function MyproteinScraperPanel() {
         finishedAt={result?.finishedAt ?? null}
         summary={preview?.summary ?? null}
       />
+
+      {scrapeProgress ? <ScrapeProgressBar progress={scrapeProgress} variantCount={liveRecords.length} /> : null}
+      {applyProgress ? <ApplyProgressBar progress={applyProgress} /> : null}
 
       {error ? <Message tone="error">{error}</Message> : null}
       {importResult?.importResult ? <ImportMessage result={importResult.importResult} /> : null}
@@ -467,4 +615,202 @@ function Message(props: { tone: "error" | "success"; children: ReactNode }) {
       ? "border-red-500/40 bg-red-500/10 text-red-200"
       : "border-emerald-500/30 bg-emerald-500/10 text-emerald-100";
   return <div className={`rounded-2xl border px-4 py-4 text-sm ${className}`}>{props.children}</div>;
+}
+
+// ─── Progress types ──────────────────────────────────────────────────────────
+
+type ScrapeProgress = {
+  phase: "discovering" | "scraping" | "finishing";
+  category: string | null;
+  productIndex: number;
+  productTotal: number;
+  message: string;
+};
+
+type ApplyProgress = {
+  message: string;
+  index: number;
+  total: number;
+};
+
+// ─── Progress parsers ────────────────────────────────────────────────────────
+
+function parseScrapeProgress(message: string): ScrapeProgress {
+  // "Loading product 5/120: https://..."
+  const productMatch = message.match(/Loading product (\d+)\/(\d+)/);
+  if (productMatch) {
+    return {
+      phase: "scraping",
+      category: null,
+      productIndex: Number(productMatch[1]),
+      productTotal: Number(productMatch[2]),
+      message,
+    };
+  }
+
+  // "Fetching category Whey Protein page 2: https://..."
+  const categoryMatch = message.match(/Fetching category (.+?) page \d+/);
+  if (categoryMatch) {
+    return {
+      phase: "discovering",
+      category: categoryMatch[1],
+      productIndex: 0,
+      productTotal: 0,
+      message,
+    };
+  }
+
+  // "Discovered N unique products across M sections..."
+  const discoveredMatch = message.match(/Discovered (\d+) unique products.*scraping (\d+)/);
+  if (discoveredMatch) {
+    return {
+      phase: "scraping",
+      category: null,
+      productIndex: 0,
+      productTotal: Number(discoveredMatch[2]),
+      message,
+    };
+  }
+
+  return { phase: "finishing", category: null, productIndex: 0, productTotal: 0, message };
+}
+
+// ─── Streaming import helper ─────────────────────────────────────────────────
+
+async function streamImportRun(
+  url: string,
+  body: object,
+  onProgress: (progress: ApplyProgress) => void
+): Promise<ImportResponse> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.body) throw new Error("No response body");
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: ImportResponse | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+
+    for (const part of parts) {
+      const eventMatch = part.match(/^event: (\w+)/m);
+      const dataMatch = part.match(/^data: (.+)$/m);
+      if (!eventMatch || !dataMatch) continue;
+
+      const event = eventMatch[1];
+      try {
+        const payload = JSON.parse(dataMatch[1]);
+        if (event === "progress") {
+          onProgress(payload as ApplyProgress);
+        } else if (event === "complete") {
+          result = payload as ImportResponse;
+        } else if (event === "error") {
+          throw new Error((payload as { error?: string }).error ?? "Import failed");
+        }
+      } catch (parseError) {
+        if (parseError instanceof SyntaxError) continue;
+        throw parseError;
+      }
+    }
+  }
+
+  if (!result) throw new Error("Stream ended without completion");
+  return result;
+}
+
+// ─── Progress bar components ─────────────────────────────────────────────────
+
+function ScrapeProgressBar({ progress, variantCount }: { progress: ScrapeProgress; variantCount: number }) {
+  const pct =
+    progress.phase === "scraping" && progress.productTotal > 0
+      ? Math.round((progress.productIndex / progress.productTotal) * 100)
+      : null;
+
+  return (
+    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-0.5">
+          <div className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+            {progress.phase === "discovering" ? "Discovering Products" : progress.phase === "scraping" ? "Scraping Products" : "Finishing"}
+          </div>
+          {progress.phase === "discovering" && progress.category ? (
+            <div className="text-sm text-stone-300">
+              Category: <span className="font-medium text-amber-300">{progress.category}</span>
+            </div>
+          ) : progress.phase === "scraping" && progress.productTotal > 0 ? (
+            <div className="text-sm text-stone-300">
+              Product <span className="font-medium text-amber-300">{progress.productIndex}</span> of <span className="font-medium">{progress.productTotal}</span>
+              {variantCount > 0 ? <span className="ml-2 text-stone-400">· {variantCount} variants scraped</span> : null}
+            </div>
+          ) : (
+            <div className="text-sm text-stone-400 truncate max-w-xl">{progress.message}</div>
+          )}
+        </div>
+        {pct !== null ? (
+          <div className="text-2xl font-bold tabular-nums text-amber-400">{pct}%</div>
+        ) : null}
+      </div>
+      {pct !== null ? (
+        <div className="h-2 w-full rounded-full bg-stone-800 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-amber-400 transition-all duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      ) : (
+        <div className="h-2 w-full rounded-full bg-stone-800 overflow-hidden">
+          <div className="h-full w-full rounded-full bg-amber-400/30 animate-pulse" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ApplyProgressBar({ progress }: { progress: ApplyProgress }) {
+  const pct =
+    progress.total > 0 ? Math.round((progress.index / progress.total) * 100) : null;
+
+  return (
+    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-0.5">
+          <div className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
+            Applying Changes
+          </div>
+          <div className="text-sm text-stone-300 truncate max-w-xl">{progress.message}</div>
+          {progress.total > 0 ? (
+            <div className="text-xs text-stone-400">
+              {progress.index} of {progress.total} entries
+            </div>
+          ) : null}
+        </div>
+        {pct !== null ? (
+          <div className="text-2xl font-bold tabular-nums text-emerald-400">{pct}%</div>
+        ) : null}
+      </div>
+      {pct !== null ? (
+        <div className="h-2 w-full rounded-full bg-stone-800 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-emerald-400 transition-all duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      ) : (
+        <div className="h-2 w-full rounded-full bg-stone-800 overflow-hidden">
+          <div className="h-full w-full rounded-full bg-emerald-400/30 animate-pulse" />
+        </div>
+      )}
+    </div>
+  );
 }

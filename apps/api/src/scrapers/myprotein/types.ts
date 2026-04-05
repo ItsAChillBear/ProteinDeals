@@ -40,6 +40,7 @@ export interface MyproteinVariantRecord {
   suggestedUse: string | null;
   ingredients: string | null;
   faqEntries: Array<{ question: string; answer: string }>;
+  bundleLinks: Array<{ name: string; url: string }>;
   nutritionalInformation: NutritionRow[];
   productDetails: string | null;
   scrapedAt: string;

@@ -333,6 +333,69 @@ async function start() {
   });
 
   server.post(
+    "/internal/scrapers/myprotein/import-stream",
+    { bodyLimit: 10 * 1024 * 1024 },
+    async (request, reply) => {
+      const startedAt = new Date().toISOString();
+      const body = request.body as { records?: unknown; entryIds?: unknown };
+      const query = request.query as { includeDeletes?: string; categoryUrl?: string | string[] };
+      const includeDeletes = query.includeDeletes === "true";
+      const scrapeOptions = getMyproteinScrapeOptions(request.query);
+
+      reply.raw.setHeader("Content-Type", "text/event-stream");
+      reply.raw.setHeader("Cache-Control", "no-cache, no-transform");
+      reply.raw.setHeader("Connection", "keep-alive");
+      reply.raw.flushHeaders?.();
+
+      const send = (event: string, payload: unknown) => {
+        reply.raw.write(`event: ${event}\n`);
+        reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
+      };
+
+      try {
+        const records = Array.isArray(body?.records) ? body.records : [];
+        send("progress", { message: "Building diff preview...", index: 0, total: 0 });
+
+        const preview = await previewMyproteinSync(
+          records as Awaited<ReturnType<typeof scrapeMyproteinWheyProducts>>,
+          { includeDeletes, deleteCategoryUrls: scrapeOptions.categoryUrls }
+        );
+        const rawEntryIds = Array.isArray(body?.entryIds) ? body.entryIds : null;
+        const entryIds =
+          rawEntryIds?.filter((value): value is string => typeof value === "string") ??
+          preview.entries.map((entry) => entry.id);
+
+        const actionableCount = preview.entries.filter(
+          (e) => entryIds.includes(e.id) && e.action !== "unchanged"
+        ).length;
+        send("progress", { message: `Applying ${actionableCount} changes...`, index: 0, total: actionableCount });
+
+        const importResult = await applyMyproteinSync(entryIds, preview, async (message, index, total) => {
+          send("progress", { message, index, total });
+        });
+
+        send("complete", {
+          ok: true,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          count: records.length,
+          importResult,
+        });
+      } catch (error) {
+        request.log.error(error);
+        send("error", {
+          ok: false,
+          error: error instanceof Error ? error.message : "Unknown import error",
+        });
+      } finally {
+        reply.raw.end();
+      }
+
+      return reply;
+    }
+  );
+
+  server.post(
     "/internal/scrapers/myprotein/import-records",
     { bodyLimit: 10 * 1024 * 1024 },
     async (request, reply) => {

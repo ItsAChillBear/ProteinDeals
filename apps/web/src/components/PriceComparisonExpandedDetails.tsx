@@ -97,6 +97,7 @@ export default function PriceComparisonExpandedDetails({
   const product = group.selected;
   const codes = [...(RETAILER_REFER_CODES[group.retailer] ?? []), ...(product.discountCodes ?? [])];
   const ingredients = product.ingredients;
+  const bundleLinks = product.bundleLinks ?? [];
   const nutritionRows = (product.nutritionalInformation ?? []).filter((row) =>
     isCleanNutritionRow(row)
   );
@@ -131,6 +132,26 @@ export default function PriceComparisonExpandedDetails({
               <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-theme-3">Ingredients</h4>
               <div className="whitespace-pre-line text-sm leading-6 text-theme-2">
                 {renderMarkedText(ingredients)}
+              </div>
+            </div>
+          ) : null}
+
+          {bundleLinks.length > 0 ? (
+            <div className="mb-4">
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-theme-3">Bundle Contents</h4>
+              <div className="flex flex-wrap gap-2">
+                {bundleLinks.map((link) => (
+                  <a
+                    key={link.url}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer sponsored"
+                    className="inline-flex items-center gap-1 rounded-lg border border-theme bg-surface-2 px-2.5 py-1 text-xs font-medium text-theme-2 transition hover:border-green-500/40 hover:text-theme"
+                  >
+                    {link.name}
+                    <ExternalLink className="h-3 w-3 opacity-50" />
+                  </a>
+                ))}
               </div>
             </div>
           ) : null}

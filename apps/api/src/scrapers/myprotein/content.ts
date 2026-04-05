@@ -30,6 +30,7 @@ export function extractMyproteinProductContent(html: string) {
     keyBenefits: splitBulletList(headingBlocks.get("key benefits")),
     whyChoose: firstNonEmpty([headingBlocks.get("why choose"), headingBlocks.get("why choose?")]) ?? null,
     suggestedUse: firstNonEmpty([headingBlocks.get("suggested use"), headingBlocks.get("how to use")]) ?? null,
+    bundleLinks: extractBundleLinks($),
     ingredients:
       sanitizeIngredientsText(
         firstNonEmpty([
@@ -665,6 +666,22 @@ function firstNonEmpty(values: Array<string | null | undefined>) {
 
 function collapseWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function extractBundleLinks($: cheerio.CheerioAPI): Array<{ name: string; url: string }> {
+  const nutritionSection = $("#nutritionalinfo");
+  if (!nutritionSection.length) return [];
+
+  const links: Array<{ name: string; url: string }> = [];
+  nutritionSection.find("a[href]").each((_, el) => {
+    const href = $(el).attr("href");
+    const name = collapseWhitespace($(el).text());
+    if (href && name && href.includes("myprotein.com")) {
+      links.push({ name, url: href });
+    }
+  });
+
+  return links;
 }
 
 function collapseWhitespaceWithNewlines(value: string) {

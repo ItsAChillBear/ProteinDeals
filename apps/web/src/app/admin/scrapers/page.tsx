@@ -13,8 +13,9 @@ export default function ScrapersAdminPage() {
             Scraper Control Room
           </h1>
           <p className="max-w-3xl text-sm leading-6 text-stone-300">
-            Run the Myprotein whey scraper or the VoucherCodes Myprotein scraper and
-            inspect live output before deciding what to do with the results.
+            Run the Myprotein catalog scraper across protein, supplements, vitamins,
+            and food sections or the VoucherCodes Myprotein scraper, then inspect
+            live output before deciding what to do with the results.
           </p>
         </section>
 

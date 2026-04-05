@@ -38,24 +38,6 @@ interface Props {
   onPriceModeChange?: (mode: PriceMode) => void;
 }
 
-function logCompareDebug(label: string, data: Record<string, unknown>) {
-  console.log(`[compare-search-debug] ${label}`, data);
-}
-
-function markComparePerformance(name: string) {
-  if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
-  performance.mark(name);
-}
-
-function measureComparePerformance(name: string, startMark: string, endMark: string) {
-  if (typeof performance === "undefined" || typeof performance.measure !== "function") return;
-  try {
-    performance.measure(name, startMark, endMark);
-  } catch {
-    // Ignore missing-mark errors during rapid state changes.
-  }
-}
-
 export type { Product } from "./price-comparison-table.types";
 
 export default function PriceComparisonTable({
@@ -88,6 +70,7 @@ export default function PriceComparisonTable({
       activeFilters.flavour,
       activeFilters.retailer,
       activeFilters.category,
+      activeFilters.subcategory,
       activeFilters.product,
       activeFilters.servings,
       activeFilters.pricePerServing,
@@ -122,25 +105,14 @@ export default function PriceComparisonTable({
   const groupedWithSelection = useMemo<ProductGroupWithSelection[]>(() => groups.map((group) => ({ ...group, selected: getDefaultVariant(group) })), [groups]);
   const sorted = useMemo(() => sortGroups(groupedWithSelection, sortKey, sortDir, planner), [groupedWithSelection, sortDir, sortKey, planner]);
   const visibleVariants = useMemo(() => getVisibleVariants(groupedWithSelection), [groupedWithSelection]);
-  const filterOptions = useMemo<ColumnFilterOptions>(() => {
-    const startedAt = performance.now();
-    const next = getFilterOptionsForFilters(visibleVariants, allVariants, optionFilters);
-    logCompareDebug("filter-options", {
-      ms: Number((performance.now() - startedAt).toFixed(2)),
-      search: optionFilters.search,
-      visibleVariants: visibleVariants.length,
-      allVariants: allVariants.length,
-      retailers: next.retailers.length,
-      products: next.products.length,
-      flavours: next.flavours.length,
-    });
-    return next;
-  }, [allVariants, optionFilters, visibleVariants]);
+  const filterOptions = useMemo<ColumnFilterOptions>(
+    () => getFilterOptionsForFilters(visibleVariants, allVariants, optionFilters),
+    [allVariants, optionFilters, visibleVariants]
+  );
 
   const matchedGroups = useMemo(
-    () => {
-      const startedAt = performance.now();
-      const next = sorted
+    () =>
+      sorted
         .map((group) => {
           const matchingVariants = group.variants.filter(
             (variant) =>
@@ -158,18 +130,7 @@ export default function PriceComparisonTable({
             group: ProductGroupWithSelection;
             matchingVariants: Product[];
           } => entry !== null
-        );
-
-      logCompareDebug("matched-groups", {
-        ms: Number((performance.now() - startedAt).toFixed(2)),
-        search: activeFilters.search,
-        sortedGroups: sorted.length,
-        matchedGroups: next.length,
-        matchedVariants: next.reduce((count, entry) => count + entry.matchingVariants.length, 0),
-      });
-
-      return next;
-    },
+        ),
     [activeFilters, planner, sorted]
   );
 
@@ -193,7 +154,6 @@ export default function PriceComparisonTable({
   );
 
   const bestValueVariantIds = useMemo(() => {
-    const startedAt = performance.now();
     const metrics = ["pricePer100g", "pricePerServing", "pricePerGramProtein"] as const;
     const inStockFilteredVariants = matchedGroups.flatMap((entry) =>
       entry.matchingVariants
@@ -219,16 +179,10 @@ export default function PriceComparisonTable({
       }
       result[metric] = found;
     }
-    logCompareDebug("best-value", {
-      ms: Number((performance.now() - startedAt).toFixed(2)),
-      search: activeFilters.search,
-      inStockFilteredVariants: inStockFilteredVariants.length,
-    });
     return result;
-  }, [activeFilters.search, matchedGroups, priceMode]);
+  }, [matchedGroups, priceMode]);
 
   const calorieVariantIds = useMemo(() => {
-    const startedAt = performance.now();
     if (servingMetric !== "calories") return { lowest: [] as string[], highest: [] as string[] };
     const getCalVal = (variant: Product): number | null => {
       if (activeColumn === "pricePerServing") return getCaloriesPerServing(variant);
@@ -256,17 +210,8 @@ export default function PriceComparisonTable({
         if (maxVal !== null && val === maxVal) highest.push(variant.id);
       }
     }
-    const result = { lowest, highest };
-    logCompareDebug("calorie-highlights", {
-      ms: Number((performance.now() - startedAt).toFixed(2)),
-      search: activeFilters.search,
-      activeColumn,
-      inStockFilteredVariants: inStockFilteredVariants.length,
-      lowest: result.lowest.length,
-      highest: result.highest.length,
-    });
-    return result;
-  }, [activeFilters.search, servingMetric, activeColumn, matchedGroups]);
+    return { lowest, highest };
+  }, [servingMetric, activeColumn, matchedGroups]);
 
   function handleSort(key: SortKey, groupId?: string, viewportTop?: number, sourceElement?: HTMLElement | null) {
     if (sortKey === key) {
@@ -283,12 +228,6 @@ export default function PriceComparisonTable({
 
   function setFilter(key: keyof ColumnFilters, value: string) {
     if (key === "search") {
-      markComparePerformance("compare-search:filter-commit");
-      measureComparePerformance(
-        "compare-search:debounce-to-filter-commit",
-        "compare-search:debounce-fired",
-        "compare-search:filter-commit"
-      );
       setFilters((current) => ({ ...current, search: value }));
       return;
     }
@@ -320,57 +259,6 @@ export default function PriceComparisonTable({
   }
 
   const hasActiveFilters = FILTER_KEYS.some((key) => filters[key] !== DEFAULT_FILTERS[key]);
-
-  useEffect(() => {
-    logCompareDebug("render-summary", {
-      search: activeFilters.search,
-      totalProducts: products.length,
-      groups: groups.length,
-      filteredGroups: filteredGroups.length,
-      filteredVariants: filteredVariantCount,
-      isMobileViewport,
-      viewMode,
-    });
-
-    if (
-      typeof window !== "undefined" &&
-      window.__compareSearchDebug?.appliedValue === activeFilters.search &&
-      window.__compareSearchDebug?.inputChangedAt !== undefined
-    ) {
-      markComparePerformance("compare-search:render-committed");
-      measureComparePerformance(
-        "compare-search:filter-commit-to-render",
-        "compare-search:filter-commit",
-        "compare-search:render-committed"
-      );
-      measureComparePerformance(
-        "compare-search:input-to-render",
-        "compare-search:input-changed",
-        "compare-search:render-committed"
-      );
-      const now = performance.now();
-      logCompareDebug("search-render-latency", {
-        search: activeFilters.search,
-        msFromInput: Number((now - window.__compareSearchDebug.inputChangedAt).toFixed(2)),
-        msFromDebounce:
-          window.__compareSearchDebug.debouncedAppliedAt !== undefined
-            ? Number((now - window.__compareSearchDebug.debouncedAppliedAt).toFixed(2))
-            : null,
-        filteredGroups: filteredGroups.length,
-        filteredVariants: filteredVariantCount,
-        isMobileViewport,
-        viewMode,
-      });
-    }
-  }, [
-    activeFilters.search,
-    filteredGroups.length,
-    filteredVariantCount,
-    groups.length,
-    isMobileViewport,
-    products.length,
-    viewMode,
-  ]);
 
   if (products.length === 0) {
     return (

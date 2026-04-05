@@ -57,6 +57,11 @@ export function getFieldDiffs(record: MyproteinVariantRecord, current: Myprotein
       JSON.stringify(current.product.nutritionalInfo ?? null),
       JSON.stringify(record.nutritionalInformation)
     ),
+    diff(
+      "bundleLinks",
+      JSON.stringify(current.product.bundleLinks ?? null),
+      JSON.stringify(record.bundleLinks.length > 0 ? record.bundleLinks : null)
+    ),
     diff("url", current.url, record.variantUrl),
     diff("flavour", current.flavour, record.flavour),
     diff("sizeG", toNumber(current.sizeG), record.sizeG),
@@ -111,6 +116,19 @@ export function toNumber(value: Prisma.Decimal | number | null | undefined) {
 
 export function roundNullable(value: number, digits: number) {
   return Number(value.toFixed(digits));
+}
+
+export function parseBundleLinks(value: NutritionalInformationJson): Array<{ name: string; url: string }> {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const obj = item as Record<string, unknown>;
+      return typeof obj.name === "string" && typeof obj.url === "string"
+        ? { name: obj.name, url: obj.url }
+        : null;
+    })
+    .filter((item): item is { name: string; url: string } => item !== null);
 }
 
 export function parseNutritionalInformation(value: NutritionalInformationJson) {
@@ -311,6 +329,74 @@ export function formatCategoryList(categoryLabels: string[] | null | undefined, 
   }
 
   return [...new Set(normalized)].join(", ");
+}
+
+export function inferTopLevelCategory(
+  categoryLabels: string[] | null | undefined,
+  categoryUrls: string[] | null | undefined,
+  fallback: string
+) {
+  const joined = [
+    ...(categoryLabels ?? []),
+    ...(categoryUrls ?? []),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    joined.includes("/c/nutrition/protein/") ||
+    joined.includes("/c/clear-protein/") ||
+    joined.includes("protein shakes") ||
+    joined.includes("whey protein") ||
+    joined.includes("casein protein") ||
+    joined.includes("vegan shakes")
+  ) {
+    return "Protein";
+  }
+
+  if (
+    joined.includes("/c/nutrition/vitamins/") ||
+    joined.includes("/c/nutrition/vitamins-minerals/") ||
+    joined.includes("/c/vitamin-gummies-range/") ||
+    joined.includes("vitamins")
+  ) {
+    return "Vitamins";
+  }
+
+  if (
+    joined.includes("/c/nutrition/healthy-food-drinks/") ||
+    joined.includes("protein bars") ||
+    joined.includes("protein snacks") ||
+    joined.includes("protein foods")
+  ) {
+    return "Food, Bars & Snacks";
+  }
+
+  if (
+    joined.includes("/c/nutrition/accessories/") ||
+    joined.includes("accessories")
+  ) {
+    return "Accessories";
+  }
+
+  if (
+    joined.includes("/c/nutrition/creatine/") ||
+    joined.includes("/c/nutrition/amino-acids/") ||
+    joined.includes("/c/nutrition/pre-post-workout/") ||
+    joined.includes("/c/nutrition/recovery/") ||
+    joined.includes("/c/nutrition/carbohydrates/") ||
+    joined.includes("/c/nutrition/weight-management/") ||
+    joined.includes("/c/glp1-nutrition-support/") ||
+    joined.includes("/c/performance/") ||
+    joined.includes("creatine") ||
+    joined.includes("pre workout") ||
+    joined.includes("amino acids") ||
+    joined.includes("recovery")
+  ) {
+    return "Supplements";
+  }
+
+  return fallback;
 }
 
 export function formatSizeLabel(sizeG: number | null) {

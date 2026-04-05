@@ -3,7 +3,9 @@ import {
   formatCategoryList,
   formatProductType,
   formatSizeLabel,
+  inferTopLevelCategory,
   parseNutritionalInformation,
+  parseBundleLinks,
 } from "./helpers.js";
 import type { CompareProductRow } from "./types.js";
 
@@ -58,11 +60,13 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
           imageUrl: true,
           category: true,
           categoryLabels: true,
+          categoryUrls: true,
           proteinPer100g: true,
           servingSizeG: true,
           servingsPerPack: true,
           ingredients: true,
           nutritionalInfo: true,
+          bundleLinks: true,
           description: true,
         },
       },
@@ -90,13 +94,20 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
       const categoryLabels = Array.isArray(row.product.categoryLabels)
         ? row.product.categoryLabels.filter((value): value is string => typeof value === "string")
         : [];
+      const categoryUrls = Array.isArray((row.product as { categoryUrls?: unknown }).categoryUrls)
+        ? ((row.product as { categoryUrls?: unknown[] }).categoryUrls ?? []).filter(
+            (value): value is string => typeof value === "string"
+          )
+        : [];
       const type = formatProductType(row.product.category, categoryLabels);
-      const category = formatCategoryList(categoryLabels, type);
+      const subcategory = formatCategoryList(categoryLabels, type);
+      const category = inferTopLevelCategory(categoryLabels, categoryUrls, type);
       const searchText = [
         row.product.name,
         row.product.brand,
         row.retailer.name,
         category,
+        subcategory,
         type,
         row.flavour,
         formatSizeLabel(row.sizeG !== null ? Number(row.sizeG) : null),
@@ -114,6 +125,7 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
         imageUrl: row.product.imageUrl,
         retailer: row.retailer.name,
         category,
+        subcategory,
         flavour: row.flavour,
         size: formatSizeLabel(row.sizeG !== null ? Number(row.sizeG) : null),
         sizeG: row.sizeG !== null ? Number(row.sizeG) : null,
@@ -148,6 +160,7 @@ export async function getCompareProducts(): Promise<CompareProductRow[]> {
           row.product.proteinPer100g !== null ? Number(row.product.proteinPer100g) : null,
         ingredients: row.product.ingredients,
         nutritionalInformation: parseNutritionalInformation(row.product.nutritionalInfo),
+        bundleLinks: parseBundleLinks(row.product.bundleLinks),
         inStock: row.inStock,
         url: row.url,
         type,

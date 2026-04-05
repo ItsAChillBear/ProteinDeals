@@ -20,6 +20,7 @@ export interface ColumnFilters {
   flavour: string;
   retailer: string;
   category: string;
+  subcategory: string;
   product: string;
   servings: string;
   pricePerServing: string;
@@ -39,6 +40,7 @@ export interface ColumnFilterOptions {
   flavours: string[];
   retailers: string[];
   categories: string[];
+  subcategories: string[];
   products: string[];
   servings: string[];
   pricePerServings: string[];
@@ -58,6 +60,7 @@ export const DEFAULT_FILTERS: ColumnFilters = {
   flavour: "all",
   retailer: "all",
   category: "all",
+  subcategory: "all",
   product: "all",
   servings: "all",
   pricePerServing: "all",
@@ -77,6 +80,7 @@ export const FILTER_KEYS: Array<keyof ColumnFilters> = [
   "flavour",
   "retailer",
   "category",
+  "subcategory",
   "product",
   "servings",
   "pricePerServing",
@@ -120,7 +124,9 @@ export function getFilterOptionsForFilters(
       .sort(),
     retailers: getOptionsForKey(allVariants, optionFilters, "retailer", (variant) => variant.retailer)
       .sort(),
-    categories: getAtomicCategoryOptions(allVariants, optionFilters).sort(),
+    categories: getOptionsForKey(allVariants, optionFilters, "category", (variant) => variant.category)
+      .sort(),
+    subcategories: getAtomicSubcategoryOptions(allVariants, optionFilters).sort(),
     products: getOptionsForKey(allVariants, optionFilters, "product", (variant) => normalizeBaseName(variant))
       .sort(),
     servings: getOptionsForKey(visibleVariants, optionFilters, "servings", (variant) =>
@@ -201,6 +207,7 @@ function getOptionsForKey(
       flavour: targetKey === "flavour" ? DEFAULT_FILTERS.flavour : filters.flavour,
       retailer: targetKey === "retailer" ? DEFAULT_FILTERS.retailer : filters.retailer,
       category: targetKey === "category" ? DEFAULT_FILTERS.category : filters.category,
+      subcategory: targetKey === "subcategory" ? DEFAULT_FILTERS.subcategory : filters.subcategory,
       product: targetKey === "product" ? DEFAULT_FILTERS.product : filters.product,
       servings: targetKey === "servings" ? DEFAULT_FILTERS.servings : filters.servings,
       pricePerServing:
@@ -271,6 +278,8 @@ function mapOptionsForKey(options: ColumnFilterOptions, key: keyof ColumnFilters
       return options.categories;
     case "product":
       return options.products;
+    case "subcategory":
+      return options.subcategories;
     case "servings":
       return options.servings;
     case "pricePerServing":
@@ -306,12 +315,18 @@ export function variantMatchesFilters(variant: Product, filters: ColumnFilters) 
     } else if (variant.retailer !== filters.retailer) return false;
   }
   if (filters.category !== "all") {
-    const variantCategories = splitCategoryLabels(variant.category);
     if (filters.category.startsWith(MULTI_PREFIX)) {
       const allowed = parseMultiFilter(filters.category);
-      if (!allowed.some((value) => variantCategories.includes(value))) return false;
-    } else if (variant.category !== filters.category) {
-      if (!variantCategories.includes(filters.category)) return false;
+      if (!allowed.includes(variant.category)) return false;
+    } else if (variant.category !== filters.category) return false;
+  }
+  if (filters.subcategory !== "all") {
+    const variantSubcategories = splitCategoryLabels(variant.subcategory);
+    if (filters.subcategory.startsWith(MULTI_PREFIX)) {
+      const allowed = parseMultiFilter(filters.subcategory);
+      if (!allowed.some((value) => variantSubcategories.includes(value))) return false;
+    } else if (variant.subcategory !== filters.subcategory) {
+      if (!variantSubcategories.includes(filters.subcategory)) return false;
     }
   }
   if (filters.product !== "all") {
@@ -352,14 +367,15 @@ function matchesNumericFilter(value: number | null, filter: string, fixedDigits?
   return fixedDigits !== undefined ? value.toFixed(fixedDigits) === filter : String(value) === filter;
 }
 
-function getAtomicCategoryOptions(variants: Product[], filters: ColumnFilters) {
+function getAtomicSubcategoryOptions(variants: Product[], filters: ColumnFilters) {
   const matchingVariants = variants.filter((variant) =>
     variantMatchesFilters(variant, {
       search: filters.search,
       size: filters.size,
       flavour: filters.flavour,
       retailer: filters.retailer,
-      category: DEFAULT_FILTERS.category,
+      category: filters.category,
+      subcategory: DEFAULT_FILTERS.subcategory,
       product: filters.product,
       servings: filters.servings,
       pricePerServing: filters.pricePerServing,
@@ -376,7 +392,7 @@ function getAtomicCategoryOptions(variants: Product[], filters: ColumnFilters) {
 
   return Array.from(
     new Set(
-      matchingVariants.flatMap((variant) => splitCategoryLabels(variant.category))
+      matchingVariants.flatMap((variant) => splitCategoryLabels(variant.subcategory))
     )
   );
 }
